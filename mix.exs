@@ -7,6 +7,8 @@ defmodule Mail.Mixfile do
      elixir: "~> 1.2",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
+     description: description(),
+     package: package(),
      deps: deps]
   end
 
@@ -15,6 +17,17 @@ defmodule Mail.Mixfile do
   # Type "mix help compile.app" for more information
   def application do
     [applications: [:logger]]
+  end
+
+  def package do
+    [maintainers: ["Brian Cardarella"],
+     licenses: ["MIT"],
+     links: %{"GitHub" => "https://github.com/DockYard/elixir-mail"}
+    ]
+  end
+
+  def description do
+    "Easily build a composable mail message"
   end
 
   # Dependencies can be Hex packages:

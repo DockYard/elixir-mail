@@ -1,0 +1,10 @@
+language: elixir
+elixir:
+  - 1.2.0
+otp_release:
+  - 18.0
+sudo: false # to use faster container based build environment
+cache:
+  directories:
+    - _build
+    - deps
