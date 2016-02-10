@@ -2,10 +2,24 @@ defmodule MailTest do
   use ExUnit.Case
   doctest Mail
 
+  # Body
+
   test "put_body" do
-    mail = Mail.put_body(%Mail{}, "test body")
-    assert mail.body == "test body"
+    mail = Mail.put_body(%Mail{}, :text, "test body")
+    assert mail.body.text == "test body"
   end
+
+  test "put_text" do
+    mail = Mail.put_text(%Mail{}, "test text")
+    assert mail.body.text == "test text"
+  end
+
+  test "put html" do
+    mail = Mail.put_html(%Mail{}, "test html")
+    assert mail.body.html == "test html"
+  end
+
+  # Header
 
   test "put_header" do
     mail = Mail.put_header(%Mail{}, :test, "test content")
