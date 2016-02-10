@@ -244,7 +244,7 @@ defmodule Mail do
   defp validate_recipients([]), do: nil
   defp validate_recipients([recipient|tail]) do
     case recipient do
-      {name, email} -> validate_recipients(tail)
+      {_name, _email} -> validate_recipients(tail)
       email when is_binary(email) -> validate_recipients(tail)
       other -> raise ArgumentError,
         message: """
