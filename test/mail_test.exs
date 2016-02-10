@@ -120,4 +120,17 @@ defmodule MailTest do
     assert Enum.member?(recipients, "three@example.com")
     assert Enum.member?(recipients, "four@example.com")
   end
+
+  test "delete_header" do
+    mail = Mail.delete_header(%Mail{headers: %{foo: "bar"}}, :foo)
+
+    refute Map.has_key?(mail.headers, :foo)
+  end
+
+  test "delete_headers" do
+    mail = Mail.delete_headers(%Mail{headers: %{foo: "bar", baz: "qux"}}, [:foo, :baz])
+
+    refute Map.has_key?(mail.headers, :foo)
+    refute Map.has_key?(mail.headers, :baz)
+  end
 end

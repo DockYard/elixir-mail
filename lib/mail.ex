@@ -190,4 +190,24 @@ defmodule Mail do
     List.wrap(mail.headers[:bcc])
     |> Enum.uniq()
   end
+
+  @doc """
+  Deletes a specific header key
+
+      Mail.delete_header(%Mail{headers: %{subject: "Welcome to DockYard!"}}, :subject)
+      %Mail{headers: %{}}
+  """
+  def delete_header(mail, header),
+    do: put_in(mail.headers, Map.delete(mail.headers, header))
+
+  @doc """
+  Deletes a list of headers
+
+      Mail.delete_headers(%Mail{headers: %{foo: "bar", baz: "qux"}}, [:foo, :baz])
+      %Mail{headers: %{}}
+  """
+  def delete_headers(mail, headers)
+  def delete_headers(mail, []), do: mail
+  def delete_headers(mail, [header|tail]),
+    do: delete_headers(delete_header(mail, header), tail)
 end
