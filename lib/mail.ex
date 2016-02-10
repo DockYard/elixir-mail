@@ -8,7 +8,8 @@ defmodule Mail do
   Build a mail message with the `Mail` struct
 
       mail =
-        Mail.put_subject(%Mail{}, "How is it going?")
+        Mail.build
+        |> Mail.put_subject("How is it going?")
         |> Mail.put_text("Just checking in")
         |> Mail.put_to("joe@example.com")
         |> Mail.put_from("brian@example.com")
@@ -18,6 +19,14 @@ defmodule Mail do
                        to: ["joe@example.com"],
                        from: "brian@example.com"}}
   """
+
+  @doc """
+  Builds empty mail struct for further composing
+
+      Mail.build()
+  """
+  def build,
+    do: %Mail{}
 
   @doc """
   Add content to the body by mimetype as a key/value pair

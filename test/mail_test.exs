@@ -2,6 +2,12 @@ defmodule MailTest do
   use ExUnit.Case
   doctest Mail
 
+  # Build
+  test "build" do
+    mail = Mail.build
+    assert mail == %Mail{}
+  end
+
   # Body
 
   test "put_body" do
