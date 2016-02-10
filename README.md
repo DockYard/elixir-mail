@@ -10,7 +10,7 @@ An RFC2822 implementation in Elixir, built for composability.
 
 * [Brian Cardarella](http://twitter.com/bcardarella)
 
-[We are very thankful for the many contributors](https://github.com/dockyard/mail/graphs/contributors)
+[We are very thankful for the many contributors](https://github.com/dockyard/elixir-mail/graphs/contributors)
 
 ## Versioning ##
 
@@ -27,7 +27,7 @@ or come visit us at [The Boston Elixir Meetup](http://www.meetup.com/Boston-Elix
 ## Want to help? ##
 
 Please do! We are always looking to improve this library. Please see our
-[Contribution Guidelines](https://github.com/dockyard/mail/blob/master/CONTRIBUTING.md)
+[Contribution Guidelines](https://github.com/dockyard/elixir-mail/blob/master/CONTRIBUTING.md)
 on how to properly submit issues and pull requests.
 
 ## Legal ##
