@@ -2,7 +2,7 @@
 
 An RFC2822 implementation in Elixir, built for composability.
 
-[![Build Status](https://secure.travis-ci.org/dockyard/elixir-mail.svg?branch=master)](http://travis-ci.org/dockyard/elixir-mail)
+[![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](http://travis-ci.org/DockYard/elixir-mail)
 
 [The docs are currently available on HexDocs](http://hexdocs.pm/mail/Mail.html)
 
