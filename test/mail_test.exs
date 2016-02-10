@@ -147,7 +147,8 @@ defmodule MailTest do
 
   test "all_recipients combins :to, :cc, and :bcc" do
     mail =
-      Mail.put_to(%Mail{}, ["one@example.com", "two@example.com"])
+      Mail.build
+      |> Mail.put_to(["one@example.com", "two@example.com"])
       |> Mail.put_cc(["three@example.com", "one@example.com"])
       |> Mail.put_bcc(["four@example.com", "three@example.com"])
 
