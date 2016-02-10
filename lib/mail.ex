@@ -94,14 +94,24 @@ defmodule Mail do
       Mail.put_to(%Mail{}, "one@example.com")
       |> Mail.put_to(["two@example.com", "three@example.com"])
       %Mail{headers: %{to: ["one@example.com", "two@example.com", "three@example.com"]}}
+
+  The value of a recipient must conform to either a string value or a tuple with two elements,
+  otherwise an `ArgumentError` is raised.
+
+  Valid forms:
+  * `"user@example.com"`
+  * `"Test User <user@example.com>"`
+  * `{"Test User", "user@example.com"}`
   """
   def put_to(mail, recipients)
 
-  def put_to(mail, recipient) when is_binary(recipient),
-    do: put_to(mail, [recipient])
+  def put_to(mail, recipients) when is_list(recipients) do
+    validate_recipients(recipients)
+    put_header(mail, :to, (mail.headers[:to] || []) ++ recipients)
+  end
 
-  def put_to(mail, recipients) when is_list(recipients),
-    do: put_header(mail, :to, (mail.headers[:to] || []) ++ recipients)
+  def put_to(mail, recipient),
+    do: put_to(mail, [recipient])
 
   @doc """
   Add new recipients to the `cc` header
@@ -118,14 +128,24 @@ defmodule Mail do
       Mail.put_cc(%Mail{}, "one@example.com")
       |> Mail.put_cc(["two@example.com", "three@example.com"])
       %Mail{headers: %{cc: ["one@example.com", "two@example.com", "three@example.com"]}}
+
+  The value of a recipient must conform to either a string value or a tuple with two elements,
+  otherwise an `ArgumentError` is raised.
+
+  Valid forms:
+  * `"user@example.com"`
+  * `"Test User <user@example.com>"`
+  * `{"Test User", "user@example.com"}`
   """
   def put_cc(mail, recipients)
 
-  def put_cc(mail, recipient) when is_binary(recipient),
-    do: put_cc(mail, [recipient])
+  def put_cc(mail, recipients) when is_list(recipients) do
+    validate_recipients(recipients)
+    put_header(mail, :cc, (mail.headers[:cc] || []) ++ recipients)
+  end
 
-  def put_cc(mail, recipients) when is_list(recipients),
-    do: put_header(mail, :cc, (mail.headers[:cc] || []) ++ recipients)
+  def put_cc(mail, recipient),
+    do: put_cc(mail, [recipient])
 
   @doc """
   Add new recipients to the `bcc` header
@@ -142,14 +162,24 @@ defmodule Mail do
       Mail.put_bcc(%Mail{}, "one@example.com")
       |> Mail.put_bcc(["two@example.com", "three@example.com"])
       %Mail{headers: %{bcc: ["one@example.com", "two@example.com", "three@example.com"]}}
+
+  The value of a recipient must conform to either a string value or a tuple with two elements,
+  otherwise an `ArgumentError` is raised.
+
+  Valid forms:
+  * `"user@example.com"`
+  * `"Test User <user@example.com>"`
+  * `{"Test User", "user@example.com"}`
   """
   def put_bcc(mail, recipients)
 
-  def put_bcc(mail, recipient) when is_binary(recipient),
-    do: put_bcc(mail, [recipient])
+  def put_bcc(mail, recipients) when is_list(recipients) do
+    validate_recipients(recipients)
+    put_header(mail, :bcc, (mail.headers[:bcc] || []) ++ recipients)
+  end
 
-  def put_bcc(mail, recipients) when is_list(recipients),
-    do: put_header(mail, :bcc, (mail.headers[:bcc] || []) ++ recipients)
+  def put_bcc(mail, recipient),
+    do: put_bcc(mail, [recipient])
 
   @doc """
   Add a new `from` header
@@ -210,4 +240,19 @@ defmodule Mail do
   def delete_headers(mail, []), do: mail
   def delete_headers(mail, [header|tail]),
     do: delete_headers(delete_header(mail, header), tail)
+
+  defp validate_recipients([]), do: nil
+  defp validate_recipients([recipient|tail]) do
+    case recipient do
+      {name, email} -> validate_recipients(tail)
+      email when is_binary(email) -> validate_recipients(tail)
+      other -> raise ArgumentError,
+        message: """
+        The recipient `#{inspect other}` is invalid.
+
+        Recipients must be in the format of either a string,
+        or a tuple with two elements `{name, email}`
+        """
+    end
+  end
 end

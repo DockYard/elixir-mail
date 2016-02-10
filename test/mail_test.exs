@@ -51,6 +51,17 @@ defmodule MailTest do
                                "two@example.com"]
   end
 
+  test "can use a tuple to define `{name, email}` with `to`" do
+    mail = Mail.put_to(%Mail{}, {"Test User", "user@example.com"})
+    assert mail.headers.to == [{"Test User", "user@example.com"}]
+  end
+
+  test "will raise when an invalid tuple with `to`" do
+    assert_raise ArgumentError, fn ->
+      Mail.put_to(%Mail{}, {"Test User", "user@example.com", "other"})
+    end
+  end
+
   test "put_cc when single recipient" do
     mail = Mail.put_cc(%Mail{}, "user@example.com")
     assert mail.headers.cc == ["user@example.com"]
@@ -71,6 +82,17 @@ defmodule MailTest do
                                "two@example.com"]
   end
 
+  test "can use a tuple to define `{name, email}` with `cc`" do
+    mail = Mail.put_cc(%Mail{}, {"Test User", "user@example.com"})
+    assert mail.headers.cc == [{"Test User", "user@example.com"}]
+  end
+
+  test "will raise when an invalid tuple with `cc`" do
+    assert_raise ArgumentError, fn ->
+      Mail.put_cc(%Mail{}, {"Test User", "user@example.com", "other"})
+    end
+  end
+
   test "put_bcc when single recipient" do
     mail = Mail.put_bcc(%Mail{}, "user@example.com")
     assert mail.headers.bcc == ["user@example.com"]
@@ -89,6 +111,17 @@ defmodule MailTest do
     assert mail.headers.bcc == ["user@example.com",
                                 "one@example.com",
                                 "two@example.com"]
+  end
+
+  test "can use a tuple to define `{name, email}` with `bcc`" do
+    mail = Mail.put_bcc(%Mail{}, {"Test User", "user@example.com"})
+    assert mail.headers.bcc == [{"Test User", "user@example.com"}]
+  end
+
+  test "will raise when an invalid tuple with `bcc`" do
+    assert_raise ArgumentError, fn ->
+      Mail.put_bcc(%Mail{}, {"Test User", "user@example.com", "other"})
+    end
   end
 
   test "put_from" do
