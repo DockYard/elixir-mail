@@ -1,0 +1,12 @@
+Content-Type: mutipart/alternative; boundary="foobar"
+
+--foobar
+Content-Type: text/plain
+
+Hello there!
+
+--foobar
+Content-Type: text/html
+
+<h1>Hello there!</h1>
+--foobar--
