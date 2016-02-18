@@ -1,7 +1,4 @@
 defmodule Mail do
-  defstruct body: %{},
-            headers: %{}
-
   @moduledoc """
   Mail primitive for composing messages.
 
@@ -20,30 +17,45 @@ defmodule Mail do
   """
 
   @doc """
-  Add content to the body by mimetype as a key/value pair
-
-  Allows content to be updated in the `body` field
-  by the mimetype extension
-
-      Mail.put_put(%Mail{}, :text, "text content")
+  Build a single-part mail
   """
-  def put_body(mail, part, content),
-    do: put_in(mail.body[part], content)
+  def build(),
+    do: %Mail.Message{}
 
   @doc """
-  Add text content to the body
+  Build a multi-part mail
+  """
+  def build_multipart,
+    do: %Mail.Message{multipart: true}
 
-  Shortcut function for adding plain text to the body
+  @doc """
+  Add a plaintext part
+
+  Shortcut function for adding plain text part
 
       Mail.put_text(%Mail{}, "Some plain text")
 
-  This function is equivilant to using the `put_body/3`
+  This function is equivilant to using the `put_part/2`
   function
 
-      Mail.put_body(%Mail{}, :text, "Some plain text")
+      Mail.put_part(%Mail{}, %Mail.Message{data: "Some plain text", headers: %{content_type: ["text/plain"]}})
+
+  If a text part already exists this function will replace that existing
+  part with the new part.
   """
-  def put_text(mail, content),
-    do: put_body(mail, :text, content)
+  def put_text(%Mail.Message{multipart: true} = message, body) do
+    message= case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/plain")) do
+      %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
+      _ -> message
+    end
+
+    Mail.Message.put_part(message, Mail.Message.build_text(body))
+  end
+
+  def put_text(%Mail.Message{} = message, body) do
+    Mail.Message.put_body(message, body)
+    |> Mail.Message.put_content_type("text/plain")
+  end
 
   @doc """
   Add html content to the body
@@ -52,23 +64,33 @@ defmodule Mail do
 
       Mail.put_html(%Mail{}, "<span>Some HTML</span>")
 
-  This function is equivilant to using the `put_body/3`
+  This function is equivilant to using the `put_part/2`
   function
 
-      Mail.put_body(%Mail{}, :html, "<span>Some HTML</span>")
+      Mail.put_part(%Mail{}, %Mail.Message{data: "<span>Some HTML</span>", headers: %{content_type: ["text/html"]}})
+
+  If a text part already exists this function will replace that existing
+  part with the new part.
   """
-  def put_html(mail, content),
-    do: put_body(mail, :html, content)
+  def put_html(%Mail.Message{multipart: true} = message, body) do
+    message= case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
+      %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
+      _ -> message
+    end
 
-  @doc """
-  Add a new header key/value pair
+    Mail.Message.put_part(message, Mail.Message.build_html(body))
+  end
 
-      Mail.put_header(%Mail{}, :subject, "Welcome to DockYard!")
+  def put_html(%Mail.Message{} = message, body) do
+    Mail.Message.put_body(message, body)
+    |> Mail.Message.put_content_type("text/html")
+  end
 
-  The individual headers will be in the `headers` field on the `%Mail{}` struct
-  """
-  def put_header(mail, key, content),
-    do: put_in(mail.headers[key], content)
+  def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
+
+  def put_attachment(%Mail.Message{} = message, path) when is_binary(path),
+    do: Mail.Message.put_attachment(message, path)
 
   @doc """
   Add a new `subject` header
@@ -76,8 +98,8 @@ defmodule Mail do
       Mail.put_subject(%Mail, "Welcome to DockYard!")
       %Mail{headers: %{subject: "Welcome to DockYard!"}}
   """
-  def put_subject(mail, subject),
-    do: put_header(mail, :subject, subject)
+  def put_subject(message, subject),
+    do: Mail.Message.put_header(message, :subject, subject)
 
   @doc """
   Add new recipients to the `to` header
@@ -103,15 +125,15 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
-  def put_to(mail, recipients)
+  def put_to(message, recipients)
 
-  def put_to(mail, recipients) when is_list(recipients) do
+  def put_to(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    put_header(mail, :to, (mail.headers[:to] || []) ++ recipients)
+    Mail.Message.put_header(message, :to, (message.headers[:to] || []) ++ recipients)
   end
 
-  def put_to(mail, recipient),
-    do: put_to(mail, [recipient])
+  def put_to(message, recipient),
+    do: put_to(message, [recipient])
 
   @doc """
   Add new recipients to the `cc` header
@@ -137,15 +159,15 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
-  def put_cc(mail, recipients)
+  def put_cc(message, recipients)
 
-  def put_cc(mail, recipients) when is_list(recipients) do
+  def put_cc(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    put_header(mail, :cc, (mail.headers[:cc] || []) ++ recipients)
+    Mail.Message.put_header(message, :cc, (message.headers[:cc] || []) ++ recipients)
   end
 
-  def put_cc(mail, recipient),
-    do: put_cc(mail, [recipient])
+  def put_cc(message, recipient),
+    do: put_cc(message, [recipient])
 
   @doc """
   Add new recipients to the `bcc` header
@@ -171,15 +193,15 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
-  def put_bcc(mail, recipients)
+  def put_bcc(message, recipients)
 
-  def put_bcc(mail, recipients) when is_list(recipients) do
+  def put_bcc(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    put_header(mail, :bcc, (mail.headers[:bcc] || []) ++ recipients)
+    Mail.Message.put_header(message, :bcc, (message.headers[:bcc] || []) ++ recipients)
   end
 
-  def put_bcc(mail, recipient),
-    do: put_bcc(mail, [recipient])
+  def put_bcc(message, recipient),
+    do: put_bcc(message, [recipient])
 
   @doc """
   Add a new `from` header
@@ -187,8 +209,8 @@ defmodule Mail do
       Mail.put_from(%Mail, "user@example.com")
       %Mail{headers: %{from: "user@example.com"}}
   """
-  def put_from(mail, sender),
-    do: put_header(mail, :from, sender)
+  def put_from(message, sender),
+    do: Mail.Message.put_header(message, :from, sender)
 
   @doc """
   Add a new `reply-to` header
@@ -196,17 +218,8 @@ defmodule Mail do
       Mail.put_reply_to(%Mail, "user@example.com")
       %Mail{headers: %{reply_to: "user@example.com"}}
   """
-  def put_reply_to(mail, reply_address),
-    do: put_header(mail, :reply_to, reply_address)
-
-  @doc """
-  Add a new `content-type` header
-
-      Mail.put_content_type(%Mail, "text/plain")
-      %Mail{headers: %{content_type: "text/plain"}}
-  """
-  def put_content_type(mail, content_type),
-    do: put_header(mail, :content_type, content_type)
+  def put_reply_to(message, reply_address),
+    do: Mail.Message.put_header(message, :reply_to, reply_address)
 
   @doc """
   Returns a unique list of all recipients
@@ -214,44 +227,24 @@ defmodule Mail do
   Will collect all recipients from `to`, `cc`, and `bcc`
   and returns a unique list of recipients.
   """
-  def all_recipients(mail) do
-    List.wrap(mail.headers[:to]) ++
-    List.wrap(mail.headers[:cc]) ++
-    List.wrap(mail.headers[:bcc])
+  def all_recipients(message) do
+    List.wrap(message.headers[:to]) ++
+    List.wrap(message.headers[:cc]) ++
+    List.wrap(message.headers[:bcc])
     |> Enum.uniq()
   end
-
-  @doc """
-  Deletes a specific header key
-
-      Mail.delete_header(%Mail{headers: %{subject: "Welcome to DockYard!"}}, :subject)
-      %Mail{headers: %{}}
-  """
-  def delete_header(mail, header),
-    do: put_in(mail.headers, Map.delete(mail.headers, header))
-
-  @doc """
-  Deletes a list of headers
-
-      Mail.delete_headers(%Mail{headers: %{foo: "bar", baz: "qux"}}, [:foo, :baz])
-      %Mail{headers: %{}}
-  """
-  def delete_headers(mail, headers)
-  def delete_headers(mail, []), do: mail
-  def delete_headers(mail, [header|tail]),
-    do: delete_headers(delete_header(mail, header), tail)
 
   defp validate_recipients([]), do: nil
   defp validate_recipients([recipient|tail]) do
     case recipient do
-      {_name, _email} -> validate_recipients(tail)
-      email when is_binary(email) -> validate_recipients(tail)
+      {name, address} when is_binary(name) and is_binary(address) -> validate_recipients(tail)
+      address when is_binary(address) -> validate_recipients(tail)
       other -> raise ArgumentError,
         message: """
         The recipient `#{inspect other}` is invalid.
 
         Recipients must be in the format of either a string,
-        or a tuple with two elements `{name, email}`
+        or a tuple with two elements `{name, address}`
         """
     end
   end

@@ -1,0 +1,15 @@
+To: user@example.com
+Subject: Test email
+Mime-Version: 1.0
+Content-Type: multipart/alternative; boundary="foobar"
+
+--foobar
+Content-Type: text/plain
+
+Some text
+
+--foobar
+Content-Type: text/html
+
+<h1>Some HTML</h1>
+--foobar--
