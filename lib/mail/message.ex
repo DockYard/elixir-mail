@@ -7,7 +7,7 @@ defmodule Mail.Message do
   @doc """
   Add new part
 
-  Mail.Message.put_part(%Mail.Message{}, %Mail.Message{})
+      Mail.Message.put_part(%Mail.Message{}, %Mail.Message{})
   """
   def put_part(message, %Mail.Message{} = part) do
     put_in(message.parts, message.parts ++ [part])
@@ -25,7 +25,11 @@ defmodule Mail.Message do
   @doc """
   Will match on a full or partial content type
 
-  Returns `Boolean`
+      Mail.Message.match_content_type?(message, ~r/text/)
+      true
+
+      Mail.Message.match_content_type?(message, "text/html")
+      false
   """
   def match_content_type?(message, string_or_regex)
   def match_content_type?(message, %Regex{} = regex) do
@@ -88,6 +92,15 @@ defmodule Mail.Message do
   Gets the `content_type` from the header
 
   Will ensure the `content_type` is always wraped in a `List`
+
+      Mail.Message.get_content_type(%Mail.Message{})
+      [""]
+
+      Mail.Message.get_content_type(%Mail.Message{content_type: "text/plain"})
+      ["text/plain"]
+
+      Mail.Message.get_content_type(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}})
+      ["multipart/mixed", boundary: "foobar"]
   """
   def get_content_type(message),
     do: (get_header(message, :content_type) || "")
@@ -95,6 +108,15 @@ defmodule Mail.Message do
 
   @doc """
   Adds a boundary value to the `content_type` header
+
+  Will overwrite existing `boundary` key in the list. Will preserve other
+  values in the list
+
+      Mail.Message.put_boundary(%Mail.Message{}, "foobar")
+      %Mail.Message{headers: %{content_type: ["", boundary: "foobar"]}}
+
+      Mail.Message.put_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "bazqux"]}})
+      %Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}}
   """
   def put_boundary(message, boundary) do
     content_type =
@@ -108,6 +130,12 @@ defmodule Mail.Message do
   Gets the boundary value from the `content_type` header
 
   Will retrieve the boundary value. If one is not set a random one is generated.
+
+      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}})
+      "foobar"
+
+      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed"]}})
+      "ASDFSHNEW3473423"
   """
   def get_boundary(message) do
     case get_content_type(message)[:boundary] do
@@ -161,10 +189,10 @@ defmodule Mail.Message do
 
   The mimetype of the file is determined by the file extension.
 
-      Mail.Message.put_attachment(%Mail.Message{}, "README.md")
+      Mail.Message.build_attachment("README.md")
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
 
-      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents})
+      Mail.Message.build_attachment({"README.md", "file contents})
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
 
   ## Options
@@ -185,7 +213,7 @@ defmodule Mail.Message do
   should return a single mimetype.
 
       CustomMimeAdapter.type("md")
-      "text/x-markdown"
+      "text/markdown"
   """
   def build_attachment(path_or_file_tuple)
   def build_attachment(path) when is_binary(path),
@@ -193,6 +221,17 @@ defmodule Mail.Message do
   def build_attachment(file) when is_tuple(file),
     do: put_attachment(%Mail.Message{}, file)
 
+  @doc """
+  Adds a new attachment part to the provided message
+
+  The first argument must be a `Mail.Message`. The remaining argument is descibed in `build_attachment/1`
+
+      Mail.Message.put_attachment(%Mail.Message{}, "README.md")
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+
+      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents})
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+  """
   def put_attachment(message, path_or_file_tuple)
   def put_attachment(%Mail.Message{} = message, path) when is_binary(path) do
     {:ok, data} = File.read(path)
@@ -229,7 +268,9 @@ defmodule Mail.Message do
     do: has_attachment?(message.parts)
 
   @doc """
-  Is the part a text based or not
+  Is the message text based or not
+
+  Can be a message with a `content_type` of `text/plain` or `text/html`
 
   Returns `Boolean`
   """

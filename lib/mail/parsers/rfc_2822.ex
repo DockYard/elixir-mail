@@ -1,4 +1,13 @@
 defmodule Mail.Parsers.RFC2822 do
+  @moduledoc """
+  RFC2822 Parser
+
+  Will attempt to parse a valid RFC2822 message back into 
+  a `%Mail.Message{}` data model.
+
+      Mail.Parsers.RFC2822.parse(message)
+      %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
+  """
   def parse(content) do
     matcher = ~r/^\n?(.+?)\n\n(.+)/s
     [_, headers, body] = Regex.run(matcher, content)
@@ -8,7 +17,7 @@ defmodule Mail.Parsers.RFC2822 do
     |> parse_body(body)
   end
 
-  def parse_headers(message, headers) do
+  defp parse_headers(message, headers) do
     headers = String.split(headers, ~r/\n(?!\s+)/s)
       |> Enum.map(&(String.split(&1, ": ", parts: 2)))
       |> Enum.into(%{}, fn([key, value]) ->

@@ -1,5 +1,13 @@
 defmodule Mail.Renderers.RFC2822 do
   import Mail.Message, only: [match_content_type?: 2]
+  @moduledoc """
+  RFC2822 Parser
+
+  Will attempt to render a valid RFC2822 message
+  from a `%Mail.Message{}` data model.
+
+      Mail.Renderers.RFC2822.render(message)
+  """
 
   @doc """
   Renders a message according to the RFC2882 spec
@@ -17,7 +25,7 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   @doc """
-  Renders an individual message according to the RFC2882 spec
+  Render an individual part
   """
   def render_part(message)
   def render_part(%Mail.Message{multipart: true} = message) do
