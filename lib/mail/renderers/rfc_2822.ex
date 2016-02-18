@@ -9,6 +9,8 @@ defmodule Mail.Renderers.RFC2822 do
       Mail.Renderers.RFC2822.render(message)
   """
 
+  @blacklisted_headers [:bcc]
+
   @doc """
   Renders a message according to the RFC2882 spec
   """
@@ -91,7 +93,8 @@ defmodule Mail.Renderers.RFC2822 do
     do: Map.to_list(map)
         |> render_headers()
   def render_headers(list) when is_list(list) do
-    do_render_headers(list)
+    Enum.reject(list, &(Enum.member?(@blacklisted_headers, elem(&1, 0))))
+    |> do_render_headers()
     |> Enum.reverse()
     |> Enum.join("\n")
   end
