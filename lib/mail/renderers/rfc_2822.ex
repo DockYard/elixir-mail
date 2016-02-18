@@ -93,7 +93,10 @@ defmodule Mail.Renderers.RFC2822 do
     do: Map.to_list(map)
         |> render_headers()
   def render_headers(list) when is_list(list) do
-    Enum.reject(list, &(Enum.member?(@blacklisted_headers, elem(&1, 0))))
+    Enum.reject(list, fn
+      {header, _val} when header in @blacklisted_headers -> true
+      {_header, _val} -> false
+    end)
     |> do_render_headers()
     |> Enum.reverse()
     |> Enum.join("\n")
