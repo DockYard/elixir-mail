@@ -13,11 +13,10 @@ You can quickly build an RFC2822 spec compliant message.
 ```elixir
 message =
   Mail.build()
-  |> Mail.Message.put_body("A great message")
+  |> Mail.put_text("A great message")
   |> Mail.put_to("bob@example.com")
   |> Mail.put_from("me@example.com")
   |> Mail.put_subject("Open me")
-  |> Mail.put_content_type("text/plain)
 ```
 
 #### Multi-Part
