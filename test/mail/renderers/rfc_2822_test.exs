@@ -71,4 +71,15 @@ defmodule Mail.Renderers.RFC2822Test do
 
     assert_rfc2822_equal(result, fixture)
   end
+
+  test "rendering filters out BCC" do
+    message =
+      Mail.build()
+      |> Mail.put_bcc("user@example.com")
+      |> Mail.put_text("Something")
+      |> Mail.Renderers.RFC2822.render()
+      |> Mail.Parsers.RFC2822.parse()
+
+    refute Map.has_key?(message.headers, :bcc)
+  end
 end
