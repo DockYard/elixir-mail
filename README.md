@@ -4,7 +4,51 @@ An RFC2822 implementation in Elixir, built for composability.
 
 [![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](http://travis-ci.org/DockYard/elixir-mail)
 
-[The docs are currently available on HexDocs](http://hexdocs.pm/mail/Mail.html)
+## Building
+
+You can quickly build an RFC2822 spec compliant message.
+
+#### Single-Part
+
+```elixir
+message =
+  Mail.build()
+  |> Mail.Message.put_body("A great message")
+  |> Mail.put_to("bob@example.com")
+  |> Mail.put_from("me@example.com")
+  |> Mail.put_subject("Open me")
+  |> Mail.put_content_type("text/plain)
+```
+
+#### Multi-Part
+
+```elixir
+message = 
+  Mail.build_multipart()
+  |> Mail.put_text("Hello there!")
+  |> Mail.put_html("<h1>Hello there!</h1>")
+  |> Mail.put_attachment("path/to/README.md")
+  |> Mail.put_attachment({"README.md", file_data})
+```
+
+## Rendering
+
+After you have built your message you can render it:
+
+```elixir
+rendered_message = Mail.Renderers.RFC2822.render(message)
+```
+
+## Parsing
+
+If you'd like to parse an already rendered message back into 
+a data model:
+
+```elixir
+Mail.Parsers.RFC2822.parse(rendered_message)
+```
+
+[There are more functions described in the docs](http://hexdocs.pm/mail/Mail.html)
 
 ## Authors ##
 

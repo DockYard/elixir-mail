@@ -5,15 +5,12 @@ defmodule Mail do
   Build a mail message with the `Mail` struct
 
       mail =
-        Mail.put_subject(%Mail{}, "How is it going?")
+        Mail.build_multipart()
+        |> put_subject("How is it going?")
         |> Mail.put_text("Just checking in")
         |> Mail.put_to("joe@example.com")
         |> Mail.put_from("brian@example.com")
 
-      %Mail{body: %{text: "Just checking in",
-            headers: %{subject: "How is it going?",
-                       to: ["joe@example.com"],
-                       from: "brian@example.com"}}
   """
 
   @doc """
@@ -29,16 +26,11 @@ defmodule Mail do
     do: %Mail.Message{multipart: true}
 
   @doc """
-  Add a plaintext part
+  Add a plaintext part to the message
 
   Shortcut function for adding plain text part
 
-      Mail.put_text(%Mail{}, "Some plain text")
-
-  This function is equivilant to using the `put_part/2`
-  function
-
-      Mail.put_part(%Mail{}, %Mail.Message{data: "Some plain text", headers: %{content_type: ["text/plain"]}})
+      Mail.put_text(%Mail.Message{}, "Some plain text")
 
   If a text part already exists this function will replace that existing
   part with the new part.
@@ -58,16 +50,9 @@ defmodule Mail do
   end
 
   @doc """
-  Add html content to the body
+  Add an HTML part to the message
 
-  Shortcut function for adding html to the body
-
-      Mail.put_html(%Mail{}, "<span>Some HTML</span>")
-
-  This function is equivilant to using the `put_part/2`
-  function
-
-      Mail.put_part(%Mail{}, %Mail.Message{data: "<span>Some HTML</span>", headers: %{content_type: ["text/html"]}})
+      Mail.put_html(%Mail.Message{}, "<span>Some HTML</span>")
 
   If a text part already exists this function will replace that existing
   part with the new part.
@@ -86,6 +71,13 @@ defmodule Mail do
     |> Mail.Message.put_content_type("text/html")
   end
 
+  @doc """
+  Add an attachment part to the message
+
+      Mail.put_attachment(%Mail.Message{}, "README.md")
+
+  Each call will add a new attachment part.
+  """
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
     do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
 
@@ -95,8 +87,8 @@ defmodule Mail do
   @doc """
   Add a new `subject` header
 
-      Mail.put_subject(%Mail, "Welcome to DockYard!")
-      %Mail{headers: %{subject: "Welcome to DockYard!"}}
+      Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
+      %Mail.Message{headers: %{subject: "Welcome to DockYard!"}}
   """
   def put_subject(message, subject),
     do: Mail.Message.put_header(message, :subject, subject)
@@ -107,15 +99,15 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_to(%Mail{}, "one@example.com")
-      %Mail{headers: %{to: ["one@example.com"]}}
+      Mail.put_to(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{to: ["one@example.com"]}}
 
-      Mail.put_to(%Mail{}, ["one@example.com", "two@example.com"])
-      %Mail{headers: %{to: ["one@example.com", "two@example.com"]}}
+      Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com"]}}
 
-      Mail.put_to(%Mail{}, "one@example.com")
+      Mail.put_to(%Mail.Message{}, "one@example.com")
       |> Mail.put_to(["two@example.com", "three@example.com"])
-      %Mail{headers: %{to: ["one@example.com", "two@example.com", "three@example.com"]}}
+      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -141,15 +133,15 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_cc(%Mail{}, "one@example.com")
-      %Mail{headers: %{cc: ["one@example.com"]}}
+      Mail.put_cc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{cc: ["one@example.com"]}}
 
-      Mail.put_cc(%Mail{}, ["one@example.com", "two@example.com"])
-      %Mail{headers: %{cc: ["one@example.com", "two@example.com"]}}
+      Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com"]}}
 
-      Mail.put_cc(%Mail{}, "one@example.com")
+      Mail.put_cc(%Mail.Message{}, "one@example.com")
       |> Mail.put_cc(["two@example.com", "three@example.com"])
-      %Mail{headers: %{cc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -175,15 +167,15 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_bcc(%Mail{}, "one@example.com")
-      %Mail{headers: %{bcc: ["one@example.com"]}}
+      Mail.put_bcc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{bcc: ["one@example.com"]}}
 
-      Mail.put_bcc(%Mail{}, ["one@example.com", "two@example.com"])
-      %Mail{headers: %{bcc: ["one@example.com", "two@example.com"]}}
+      Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com"]}}
 
-      Mail.put_bcc(%Mail{}, "one@example.com")
+      Mail.put_bcc(%Mail.Message{}, "one@example.com")
       |> Mail.put_bcc(["two@example.com", "three@example.com"])
-      %Mail{headers: %{bcc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -206,8 +198,8 @@ defmodule Mail do
   @doc """
   Add a new `from` header
 
-      Mail.put_from(%Mail, "user@example.com")
-      %Mail{headers: %{from: "user@example.com"}}
+      Mail.put_from(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{from: "user@example.com"}}
   """
   def put_from(message, sender),
     do: Mail.Message.put_header(message, :from, sender)
@@ -215,8 +207,8 @@ defmodule Mail do
   @doc """
   Add a new `reply-to` header
 
-      Mail.put_reply_to(%Mail, "user@example.com")
-      %Mail{headers: %{reply_to: "user@example.com"}}
+      Mail.put_reply_to(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{reply_to: "user@example.com"}}
   """
   def put_reply_to(message, reply_address),
     do: Mail.Message.put_header(message, :reply_to, reply_address)
