@@ -1,19 +1,23 @@
 defmodule Mail.TestAssertions do
   import ExUnit.Assertions
 
-  def assert_rfc2822_equal(actual, expected) do
-    actual = Mail.Parsers.RFC2822.parse(actual)
-    expected = Mail.Parsers.RFC2822.parse(expected)
+  @moduledoc """
+  Primitives for building your own assertions for Mail.Message
+  renderers.
 
-    compare_message(actual, expected)
-  end
+  A custom assertion should implement its own parser. The result of the
+  parsing the actual message and the expected message is then passed
+  into `compare/2`
+  """
 
-  defp compare_message(%Mail.Message{multipart: false}, %Mail.Message{multipart: true}),
-    do: raise(ExUnit.AssertionError, message: "messages not equal, actual is not multipart, expected is multipart")
-  defp compare_message(%Mail.Message{multipart: true}, %Mail.Message{multipart: false}),
-    do: raise(ExUnit.AssertionError, message: "messages not equal, actual is multipart, expected is not multipart")
+  @doc """
+  Primary hook used by rendered mail assertions. Expected parsed
+  messages.
+  """
+  def compare(%Mail.Message{multipart: left_multipart?}, %Mail.Message{multipart: right_multipart?}) when left_multipart? != right_multipart?,
+    do: raise(ExUnit.AssertionError, message: "one message is multipart, the other is not")
 
-  defp compare_message(%Mail.Message{} = actual, %Mail.Message{} = expected) do
+  def compare(%Mail.Message{} = actual, %Mail.Message{} = expected) do
     compare_headers(actual.headers, expected.headers)
     compare_bodies(actual, expected)
   end
@@ -25,14 +29,14 @@ defmodule Mail.TestAssertions do
     Enum.each(actual, fn({key, value}) ->
       cond do
         value != expected[key] ->
-          raise(ExUnit.AssertionError, message: "header key #{key} is not equal")
+          raise(ExUnit.AssertionError, message: "header key `#{key}` is not equal")
         true -> nil
       end
     end)
   end
 
   defp compare_bodies(%Mail.Message{multipart: true} = actual, %Mail.Message{multipart: true} = expected) do
-    assert length(actual.parts) == length(expected.parts), "actual and expected must have same number of parts"
+    assert length(actual.parts) == length(expected.parts), "actual and expected must have equal number of parts"
     compare_parts(actual.parts, expected.parts)
   end
 
@@ -42,7 +46,7 @@ defmodule Mail.TestAssertions do
 
   defp compare_parts([], []), do: nil
   defp compare_parts([actual_head | actual_tail], [expected_head | expected_tail]) do
-    compare_message(actual_head, expected_head)
+    compare(actual_head, expected_head)
     compare_parts(actual_tail, expected_tail)
   end
 

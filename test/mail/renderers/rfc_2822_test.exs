@@ -1,6 +1,6 @@
 defmodule Mail.Renderers.RFC2822Test do
   use ExUnit.Case
-  import Mail.TestAssertions
+  import Mail.Assertions.RFC2822
 
   test "header - capitalizes and hyphenates keys, joins lists according to spec" do
     header = Mail.Renderers.RFC2822.render_header(:foo_bar, ["abcd", baz_buzz: "qux"])
