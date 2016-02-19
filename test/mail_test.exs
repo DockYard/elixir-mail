@@ -1,6 +1,12 @@
 defmodule MailTest do
   use ExUnit.Case
 
+  defmodule TestRenderer do
+    def render(message) do
+      Mail.Message.get_header(message, :subject)
+    end
+  end
+
   test "build" do
     assert Mail.build() == %Mail.Message{}
   end
@@ -217,5 +223,14 @@ defmodule MailTest do
     assert part.headers.content_disposition == [:attachment, filename: "README.md"]
     assert part.headers.content_transfer_encoding == :base64
     assert part.body == file_content
+  end
+
+  test "renders with the given renderer" do
+    result =
+      Mail.build()
+      |> Mail.put_subject("Test!")
+      |> Mail.render(TestRenderer)
+
+    assert result == "Test!"
   end
 end

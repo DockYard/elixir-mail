@@ -25,6 +25,11 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == "Foo: bar\nBaz: qux"
   end
 
+  test "headers - blacklist certain headers" do
+    headers = Mail.Renderers.RFC2822.render_headers(%{foo: "bar", baz: "qux"}, [:foo, :baz])
+    assert headers == ""
+  end
+
   test "renders each part recursively" do
     sub_part_1 = Mail.Message.build_text("Hello there!")
     sub_part_2 = Mail.Message.build_html("<h1>Hello there!</h1>")

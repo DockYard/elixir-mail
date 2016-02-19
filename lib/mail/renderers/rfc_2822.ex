@@ -34,7 +34,7 @@ defmodule Mail.Renderers.RFC2822 do
     boundary = Mail.Message.get_boundary(message)
     message = Mail.Message.put_boundary(message, boundary)
 
-    headers = render_headers(message.headers)
+    headers = render_headers(message.headers, @blacklisted_headers)
     boundary = "--#{boundary}"
 
     parts =
@@ -44,7 +44,7 @@ defmodule Mail.Renderers.RFC2822 do
     "#{headers}\n\n#{boundary}\n#{parts}\n#{boundary}--"
   end
   def render_part(%Mail.Message{} = message) do
-    "#{render_headers(message.headers)}\n\n#{message.body}"
+    "#{render_headers(message.headers, @blacklisted_headers)}\n\n#{message.body}"
   end
 
   def render_parts(parts) when is_list(parts),
@@ -87,16 +87,15 @@ defmodule Mail.Renderers.RFC2822 do
 
   @doc """
   Will render all headers according to the RFC2882 spec
+
+  Can take an optional list of headers to blacklist
   """
-  def render_headers(headers)
-  def render_headers(map) when is_map(map),
+  def render_headers(headers, blacklist \\ [])
+  def render_headers(map, blacklist) when is_map(map),
     do: Map.to_list(map)
-        |> render_headers()
-  def render_headers(list) when is_list(list) do
-    Enum.reject(list, fn
-      {header, _val} when header in @blacklisted_headers -> true
-      {_header, _val} -> false
-    end)
+        |> render_headers(blacklist)
+  def render_headers(list, blacklist) when is_list(list) do
+    Enum.reject(list, &(Enum.member?(blacklist, elem(&1, 0))))
     |> do_render_headers()
     |> Enum.reverse()
     |> Enum.join("\n")
