@@ -226,6 +226,18 @@ defmodule Mail do
     |> Enum.uniq()
   end
 
+  @doc """
+  Primary hook for rendering
+
+  You can pass in your own custom render module. That module
+  must have `render/1` function that accepts a `Mail.Message` struct.
+
+  By default the `renderer` will be `Mail.Renderers.RFC2822`
+  """
+  def render(message, renderer \\ Mail.Renderers.RFC2822) do
+    renderer.render(message)
+  end
+
   defp validate_recipients([]), do: nil
   defp validate_recipients([recipient|tail]) do
     case recipient do
