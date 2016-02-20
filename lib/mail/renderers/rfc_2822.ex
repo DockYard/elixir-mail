@@ -44,7 +44,8 @@ defmodule Mail.Renderers.RFC2822 do
     "#{headers}\n\n#{boundary}\n#{parts}\n#{boundary}--"
   end
   def render_part(%Mail.Message{} = message) do
-    "#{render_headers(message.headers, @blacklisted_headers)}\n\n#{message.body}"
+    encoded_body = encode(message.body, message)
+    "#{render_headers(message.headers, @blacklisted_headers)}\n\n#{encoded_body}"
   end
 
   def render_parts(parts) when is_list(parts),
@@ -132,4 +133,8 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
   defp reorganize(%Mail.Message{} = message), do: message
+
+  defp encode(body, message) do
+    Mail.Encoder.encode(body, get_in(message.headers, [:content_transfer_encoding]))
+  end
 end
