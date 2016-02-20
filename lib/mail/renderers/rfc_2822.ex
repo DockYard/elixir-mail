@@ -28,9 +28,12 @@ defmodule Mail.Renderers.RFC2822 do
 
   @doc """
   Render an individual part
+
+  An optional function can be passed used during the rendering of each
+  individual part
   """
-  def render_part(message)
-  def render_part(%Mail.Message{multipart: true} = message) do
+  def render_part(message, render_part_function \\ &render_part/2)
+  def render_part(%Mail.Message{multipart: true} = message, fun) do
     boundary = Mail.Message.get_boundary(message)
     message = Mail.Message.put_boundary(message, boundary)
 
@@ -38,18 +41,18 @@ defmodule Mail.Renderers.RFC2822 do
     boundary = "--#{boundary}"
 
     parts =
-      render_parts(message.parts)
+      render_parts(message.parts, fun)
       |> Enum.join("\n\n#{boundary}\n")
 
     "#{headers}\n\n#{boundary}\n#{parts}\n#{boundary}--"
   end
-  def render_part(%Mail.Message{} = message) do
+  def render_part(%Mail.Message{} = message, _fun) do
     encoded_body = encode(message.body, message)
     "#{render_headers(message.headers, @blacklisted_headers)}\n\n#{encoded_body}"
   end
 
-  def render_parts(parts) when is_list(parts),
-    do: Enum.map(parts, &render_part(&1))
+  def render_parts(parts, fun \\ &render_part/2) when is_list(parts),
+    do: Enum.map(parts, &fun.(&1, fun))
 
   @doc """
   Will render a given header according to the RFC2882 spec
