@@ -87,4 +87,19 @@ defmodule Mail.Renderers.RFC2822Test do
 
     refute Map.has_key?(message.headers, :bcc)
   end
+
+  test "properly encodes body based upon Content-Transfer-Encoding value" do
+    file = File.read!("README.md")
+
+    message =
+      Mail.build()
+      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+      |> Mail.put_text(file)
+
+    result = Mail.Renderers.RFC2822.render(message)
+
+    encoded_file = Mail.Encoder.encode(file, :base64)
+
+    assert result =~ encoded_file
+  end
 end
