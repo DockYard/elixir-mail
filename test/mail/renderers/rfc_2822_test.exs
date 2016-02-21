@@ -22,7 +22,7 @@ defmodule Mail.Renderers.RFC2822Test do
 
   test "headers - renders all headers" do
     headers = Mail.Renderers.RFC2822.render_headers(%{foo: "bar", baz: "qux"})
-    assert headers == "Foo: bar\nBaz: qux"
+    assert headers == "Foo: bar\r\nBaz: qux"
   end
 
   test "headers - blacklist certain headers" do
@@ -41,7 +41,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.Message.put_part(sub_part_1)
       |> Mail.Message.put_part(sub_part_2)
 
-    result = Mail.Renderers.RFC2822.render_part(part) <> "\n"
+    result = Mail.Renderers.RFC2822.render_part(part) <> "\r\n"
     {:ok, fixture} = File.read("test/fixtures/recursive-part-rendering.eml")
 
     assert result == fixture
@@ -56,7 +56,7 @@ defmodule Mail.Renderers.RFC2822Test do
 
     {:ok, fixture} = File.read("test/fixtures/simple-plain-rendering.eml")
 
-    result = Mail.Renderers.RFC2822.render(message) <> "\n"
+    result = Mail.Renderers.RFC2822.render(message) <> "\r\n"
 
     assert result == fixture
   end

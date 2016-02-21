@@ -42,13 +42,13 @@ defmodule Mail.Renderers.RFC2822 do
 
     parts =
       render_parts(message.parts, fun)
-      |> Enum.join("\n\n#{boundary}\n")
+      |> Enum.join("\r\n\r\n#{boundary}\r\n")
 
-    "#{headers}\n\n#{boundary}\n#{parts}\n#{boundary}--"
+    "#{headers}\r\n\r\n#{boundary}\r\n#{parts}\r\n#{boundary}--"
   end
   def render_part(%Mail.Message{} = message, _fun) do
     encoded_body = encode(message.body, message)
-    "#{render_headers(message.headers, @blacklisted_headers)}\n\n#{encoded_body}"
+    "#{render_headers(message.headers, @blacklisted_headers)}\r\n\r\n#{encoded_body}"
   end
 
   def render_parts(parts, fun \\ &render_part/1) when is_list(parts),
@@ -102,7 +102,7 @@ defmodule Mail.Renderers.RFC2822 do
     Enum.reject(list, &(Enum.member?(blacklist, elem(&1, 0))))
     |> do_render_headers()
     |> Enum.reverse()
-    |> Enum.join("\n")
+    |> Enum.join("\r\n")
   end
 
   defp do_render_headers([]), do: []
