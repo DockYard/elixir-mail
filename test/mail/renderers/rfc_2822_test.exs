@@ -15,6 +15,11 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "To: user1@example.com, user2@example.com"
   end
 
+  test "content-transfer-encoding rendering hyphenates values" do
+    header = Mail.Renderers.RFC2822.render_header("content_transfer_encoding", :quoted_printable)
+    assert header == "Content-Transfer-Encoding: quoted-printable"
+  end
+
   test "renders simple key / value pair header" do
     header = Mail.Renderers.RFC2822.render_header(:subject, "Hello World!")
     assert header == "Subject: Hello World!"
@@ -93,8 +98,8 @@ defmodule Mail.Renderers.RFC2822Test do
 
     message =
       Mail.build()
-      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
       |> Mail.put_text(file)
+      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
 
     result = Mail.Renderers.RFC2822.render(message)
 
