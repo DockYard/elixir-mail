@@ -12,7 +12,7 @@ defmodule Mail.Encoders.QuotedPrintable do
   @doc """
   Encodes a string into a quoted-printable encoded string.
   ## Examples
-      iex> Mail.Encoders.QuotedPrintable.encode("façade")
+      Mail.Encoders.QuotedPrintable.encode("façade")
       "fa=C3=A7ade"
   """
   def encode(string), do: do_encode(string, "", 0)
@@ -67,7 +67,7 @@ defmodule Mail.Encoders.QuotedPrintable do
   @doc """
   Decodes a quoted-printable encoded string.
   ## Examples
-      iex> Mail.Encoders.QuotedPrintable.decode("fa=C3=A7ade")
+      Mail.Encoders.QuotedPrintable.decode("fa=C3=A7ade")
       "façade"
   """
   def decode(string), do: do_decode(string, "")
