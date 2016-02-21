@@ -46,6 +46,7 @@ defmodule Mail do
 
   def put_text(%Mail.Message{} = message, body) do
     Mail.Message.put_body(message, body)
+    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
     |> Mail.Message.put_content_type("text/plain")
   end
 
@@ -68,6 +69,7 @@ defmodule Mail do
 
   def put_html(%Mail.Message{} = message, body) do
     Mail.Message.put_body(message, body)
+    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
     |> Mail.Message.put_content_type("text/html")
   end
 

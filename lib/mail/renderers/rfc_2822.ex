@@ -71,6 +71,14 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value("to", value) when is_list(value),
     do: Enum.join(value, ", ")
   defp render_header_value("to", value), do: value
+  defp render_header_value("content_transfer_encoding" = key, value) when is_atom(value) do
+    value =
+      value
+      |> Atom.to_string()
+      |> String.replace("_", "-")
+
+    render_header_value(key, value)
+  end
 
   defp render_header_value(_key, [value | subtypes]),
     do: Enum.join([value | render_subtypes(subtypes)], "; ")

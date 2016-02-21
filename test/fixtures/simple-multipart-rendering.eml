@@ -5,11 +5,13 @@ Content-Type: multipart/alternative; boundary="foobar"
 
 --foobar
 Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
 
 Some text
 
 --foobar
 Content-Type: text/html
+Content-Transfer-Encoding: quoted-printable
 
 <h1>Some HTML</h1>
 --foobar--

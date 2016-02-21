@@ -90,12 +90,14 @@ defmodule Mail.MessageTest do
   test "build_text" do
     message = Mail.Message.build_text("Some text")
     assert Mail.Message.get_content_type(message) == ["text/plain"]
+    assert message.headers[:content_transfer_encoding] == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
     assert Mail.Message.get_content_type(message) == ["text/html"]
+    assert message.headers[:content_transfer_encoding] == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
 

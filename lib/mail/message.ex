@@ -165,6 +165,7 @@ defmodule Mail.Message do
   """
   def build_text(body),
     do: put_content_type(%Mail.Message{}, "text/plain")
+        |> put_header(:content_transfer_encoding, :quoted_printable)
         |> put_body(body)
 
   @doc """
@@ -175,6 +176,7 @@ defmodule Mail.Message do
   """
   def build_html(body),
     do: put_content_type(%Mail.Message{}, "text/html")
+        |> put_header(:content_transfer_encoding, :quoted_printable)
         |> put_body(body)
 
   @doc """

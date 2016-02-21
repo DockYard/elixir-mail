@@ -1,5 +1,6 @@
 To: user@example.com
 Subject: Test email
 Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
 
 Some text
