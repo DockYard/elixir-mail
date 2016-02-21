@@ -11,6 +11,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     This is the body!
     """
+    |> String.replace("\n", "\r\n")
 
     message = Mail.Parsers.RFC2822.parse(mail)
 
@@ -41,6 +42,7 @@ defmodule Mail.Parsers.RFC2822Test do
     <h1>This is some HTML</h1>
     --foobar--
     """
+    |> String.replace("\n", "\r\n")
 
     message = Mail.Parsers.RFC2822.parse(mail)
 
@@ -87,6 +89,7 @@ defmodule Mail.Parsers.RFC2822Test do
     SGVsbG8gd29ybGQh
     --foobar--
     """
+    |> String.replace("\n", "\r\n")
 
     message = Mail.Parsers.RFC2822.parse(mail)
 

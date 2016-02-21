@@ -9,8 +9,8 @@ defmodule Mail.Parsers.RFC2822 do
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
   def parse(content) do
-    matcher = ~r/^\n?(.+?)\n\n(.+)/s
-    [_, headers, body] = Regex.run(matcher, content)
+    matcher = ~r/^(\r\n)?(?<headers>.+?)\r\n\r\n(?<body>.+)/s
+    %{"headers" => headers, "body" => body} = Regex.named_captures(matcher, content)
 
     %Mail.Message{}
     |> parse_headers(headers)
@@ -18,7 +18,7 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp parse_headers(message, headers) do
-    headers = String.split(headers, ~r/\n(?!\s+)/s)
+    headers = String.split(headers, ~r/\r\n(?!\s+)/s)
       |> Enum.map(&(String.split(&1, ": ", parts: 2)))
       |> Enum.into(%{}, fn([key, value]) ->
         {key_to_atom(key), parse_header_value(key, value)}
@@ -48,7 +48,7 @@ defmodule Mail.Parsers.RFC2822 do
     |> Enum.map(fn(recipient) ->
       case String.split(recipient, ~r/\s(?!.*\s)/) do
         [name, address] ->
-          [_, address] = Regex.run(~r/<(.+)>/, address)
+          %{"address" => address} = Regex.named_captures(~r/<(?<address>.+)>/, address)
           {name, address}
         [address] -> address
       end
