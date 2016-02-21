@@ -11,7 +11,9 @@ defmodule Mail.Encoders.Base64 do
   """
 
   def encode(string),
-    do: add_line_breaks(Base.encode64(string))
+    do: string
+        |> Base.encode64()
+        |> add_line_breaks()
 
   def decode(string),
     do: :base64.mime_decode(string)
@@ -19,5 +21,4 @@ defmodule Mail.Encoders.Base64 do
   defp add_line_breaks(<< head :: binary-size(76), tail :: binary >>),
     do: head <> "\r\n" <> add_line_breaks(tail)
   defp add_line_breaks(tail), do: tail <> "\r\n"
-
 end
