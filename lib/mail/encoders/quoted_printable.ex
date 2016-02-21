@@ -51,6 +51,7 @@ defmodule Mail.Encoders.QuotedPrintable do
   defp emit_escaped_char(char, line_length, maximum) do
     escaped = "=" <> Base.encode16(<<char>>)
     escaped_length = String.length(escaped)
+
     if line_length + escaped_length <= maximum do
       {escaped, line_length + escaped_length}
     else
@@ -92,6 +93,7 @@ defmodule Mail.Encoders.QuotedPrintable do
   defp decode_escaped_char(?\r, ?\n), do: ""
   defp decode_escaped_char(char1, char2) do
     chars = <<char1>> <> <<char2>>
+
     case Base.decode16(chars, case: :mixed) do
       {:ok, decoded} -> decoded
       :error -> "=" <> chars
