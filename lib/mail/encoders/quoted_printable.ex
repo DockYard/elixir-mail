@@ -11,7 +11,9 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   @doc """
   Encodes a string into a quoted-printable encoded string.
+
   ## Examples
+
       Mail.Encoders.QuotedPrintable.encode("façade")
       "fa=C3=A7ade"
   """
@@ -66,7 +68,9 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   @doc """
   Decodes a quoted-printable encoded string.
+
   ## Examples
+
       Mail.Encoders.QuotedPrintable.decode("fa=C3=A7ade")
       "façade"
   """
