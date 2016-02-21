@@ -17,9 +17,9 @@ defmodule Mail.Encoders.QuotedPrintable do
   """
   def encode(string), do: do_encode(string, "", 0)
   defp do_encode(<<>>, acc, _), do: acc
-  defp do_encode(<<h, t::binary>>, acc, line_length) do
-    {encoding, line_length} = encode_char(h, line_length, String.length(t))
-    do_encode(t, acc <> encoding, line_length)
+  defp do_encode(<<head, tail::binary>>, acc, line_length) do
+    {encoding, line_length} = encode_char(head, line_length, String.length(tail))
+    do_encode(tail, acc <> encoding, line_length)
   end
 
   # Encode ASCII characters in range 0x20..0x3C.
@@ -72,13 +72,13 @@ defmodule Mail.Encoders.QuotedPrintable do
   """
   def decode(string), do: do_decode(string, "")
   defp do_decode(<<>>, acc), do: acc
-  defp do_decode(<<h, t::binary>>, acc) do
-    {decoded, tail} = decode_char(h, t)
+  defp do_decode(<<head, tail::binary>>, acc) do
+    {decoded, tail} = decode_char(head, tail)
     do_decode(tail, acc <> decoded)
   end
 
-  defp decode_char(?=, <<c1, c2, t::binary>>) do
-    {decode_escaped_char(c1, c2), t}
+  defp decode_char(?=, <<char1, char2, tail::binary>>) do
+    {decode_escaped_char(char1, char2), tail}
   end
 
   defp decode_char(char, tail) do
@@ -86,8 +86,8 @@ defmodule Mail.Encoders.QuotedPrintable do
   end
 
   defp decode_escaped_char(?\r, ?\n), do: ""
-  defp decode_escaped_char(c1, c2) do
-    chars = <<c1>> <> <<c2>>
+  defp decode_escaped_char(char1, char2) do
+    chars = <<char1>> <> <<char2>>
     case Base.decode16(chars, case: :mixed) do
       {:ok, decoded} -> decoded
       :error -> "=" <> chars
