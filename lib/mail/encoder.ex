@@ -10,7 +10,7 @@ defmodule Mail.Encoder do
   def encode(data, encoding) do
     case encoding do
       :base64 -> Mail.Encoders.Base64.encode(data)
-      _ -> Mail.Encoders.Identity.encode(data)
+      _ -> Mail.Encoders.Binary.encode(data)
     end
   end
 
@@ -19,7 +19,7 @@ defmodule Mail.Encoder do
   def decode(data, encoding) do
     case encoding do
       :base64 -> Mail.Encoders.Base64.decode(data)
-      _ -> Mail.Encoders.Identity.decode(data)
+      _ -> Mail.Encoders.Binary.decode(data)
     end
   end
 end
