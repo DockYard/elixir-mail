@@ -51,6 +51,24 @@ defmodule Mail do
   end
 
   @doc """
+  Find the text part of a given mail
+
+  If single part with `content-type` "text/plain", returns itself
+  If single part without `content-type` "text/plain", returns `nil`
+  If multipart with part having `content-type` "text/plain" will return that part
+  If multipart without part having `content-type` "text/plain" will return `nil`
+  """
+  def get_text(%Mail.Message{multipart: true} = message) do
+    Enum.find message.parts, fn
+      %Mail.Message{headers: %{content_type: "text/plain"}} = message -> message
+      _ -> nil
+    end
+  end
+
+  def get_text(%Mail.Message{headers: %{content_type: "text/plain"}} = message), do: message
+  def get_text(%Mail.Message{}), do: nil
+
+  @doc """
   Add an HTML part to the message
 
       Mail.put_html(%Mail.Message{}, "<span>Some HTML</span>")
@@ -72,6 +90,24 @@ defmodule Mail do
     |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
     |> Mail.Message.put_content_type("text/html")
   end
+
+  @doc """
+  Find the html part of a given mail
+
+  If single part with `content-type` "text/html", returns itself
+  If single part without `content-type` "text/html", returns `nil`
+  If multipart with part having `content-type` "text/html" will return that part
+  If multipart without part having `content-type` "text/html" will return `nil`
+  """
+  def get_html(%Mail.Message{multipart: true} = message) do
+    Enum.find message.parts, fn
+      %Mail.Message{headers: %{content_type: "text/html"}} = message -> message
+      _ -> nil
+    end
+  end
+
+  def get_html(%Mail.Message{headers: %{content_type: "text/html"}} = message), do: message
+  def get_html(%Mail.Message{}), do: nil
 
   @doc """
   Add an attachment part to the message
