@@ -10,6 +10,7 @@ defmodule Mail.Renderers.RFC2822 do
   """
 
   @blacklisted_headers [:bcc]
+  @address_types ["from", "to", "cc", "bcc"]
 
   @doc """
   Renders a message according to the RFC2882 spec
@@ -68,11 +69,11 @@ defmodule Mail.Renderers.RFC2822 do
     |> Kernel.<>(render_header_value(key, value))
   end
 
-  defp render_header_value("to", recipients) when is_list(recipients),
-    do: Enum.map(recipients, &render_recipient(&1))
+  defp render_header_value(address_type, addresses) when is_list(addresses) and address_type in @address_types,
+    do: Enum.map(addresses, &render_address(&1))
         |> Enum.join(", ")
-  defp render_header_value("to", recipient), do:
-    render_recipient(recipient)
+  defp render_header_value(address_type, address) when address_type in @address_types,
+    do: render_address(address)
   defp render_header_value("content_transfer_encoding" = key, value) when is_atom(value) do
     value =
       value
@@ -87,8 +88,8 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
 
-  defp render_recipient({name, email}), do: ~s("#{name}" <#{email}>)
-  defp render_recipient(email), do: email
+  defp render_address({name, email}), do: ~s("#{name}" <#{email}>)
+  defp render_address(email), do: email
   defp render_subtypes([]), do: []
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),
     do: render_subtypes([{Atom.to_string(key), value} | subtypes])
