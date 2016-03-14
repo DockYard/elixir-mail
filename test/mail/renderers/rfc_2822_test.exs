@@ -7,12 +7,24 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Foo-Bar: abcd; baz-buzz=qux"
   end
 
-  test "to header renders list of recipients" do
+  test "address headers renders list of recipients" do
+    header = Mail.Renderers.RFC2822.render_header(:from, "user1@example.com")
+    assert header == "From: user1@example.com"
     header = Mail.Renderers.RFC2822.render_header(:to, "user1@example.com")
     assert header == "To: user1@example.com"
+    header = Mail.Renderers.RFC2822.render_header(:cc, "user1@example.com")
+    assert header == "Cc: user1@example.com"
+    header = Mail.Renderers.RFC2822.render_header(:bcc, "user1@example.com")
+    assert header == "Bcc: user1@example.com"
 
+    header = Mail.Renderers.RFC2822.render_header(:from, ["user1@example.com", {"User 2", "user2@example.com"}])
+    assert header == "From: user1@example.com, \"User 2\" <user2@example.com>"
     header = Mail.Renderers.RFC2822.render_header(:to, ["user1@example.com", {"User 2", "user2@example.com"}])
     assert header == "To: user1@example.com, \"User 2\" <user2@example.com>"
+    header = Mail.Renderers.RFC2822.render_header(:cc, ["user1@example.com", {"User 2", "user2@example.com"}])
+    assert header == "Cc: user1@example.com, \"User 2\" <user2@example.com>"
+    header = Mail.Renderers.RFC2822.render_header(:bcc, ["user1@example.com", {"User 2", "user2@example.com"}])
+    assert header == "Bcc: user1@example.com, \"User 2\" <user2@example.com>"
   end
 
   test "content-transfer-encoding rendering hyphenates values" do
