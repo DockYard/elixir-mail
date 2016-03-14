@@ -11,8 +11,8 @@ defmodule Mail.Renderers.RFC2822Test do
     header = Mail.Renderers.RFC2822.render_header(:to, "user1@example.com")
     assert header == "To: user1@example.com"
 
-    header = Mail.Renderers.RFC2822.render_header(:to, ["user1@example.com", "user2@example.com"])
-    assert header == "To: user1@example.com, user2@example.com"
+    header = Mail.Renderers.RFC2822.render_header(:to, ["user1@example.com", {"User 2", "user2@example.com"}])
+    assert header == "To: user1@example.com, \"User 2\" <user2@example.com>"
   end
 
   test "content-transfer-encoding rendering hyphenates values" do
