@@ -68,9 +68,11 @@ defmodule Mail.Renderers.RFC2822 do
     |> Kernel.<>(render_header_value(key, value))
   end
 
-  defp render_header_value("to", value) when is_list(value),
-    do: Enum.join(value, ", ")
-  defp render_header_value("to", value), do: value
+  defp render_header_value("to", recipients) when is_list(recipients),
+    do: Enum.map(recipients, &render_recipient(&1))
+        |> Enum.join(", ")
+  defp render_header_value("to", recipient), do:
+    render_recipient(recipient)
   defp render_header_value("content_transfer_encoding" = key, value) when is_atom(value) do
     value =
       value
@@ -85,6 +87,8 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
 
+  defp render_recipient({name, email}), do: ~s("#{name}" <#{email}>)
+  defp render_recipient(email), do: email
   defp render_subtypes([]), do: []
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),
     do: render_subtypes([{Atom.to_string(key), value} | subtypes])
