@@ -168,27 +168,50 @@ defmodule MailTest do
     assert Mail.Message.get_content_type(part) == ["text/plain"]
   end
 
+  test "get_text with singlepart" do
+    mail = Mail.put_text(Mail.build(), "Some text")
+    assert Mail.get_text(mail) == mail
+  end
+
+  test "get_text with singlepart not text" do
+    mail = Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
+    assert is_nil(Mail.get_text(mail))
+  end
+
+  test "get_text with a multipart" do
+    mail = Mail.put_text(Mail.build_multipart(), "Some text")
+
+    text_part = Mail.get_text(mail)
+
+    assert text_part.body == "Some text"
+  end
+
+  test "get_text with multipart not text" do
+    mail = Mail.put_html(Mail.build_multipart(), "<h1>Some HTML</h1>")
+    assert is_nil(Mail.get_text(mail))
+  end
+
   test "put_html with a singlepart" do
-    mail = Mail.put_html(Mail.build(), "<h1>Some html</h1>")
+    mail = Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
 
     assert length(mail.parts) == 0
-    assert mail.body == "<h1>Some html</h1>"
+    assert mail.body == "<h1>Some HTML</h1>"
     assert Mail.Message.get_content_type(mail) == ["text/html"]
   end
 
   test "put_html with a multipart" do
-    mail = Mail.put_html(Mail.build_multipart(), "<h1>Some html</h1>")
+    mail = Mail.put_html(Mail.build_multipart(), "<h1>Some HTML</h1>")
 
     assert length(mail.parts) == 1
     part = List.first(mail.parts)
 
-    assert part.body == "<h1>Some html</h1>"
+    assert part.body == "<h1>Some HTML</h1>"
     assert Mail.Message.get_content_type(part) == ["text/html"]
   end
 
   test "put_html replaces existing html part in multipart" do
     mail =
-      Mail.put_html(Mail.build_multipart(), "<h1>Some html</h1>")
+      Mail.put_html(Mail.build_multipart(), "<h1>Some HTML</h1>")
       |> Mail.put_html("<h1>Some other html</h1>")
 
     assert length(mail.parts) == 1
@@ -196,6 +219,29 @@ defmodule MailTest do
 
     assert part.body == "<h1>Some other html</h1>"
     assert Mail.Message.get_content_type(part) == ["text/html"]
+  end
+
+  test "get_html with singlepart" do
+    mail = Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
+    assert Mail.get_html(mail) == mail
+  end
+
+  test "get_html with singlepart not html" do
+    mail = Mail.put_text(Mail.build(), "Some text")
+    assert is_nil(Mail.get_html(mail))
+  end
+
+  test "get_html with a multipart" do
+    mail = Mail.put_html(Mail.build_multipart(), "<h1>Some HTML</h1>")
+
+    html_part = Mail.get_html(mail)
+
+    assert html_part.body == "<h1>Some HTML</h1>"
+  end
+
+  test "get_html with multipart not html" do
+    mail = Mail.put_text(Mail.build_multipart(), "Some text")
+    assert is_nil(Mail.get_html(mail))
   end
 
   test "put_attachment with a simglepart" do
