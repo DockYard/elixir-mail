@@ -8,6 +8,9 @@ defmodule Mail.Parsers.RFC2822 do
       Mail.Parsers.RFC2822.parse(message)
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
+
+  @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
+
   def parse(content) do
     matcher = ~r/^(\r\n)?(?<headers>.+?)\r\n\r\n(?<body>.+)/s
     %{"headers" => headers, "body" => body} = Regex.named_captures(matcher, content)
@@ -15,6 +18,29 @@ defmodule Mail.Parsers.RFC2822 do
     %Mail.Message{}
     |> parse_headers(headers)
     |> parse_body(body)
+  end
+
+
+  @doc """
+  Parses a RFC2822 timestamp to an Erlang timestamp
+
+  [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
+
+  Timezone information is ignored
+  """
+  def erl_from_timestamp(timestamp) do
+    regex = ~r/\w{3}, (?<day>\d{1,2}) (?<month>\w{3}) (?<year>\d{4}) (?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})/
+    capture = Regex.named_captures(regex, timestamp)
+
+    year  = capture["year"] |> String.to_integer()
+    month = Enum.find_index(@months, &(&1 == capture["month"])) + 1
+    day   = capture["day"] |> String.to_integer()
+
+    hour   = capture["hour"] |> String.to_integer()
+    minute = capture["minute"] |> String.to_integer()
+    second = capture["second"] |> String.to_integer()
+
+    {{year, month, day}, {hour, minute, second}}
   end
 
   defp parse_headers(message, headers) do
