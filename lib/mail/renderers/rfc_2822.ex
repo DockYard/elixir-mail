@@ -1,5 +1,9 @@
 defmodule Mail.Renderers.RFC2822 do
   import Mail.Message, only: [match_content_type?: 2]
+
+  @days ~w(Mon Tue Wed Thu Fri Sat Sun)
+  @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
+
   @moduledoc """
   RFC2822 Parser
 
@@ -117,6 +121,28 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.reverse()
     |> Enum.join("\r\n")
   end
+
+  @doc """
+  Builds a RFC2822 timestamp from an Erlang timestamp
+
+  [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
+
+  This function always assumes the Erlang timestamp is in Universal time, not Local time
+  """
+  def timestamp_from_erl({{year, month, day} = date, {hour, minute, second} = time}) do
+    day_name = Enum.at(@days, :calendar.day_of_the_week(date) - 1)
+    month_name = Enum.at(@months, month - 1)
+
+    date_part = "#{day_name}, #{day} #{month_name} #{year}"
+    time_part = "#{pad(hour)}:#{pad(minute)}:#{pad(second)}"
+
+    date_part <> " " <> time_part <> " +0000"
+  end
+
+  defp pad(num),
+    do: num
+        |> Integer.to_string()
+        |> String.rjust(2, ?0)
 
   defp do_render_headers([]), do: []
   defp do_render_headers([{key, value} | headers]) do

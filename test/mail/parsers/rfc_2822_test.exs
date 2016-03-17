@@ -60,6 +60,12 @@ defmodule Mail.Parsers.RFC2822Test do
     assert html_part.body == "<h1>This is some HTML</h1>"
   end
 
+  test "erl_from_timestamp\1" do
+    date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000")
+
+    assert date_time == {{2016, 1, 1}, {0,0,0}}
+  end
+
   test "parses a nested multipart message with encoded part" do
     mail = """
     To: Test User <user@example.com>, Other User <other@example.com>

@@ -119,4 +119,9 @@ defmodule Mail.Renderers.RFC2822Test do
 
     assert result =~ encoded_file
   end
+
+  test "timestamp_from_erl/1 converts to RFC2822 date and time format" do
+    timestamp = Mail.Renderers.RFC2822.timestamp_from_erl({{2016, 1, 1}, {0, 0, 0}})
+    assert timestamp == "Fri, 1 Jan 2016 00:00:00 +0000"
+  end
 end
