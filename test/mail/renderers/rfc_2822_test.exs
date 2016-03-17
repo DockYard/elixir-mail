@@ -47,6 +47,11 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == ""
   end
 
+  test "headers - date" do
+    header = Mail.Renderers.RFC2822.render_header(:date, {{2016,1,1}, {0,0,0}})
+    assert header == "Date: Fri, 1 Jan 2016 00:00:00 +0000"
+  end
+
   test "renders each part recursively" do
     sub_part_1 = Mail.Message.build_text("Hello there!")
     sub_part_2 = Mail.Message.build_html("<h1>Hello there!</h1>")

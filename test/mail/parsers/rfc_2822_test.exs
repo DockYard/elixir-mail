@@ -72,6 +72,7 @@ defmodule Mail.Parsers.RFC2822Test do
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
     Content-Type: multipart/mixed; boundary="foobar"
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
 
     --foobar
     Content-Type: multipart/alternative; boundary="bazqux"
@@ -103,6 +104,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers[:cc] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
     assert message.headers[:from] == {"Me", "me@example.com"}
     assert message.headers[:content_type] == ["multipart/mixed", boundary: "foobar"]
+    assert message.headers[:date] == {{2016,1,1},{0,0,0}}
 
     [alt_part, attach_part] = message.parts
 
