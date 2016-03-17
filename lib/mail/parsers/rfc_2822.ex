@@ -62,6 +62,9 @@ defmodule Mail.Parsers.RFC2822 do
     do: parse_recipient_value(value)
         |> List.first()
 
+  defp parse_header_value("Date", timestamp),
+    do: erl_from_timestamp(timestamp)
+
   defp parse_header_value(_key, value) do
     case String.split(value, ~r/;\s+/) do
       [value | []] -> value

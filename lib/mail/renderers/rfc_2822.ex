@@ -73,6 +73,8 @@ defmodule Mail.Renderers.RFC2822 do
     |> Kernel.<>(render_header_value(key, value))
   end
 
+  defp render_header_value("date", date_time),
+    do: timestamp_from_erl(date_time)
   defp render_header_value(address_type, addresses) when is_list(addresses) and address_type in @address_types,
     do: Enum.map(addresses, &render_address(&1))
         |> Enum.join(", ")
