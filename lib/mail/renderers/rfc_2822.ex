@@ -16,6 +16,9 @@ defmodule Mail.Renderers.RFC2822 do
   @blacklisted_headers [:bcc]
   @address_types ["from", "to", "cc", "bcc"]
 
+  # https://tools.ietf.org/html/rfc2822#section-3.4.1
+  @email_validation_regex ~r/\w+@\w+\.\w+/
+
   @doc """
   Renders a message according to the RFC2882 spec
   """
@@ -94,8 +97,18 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
 
-  defp render_address({name, email}), do: ~s("#{name}" <#{email}>)
-  defp render_address(email), do: email
+  defp validate_address(address) do
+    case Regex.match?(@email_validation_regex, address) do
+      true -> address
+      false -> raise ArgumentError,
+        message: """
+        The email address `#{address}` is invalid.
+        """
+    end
+  end
+
+  defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
+  defp render_address(email), do: validate_address(email)
   defp render_subtypes([]), do: []
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),
     do: render_subtypes([{Atom.to_string(key), value} | subtypes])

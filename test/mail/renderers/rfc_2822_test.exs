@@ -129,4 +129,36 @@ defmodule Mail.Renderers.RFC2822Test do
     timestamp = Mail.Renderers.RFC2822.timestamp_from_erl({{2016, 1, 1}, {0, 0, 0}})
     assert timestamp == "Fri, 1 Jan 2016 00:00:00 +0000"
   end
+
+  test "will raise when an invalid address in tuple with `to`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_to({"Test User", "@example.com"})
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  test "will raise when an invalid address with `to`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_to("@example.com")
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  test "will raise when an invalid address in tuple with `cc`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_cc({"Test User", "@example.com"})
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  test "will raise when an invalid address with `cc`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_cc("@example.com")
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
 end
