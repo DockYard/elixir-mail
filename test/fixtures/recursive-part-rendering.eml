@@ -1,4 +1,4 @@
-Content-Type: mutipart/alternative; boundary="foobar"
+Content-Type: multipart/alternative; boundary="foobar"
 
 --foobar
 Content-Type: text/plain

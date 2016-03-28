@@ -58,7 +58,7 @@ defmodule Mail.Renderers.RFC2822Test do
 
     part =
       Mail.build_multipart()
-      |> Mail.Message.put_content_type("mutipart/alternative")
+      |> Mail.Message.put_content_type("multipart/alternative")
       |> Mail.Message.put_boundary("foobar")
       |> Mail.Message.put_part(sub_part_1)
       |> Mail.Message.put_part(sub_part_2)
