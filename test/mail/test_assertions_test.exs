@@ -38,8 +38,13 @@ defmodule Mail.TestAssertionsTest do
   end
 
   test "will raise when a multipart message and a singlepart message are compared" do
-    assert_raise ExUnit.AssertionError, "one message is multipart, the other is not", fn ->
-      Mail.TestAssertions.compare(Mail.build(), Mail.build_multipart())  
+    msg = "one message is multipart, the other is not"
+
+    try do
+      Mail.TestAssertions.compare(Mail.build(), Mail.build_multipart())
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert msg == error.message
     end
   end
 
@@ -53,8 +58,13 @@ defmodule Mail.TestAssertionsTest do
       Mail.build_multipart()
       |> Mail.put_text("Some text")
 
-    assert_raise ExUnit.AssertionError, "actual and expected must have equal number of parts", fn ->
+    msg = "actual and expected must have equal number of parts"
+
+    try do
       Mail.TestAssertions.compare(message1, message2)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert msg == error.message
     end
   end
 
@@ -81,8 +91,13 @@ defmodule Mail.TestAssertionsTest do
       Mail.build()
       |> Mail.put_subject("Other subject")
 
-    assert_raise ExUnit.AssertionError, "header key `subject` is not equal", fn ->
+    msg = "header key `subject` is not equal"
+
+    try do
       Mail.TestAssertions.compare(message1, message2)
+    rescue
+      error in [ExUnit.AssertionError] ->
+        assert msg == error.message
     end
   end
 end

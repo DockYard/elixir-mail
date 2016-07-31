@@ -304,7 +304,4 @@ defmodule Mail.Message do
 
     mimetype_fn.(extension)
   end
-
-  defp default_attachment_opts(),
-    do: [encoding: :base64]
 end
