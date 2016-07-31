@@ -144,7 +144,7 @@ defmodule Mail.Renderers.RFC2822 do
 
   This function always assumes the Erlang timestamp is in Universal time, not Local time
   """
-  def timestamp_from_erl({{year, month, day} = date, {hour, minute, second} = time}) do
+  def timestamp_from_erl({{year, month, day} = date, {hour, minute, second}}) do
     day_name = Enum.at(@days, :calendar.day_of_the_week(date) - 1)
     month_name = Enum.at(@months, month - 1)
 

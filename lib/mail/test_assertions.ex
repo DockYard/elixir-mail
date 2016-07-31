@@ -57,7 +57,7 @@ defmodule Mail.TestAssertions do
 
     case Keyword.fetch(content_type, :boundary) do
       nil -> headers
-      boundary ->
+      _boundary ->
         content_type = put_in(content_type, [:boundary], "")
         put_in(headers, [:content_type], content_type)
     end
