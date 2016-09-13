@@ -119,6 +119,9 @@ defmodule Mail do
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
     do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
 
+  def put_attachment(%Mail.Message{multipart: true} = message, path) when is_tuple(path),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
+
   def put_attachment(%Mail.Message{} = message, path) when is_binary(path),
     do: Mail.Message.put_attachment(message, path)
 
