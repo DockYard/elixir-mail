@@ -2,7 +2,7 @@ defmodule Mail.Parsers.RFC2822 do
   @moduledoc """
   RFC2822 Parser
 
-  Will attempt to parse a valid RFC2822 message back into 
+  Will attempt to parse a valid RFC2822 message back into
   a `%Mail.Message{}` data model.
 
       Mail.Parsers.RFC2822.parse(message)
@@ -130,8 +130,6 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp get_boundary(nil), do: nil
-  defp get_boundary(boundary) do
-    Regex.run(~r/"(.+)"/, boundary)
-    |> List.last()
-  end
+  defp get_boundary("\"" <> boundary), do: String.slice(boundary, 0..-2)
+  defp get_boundary(boundary), do: boundary
 end

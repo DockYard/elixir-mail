@@ -29,7 +29,7 @@ defmodule Mail.Parsers.RFC2822Test do
     From: Me <me@example.com>
     Subject: Test email
     Mime-Version: 1.0
-    Content-Type: multipart/alternative; boundary="foobar"
+    Content-Type: multipart/alternative; boundary=foobar
 
     --foobar
     Content-Type: text/plain
