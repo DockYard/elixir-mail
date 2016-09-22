@@ -102,7 +102,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_header_subtypes([]), do: []
   defp parse_header_subtypes([subtype | tail]) do
-    [key, value] = String.split(subtype, "=")
+    [key, value] = String.split(subtype, "=", parts: 2)
     key = key_to_atom(key)
     [{key, normalize_subtype_value(key, value)} | parse_header_subtypes(tail)]
   end

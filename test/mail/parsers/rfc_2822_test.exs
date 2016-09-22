@@ -154,4 +154,33 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers[:x_received] == "201.202.203.204 with SMTP id abcdefg.12.123456;\r\n        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
     assert message.headers[:dkim_signature] == "v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=example.com; s=20160922;\r\n        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;\r\n        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;\r\n        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/\r\n         abcd=="
   end
+
+  test "parses with a '=' in boundary" do
+    mail = """
+    To: Test User <user@example.com>, Other User <other@example.com>
+    CC: The Dude <dude@example.com>, Batman <batman@example.com>
+    From: Me <me@example.com>
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
+    Content-Type: multipart/mixed;
+    	boundary="----=_Part_295474_20544590.1456382229928"
+
+    Content-Type: multipart/alternative; boundary="foobar"
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: text/plain
+
+    This is some text
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: text/html
+
+    <h1>This is some HTML</h1>
+    ------=_Part_295474_20544590.1456382229928--
+    """
+    |> String.replace("\n", "\r\n")
+
+    message = Mail.Parsers.RFC2822.parse(mail)
+
+    assert message.headers[:content_type] == ["multipart/mixed", boundary: "----=_Part_295474_20544590.1456382229928"]
+  end
 end
