@@ -45,7 +45,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_headers(message, headers) do
     headers = String.split(headers, ~r/\r\n(?!\s+)/s)
-      |> Enum.map(&(String.split(&1, ": ", parts: 2)))
+      |> Enum.map(&(String.split(&1, ":", parts: 2)))
       |> Enum.into(%{}, fn([key, value]) ->
         {key_to_atom(key), parse_header_value(key, value)}
       end)
@@ -53,6 +53,15 @@ defmodule Mail.Parsers.RFC2822 do
     Map.put(message, :headers, headers)
     |> Map.put(:multipart, multipart?(headers))
   end
+
+  defp parse_header_value(key, " " <> value),
+    do: parse_header_value(key, value)
+  defp parse_header_value(key, "\r" <> value),
+    do: parse_header_value(key, value)
+  defp parse_header_value(key, "\n" <> value),
+    do: parse_header_value(key, value)
+  defp parse_header_value(key, "\t" <> value),
+    do: parse_header_value(key, value)
 
   defp parse_header_value("To", value),
     do: parse_recipient_value(value)

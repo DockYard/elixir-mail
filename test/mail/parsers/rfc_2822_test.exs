@@ -195,4 +195,18 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers[:content_type] == ["multipart/mixed", boundary: "----=_Part_295474_20544590.1456382229928"]
   end
+
+  test "parse long, wrapped header" do
+    mail = """
+    X-ReallyLongHeaderNameThatCausesBodyToWrap:
+    \tBodyOnNewLine
+
+    Body
+    """
+    |> String.replace("\n", "\r\n")
+
+    message = Mail.Parsers.RFC2822.parse(mail)
+
+    assert message.headers[:x_reallylongheadernamethatcausesbodytowrap] == "BodyOnNewLine"
+  end
 end
