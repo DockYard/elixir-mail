@@ -65,7 +65,18 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("Date", timestamp),
     do: erl_from_timestamp(timestamp)
 
-  defp parse_header_value(_key, value) do
+  defp parse_header_value("Received", value),
+    do: parse_received_value(value)
+
+  defp parse_header_value("Content-Type", value),
+    do: parse_structured_header_value(value)
+  defp parse_header_value("Content-Disposition", value),
+    do: parse_structured_header_value(value)
+
+  defp parse_header_value(_key, value),
+    do: value
+
+  defp parse_structured_header_value(value) do
     case String.split(value, ~r/;\s+/) do
       [value | []] -> value
       [value | subtypes] -> [value | parse_header_subtypes(subtypes)]
@@ -82,6 +93,11 @@ defmodule Mail.Parsers.RFC2822 do
         [address] -> address
       end
     end)
+  end
+
+  defp parse_received_value(value) do
+    [value | [date]] = String.split(value, ~r/;\s+/)
+    [value | [date: erl_from_timestamp(date)]]
   end
 
   defp parse_header_subtypes([]), do: []

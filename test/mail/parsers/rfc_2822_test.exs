@@ -122,4 +122,36 @@ defmodule Mail.Parsers.RFC2822Test do
     assert attach_part.headers[:content_transfer_encoding] == "base64"
     assert attach_part.body == "Hello world!"
   end
+
+  test "parses unstructured headers" do
+    mail = """
+    Delivered-To: user@example.com
+    Received: by 101.102.103.104 with SMTP id abcdefg;
+            Fri, 1 Apr 2016 11:08:31 -0700 (PDT)
+    X-Received: 201.202.203.204 with SMTP id abcdefg.12.123456;
+            Fri, 01 Apr 2016 11:08:31 -0700 (PDT)
+    DKIM-Signature: v=1; a=rsa-sha256; c=relaxed/relaxed;
+            d=example.com; s=20160922;
+            h=mime-version:in-reply-to:references:date:message-id:subject:from:to;
+            bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;
+            b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/
+             abcd==
+    Return-Path: <dude@example.com>
+    To: Test User <user@example.com>, Other User <other@example.com>
+    CC: The Dude <dude@example.com>, Batman <batman@example.com>
+    From: Me <me@example.com>
+    Content-Type: text/plain
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
+
+    Test
+    """
+    |> String.replace("\n", "\r\n")
+
+    message = Mail.Parsers.RFC2822.parse(mail)
+
+    assert message.headers[:delivered_to] == "user@example.com"
+    assert message.headers[:received] == ["by 101.102.103.104 with SMTP id abcdefg", date: {{2016, 4, 1}, {11, 8, 31}}]
+    assert message.headers[:x_received] == "201.202.203.204 with SMTP id abcdefg.12.123456;\r\n        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
+    assert message.headers[:dkim_signature] == "v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=example.com; s=20160922;\r\n        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;\r\n        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;\r\n        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/\r\n         abcd=="
+  end
 end
