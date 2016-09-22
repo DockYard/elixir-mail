@@ -29,7 +29,7 @@ defmodule Mail.Parsers.RFC2822 do
   Timezone information is ignored
   """
   def erl_from_timestamp(timestamp) do
-    regex = ~r/\w{3},\s+(?<day>\d{1,2})\s+(?<month>\w{3})\s+(?<year>\d{4})\s+(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})/
+    regex = ~r/(\w{3},\s+)?(?<day>\d{1,2})\s+(?<month>\w{3})\s+(?<year>\d{4})\s+(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})/
     capture = Regex.named_captures(regex, timestamp)
 
     year  = capture["year"] |> String.to_integer()
