@@ -64,7 +64,9 @@ defmodule Mail.Parsers.RFC2822Test do
     date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000")
 
     assert date_time == {{2016, 1, 1}, {0,0,0}}
+  end
 
+  test "erl_from_timestamp\1 with CRLF in date string" do
     date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan\r\n 2016 00:00:00 +0000")
 
     assert date_time == {{2016, 1, 1}, {0,0,0}}
