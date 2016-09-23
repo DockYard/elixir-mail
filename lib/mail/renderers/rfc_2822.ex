@@ -14,7 +14,7 @@ defmodule Mail.Renderers.RFC2822 do
   """
 
   @blacklisted_headers [:bcc]
-  @address_types ["from", "to", "cc", "bcc"]
+  @address_types ["From", "To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
   @email_validation_regex ~r/\w+@\w+\.\w+/
@@ -69,21 +69,24 @@ defmodule Mail.Renderers.RFC2822 do
   def render_header(key, value) when is_atom(key),
     do: render_header(Atom.to_string(key), value)
   def render_header(key, value) do
-    String.split(key, "_")
-    |> Enum.map(&String.capitalize(&1))
-    |> Enum.join("-")
-    |> Kernel.<>(": ")
-    |> Kernel.<>(render_header_value(key, value))
+    key =
+      key
+      |> String.replace("_", "-")
+      |> String.split("-")
+      |> Enum.map(&String.capitalize(&1))
+      |> Enum.join("-")
+
+    key <> ": " <> render_header_value(key, value)
   end
 
-  defp render_header_value("date", date_time),
+  defp render_header_value("Date", date_time),
     do: timestamp_from_erl(date_time)
   defp render_header_value(address_type, addresses) when is_list(addresses) and address_type in @address_types,
     do: Enum.map(addresses, &render_address(&1))
         |> Enum.join(", ")
   defp render_header_value(address_type, address) when address_type in @address_types,
     do: render_address(address)
-  defp render_header_value("content_transfer_encoding" = key, value) when is_atom(value) do
+  defp render_header_value("Content-Transfer-Encoding" = key, value) when is_atom(value) do
     value =
       value
       |> Atom.to_string()
@@ -192,6 +195,6 @@ defmodule Mail.Renderers.RFC2822 do
   defp reorganize(%Mail.Message{} = message), do: message
 
   defp encode(body, message) do
-    Mail.Encoder.encode(body, get_in(message.headers, [:content_transfer_encoding]))
+    Mail.Encoder.encode(body, get_in(message.headers, ["content-transfer-encoding"]))
   end
 end

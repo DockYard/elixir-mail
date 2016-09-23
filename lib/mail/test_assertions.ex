@@ -52,14 +52,14 @@ defmodule Mail.TestAssertions do
 
   defp normalize_boundary(headers) do
     content_type =
-      headers[:content_type]
+      headers["content-type"]
       |> List.wrap()
 
     case Keyword.fetch(content_type, :boundary) do
       nil -> headers
       _boundary ->
         content_type = put_in(content_type, [:boundary], "")
-        put_in(headers, [:content_type], content_type)
+        put_in(headers, ["content-type"], content_type)
     end
   end
 end
