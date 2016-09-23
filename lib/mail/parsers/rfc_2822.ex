@@ -83,7 +83,8 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_headers(message, []), do: message
   defp parse_headers(message, [header | tail]) do
     [name, body] = String.split(header, ":", parts: 2)
-    headers = Map.put(message.headers, key_to_atom(name), parse_header_value(name, body))
+    key = String.downcase(name)
+    headers = Map.put(message.headers, key, parse_header_value(name, body))
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
@@ -155,7 +156,9 @@ defmodule Mail.Parsers.RFC2822 do
     do: value
 
   defp parse_body(%Mail.Message{multipart: true} = message, lines) do
-    boundary = get_in(message.headers, [:content_type, :boundary])
+    content_type = message.headers["content-type"]
+    boundary = Keyword.get(content_type, :boundary)
+
     parts =
       boundary
       |> extract_parts(lines)
@@ -204,15 +207,19 @@ defmodule Mail.Parsers.RFC2822 do
         |> String.to_atom()
 
   defp multipart?(headers) do
-    !!(case get_in(headers, [:content_type]) do
-      nil -> nil
-      type when is_binary(type) -> nil
-      content_type -> content_type[:boundary]
-    end)
+    content_type = headers["content-type"]
+    !!(case content_type do
+         nil -> nil
+         type when is_binary(type) -> nil
+         content_type -> content_type[:boundary]
+       end)
   end
 
-  defp decode(body, message),
-    do: Mail.Encoder.decode(body, get_in(message.headers, [:content_transfer_encoding]))
+  defp decode(body, message) do
+    body = String.rstrip(body)
+    transfer_encoding = message.headers["content-transfer-encoding"]
+    Mail.Encoder.decode(body, transfer_encoding)
+  end
 
   defp get_boundary(nil), do: nil
   defp get_boundary("\"" <> boundary), do: String.slice(boundary, 0..-2)
