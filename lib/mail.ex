@@ -129,7 +129,13 @@ defmodule Mail do
       %Mail.Message{headers: %{subject: "Welcome to DockYard!"}}
   """
   def put_subject(message, subject),
-    do: Mail.Message.put_header(message, :subject, subject)
+    do: Mail.Message.put_header(message, "subject", subject)
+
+  @doc ~S"""
+  Retrieve the `subject` header
+  """
+  def get_subject(message),
+    do: Mail.Message.get_header(message, "subject")
 
   @doc """
   Add new recipients to the `to` header
@@ -159,11 +165,17 @@ defmodule Mail do
 
   def put_to(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    Mail.Message.put_header(message, :to, (message.headers[:to] || []) ++ recipients)
+    Mail.Message.put_header(message, "to", (get_to(message) || []) ++ recipients)
   end
 
   def put_to(message, recipient),
     do: put_to(message, [recipient])
+
+  @doc ~S"""
+  Retrieves the list of recipients from the `to` header
+  """
+  def get_to(message),
+    do: Mail.Message.get_header(message, "to")
 
   @doc """
   Add new recipients to the `cc` header
@@ -193,11 +205,17 @@ defmodule Mail do
 
   def put_cc(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    Mail.Message.put_header(message, :cc, (message.headers[:cc] || []) ++ recipients)
+    Mail.Message.put_header(message, "cc", (get_cc(message) || []) ++ recipients)
   end
 
   def put_cc(message, recipient),
     do: put_cc(message, [recipient])
+
+  @doc ~S"""
+  Retrieves the recipients from the `cc` header
+  """
+  def get_cc(message),
+    do: Mail.Message.get_header(message, "cc")
 
   @doc """
   Add new recipients to the `bcc` header
@@ -227,11 +245,17 @@ defmodule Mail do
 
   def put_bcc(message, recipients) when is_list(recipients) do
     validate_recipients(recipients)
-    Mail.Message.put_header(message, :bcc, (message.headers[:bcc] || []) ++ recipients)
+    Mail.Message.put_header(message, "bcc", (get_bcc(message) || []) ++ recipients)
   end
 
   def put_bcc(message, recipient),
     do: put_bcc(message, [recipient])
+
+  @doc ~S"""
+  Retrieves the recipients from the `bcc` header
+  """
+  def get_bcc(message),
+    do: Mail.Message.get_header(message, "bcc")
 
   @doc """
   Add a new `from` header
@@ -240,7 +264,13 @@ defmodule Mail do
       %Mail.Message{headers: %{from: "user@example.com"}}
   """
   def put_from(message, sender),
-    do: Mail.Message.put_header(message, :from, sender)
+    do: Mail.Message.put_header(message, "from", sender)
+
+  @doc ~S"""
+  Retrieves the `from` header
+  """
+  def get_from(message),
+    do: Mail.Message.get_header(message, "from")
 
   @doc """
   Add a new `reply-to` header
@@ -249,7 +279,13 @@ defmodule Mail do
       %Mail.Message{headers: %{reply_to: "user@example.com"}}
   """
   def put_reply_to(message, reply_address),
-    do: Mail.Message.put_header(message, :reply_to, reply_address)
+    do: Mail.Message.put_header(message, "reply-to", reply_address)
+
+  @doc ~S"""
+  Retrieves the `reply-to` header
+  """
+  def get_reply_to(message),
+    do: Mail.Message.get_header(message, "reply-to")
 
   @doc """
   Returns a unique list of all recipients
@@ -258,9 +294,9 @@ defmodule Mail do
   and returns a unique list of recipients.
   """
   def all_recipients(message) do
-    List.wrap(message.headers[:to]) ++
-    List.wrap(message.headers[:cc]) ++
-    List.wrap(message.headers[:bcc])
+    List.wrap(Mail.get_to(message)) ++
+    List.wrap(Mail.get_cc(message)) ++
+    List.wrap(Mail.get_bcc(message))
     |> Enum.uniq()
   end
 
