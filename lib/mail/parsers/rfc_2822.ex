@@ -40,19 +40,44 @@ defmodule Mail.Parsers.RFC2822 do
 
   Timezone information is ignored
   """
-  def erl_from_timestamp(timestamp) do
-    regex = ~r/(\w{3},\s+)?(?<day>\d{1,2})\s+(?<month>\w{3})\s+(?<year>\d{4})\s+(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})/
-    capture = Regex.named_captures(regex, timestamp)
+  def erl_from_timestamp(<<" ", rest :: binary>>), do: erl_from_timestamp(rest)
+  def erl_from_timestamp(<<"\t", rest :: binary>>), do: erl_from_timestamp(rest)
+  def erl_from_timestamp(<<
+                         _day :: binary-size(3),
+                         ", ",
+                         rest :: binary>>) do
+    erl_from_timestamp(rest)
+  end
+  def erl_from_timestamp(<<
+                         date :: binary-size(1),
+                         " ",
+                         rest :: binary>>) do
+    erl_from_timestamp("0" <> date <> " " <> rest)
+  end
+  def erl_from_timestamp(<<
+                         date  ::  binary-size(2),
+                         " ",
+                         month :: binary-size(3),
+                         " ",
+                         year :: binary-size(4),
+                         " ",
+                         hour :: binary-size(2),
+                         ":",
+                         minute :: binary-size(2),
+                         ":",
+                         second :: binary-size(2),
+                         " ",
+                         _timezone :: binary-size(5),
+                         _rest :: binary>>) do
+    year  = year  |> String.to_integer
+    month = Enum.find_index(@months, &(&1 == month)) + 1
+    date  = date  |> String.to_integer
 
-    year  = capture["year"] |> String.to_integer()
-    month = Enum.find_index(@months, &(&1 == capture["month"])) + 1
-    day   = capture["day"] |> String.to_integer()
+    hour   = hour   |> String.to_integer
+    minute = minute |> String.to_integer
+    second = second |> String.to_integer
 
-    hour   = capture["hour"] |> String.to_integer()
-    minute = capture["minute"] |> String.to_integer()
-    second = capture["second"] |> String.to_integer()
-
-    {{year, month, day}, {hour, minute, second}}
+    {{year, month, date}, {hour, minute, second}}
   end
 
   defp parse_headers(message, []), do: message

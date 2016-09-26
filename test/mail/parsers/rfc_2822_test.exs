@@ -89,21 +89,14 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "erl_from_timestamp\1" do
-    date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000")
+    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
 
-    assert date_time == {{2016, 1, 1}, {0,0,0}}
-  end
-
-  test "erl_from_timestamp\1 with CRLF in date string" do
-    date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan\r\n 2016 00:00:00 +0000")
-
-    assert date_time == {{2016, 1, 1}, {0,0,0}}
-  end
-
-  test "erl_from_timestamp\1 day of week optional" do
-    date_time = Mail.Parsers.RFC2822.erl_from_timestamp("1 Jan 2016 00:00:00 +0000")
-
-    assert date_time == {{2016, 1, 1}, {0,0,0}}
+    assert erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000") == {{2016, 1, 1}, {0,0,0}}
+    assert erl_from_timestamp("1 Feb 2016 01:02:03 +0000") == {{2016, 2, 1}, {1,2,3}}
+    assert erl_from_timestamp(" 1 Mar 2016 11:12:13 +0000") == {{2016, 3, 1}, {11,12,13}}
+    assert erl_from_timestamp("\t1 Apr 2016 22:33:44 +0000") == {{2016, 4, 1}, {22,33,44}}
+    assert erl_from_timestamp("12 Jan 2016 00:00:00 +0000") == {{2016, 1, 12}, {0,0,0}}
+    assert erl_from_timestamp("25 Dec 2016 00:00:00 +0000 (UTC)") == {{2016, 12, 25}, {0,0,0}}
   end
 
   test "parses a nested multipart message with encoded part" do
@@ -112,7 +105,8 @@ defmodule Mail.Parsers.RFC2822Test do
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
     Content-Type: multipart/mixed; boundary="foobar"
-    Date: Fri, 1 Jan 2016 00:00:00 +0000
+    Date: Fri, 1 Jan
+     2016 00:00:00 +0000
 
     --foobar
     Content-Type: multipart/alternative; boundary="bazqux"
