@@ -10,13 +10,14 @@ defmodule Mail.Parsers.RFC2822Test do
       baz=qux
 
     This is the body!
+    It has more than one line
     """)
 
     assert message.headers[:to] == ["user@example.com"]
     assert message.headers[:from] == "me@example.com"
     assert message.headers[:subject] == "Test Email"
     assert message.headers[:content_type] == ["text/plain", foo: "bar", baz: "qux"]
-    assert message.body == "This is the body!"
+    assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
   test "parses a multipart message" do
@@ -151,8 +152,8 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers[:delivered_to] == "user@example.com"
     assert message.headers[:received] == ["by 101.102.103.104 with SMTP id abcdefg", date: {{2016, 4, 1}, {11, 8, 31}}]
-    assert message.headers[:x_received] == "201.202.203.204 with SMTP id abcdefg.12.123456;\r\n        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
-    assert message.headers[:dkim_signature] == "v=1; a=rsa-sha256; c=relaxed/relaxed;\r\n        d=example.com; s=20160922;\r\n        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;\r\n        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;\r\n        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/\r\n         abcd=="
+    assert message.headers[:x_received] == "201.202.203.204 with SMTP id abcdefg.12.123456;        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
+    assert message.headers[:dkim_signature] == "v=1; a=rsa-sha256; c=relaxed/relaxed;        d=example.com; s=20160922;        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/         abcd=="
   end
 
   test "parses with a '=' in boundary" do
@@ -163,8 +164,6 @@ defmodule Mail.Parsers.RFC2822Test do
     Date: Fri, 1 Jan 2016 00:00:00 +0000
     Content-Type: multipart/mixed;
     	boundary="----=_Part_295474_20544590.1456382229928"
-
-    Content-Type: multipart/alternative; boundary="foobar"
 
     ------=_Part_295474_20544590.1456382229928
     Content-Type: text/plain
