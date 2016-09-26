@@ -12,7 +12,7 @@ defmodule Mail.Parsers.RFC2822 do
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 
   def parse(content) do
-    matcher = ~r/^(\r\n)?(?<headers>.+?)\r\n\r\n(?<body>.+)/s
+    matcher = ~r/^(\r\n)?(?<headers>.+?)\r\n\r\n(?<body>.*)/s
     %{"headers" => headers, "body" => body} = Regex.named_captures(matcher, content)
 
     %Mail.Message{}

@@ -192,6 +192,18 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers[:x_reallylongheadernamethatcausesbodytowrap] == "BodyOnNewLine"
   end
 
+  test "allow empty body (RFC2822 §3.5)" do
+    message = parse_email("""
+    To: Test User <user@example.com>
+    From: Me <me@example.com>
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
+    Subject: Blank body
+
+    """)
+
+    assert message.body == ""
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse
 
