@@ -204,6 +204,21 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == ""
   end
 
+  test "address comment parsing" do
+    message = parse_email("""
+    To: Test User <user@example.com> (comment)
+    CC: other@example.com (comment)
+    From: <me@example.com>
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
+    Subject: Blank body
+
+    """)
+
+    assert message.headers[:to] == [{"Test User", "user@example.com"}]
+    assert message.headers[:cc] == ["other@example.com"]
+    assert message.headers[:from] == "me@example.com"
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse
 

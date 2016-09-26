@@ -93,15 +93,15 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp parse_recipient_value(value) do
-    String.split(value, ", ")
-    |> Enum.map(fn(recipient) ->
-      case String.split(recipient, ~r/\s(?!.*\s)/) do
-        [name, address] ->
-          %{"address" => address} = Regex.named_captures(~r/<(?<address>.+)>/, address)
-          {name, address}
-        [address] -> address
-      end
-    end)
+    String.split(value, ",")
+    |> Enum.map(&parse_recipient/1)
+  end
+
+  defp parse_recipient(recipient) do
+    case Regex.run(~r/\s*(.*?)\s*?<?([^\s]+@[^\s>]+)>?.*/, recipient) do
+      [_, "", address] -> address
+      [_, name, address] -> {name, address}
+    end
   end
 
   defp parse_received_value(value) do
