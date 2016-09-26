@@ -1,5 +1,5 @@
 defmodule Mail.Encoders.QuotedPrintableTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "encodes empty string" do
     assert Mail.Encoders.QuotedPrintable.encode("") == ""

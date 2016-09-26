@@ -1,5 +1,5 @@
 defmodule MailTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   defmodule TestRenderer do
     def render(message) do

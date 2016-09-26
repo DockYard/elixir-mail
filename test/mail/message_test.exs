@@ -1,5 +1,5 @@
 defmodule Mail.MessageTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "put_part" do
     part = %Mail.Message{body: "new part"}

@@ -1,5 +1,5 @@
 defmodule Mail.Encoders.Base64Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "parses data with line feeds" do
     base64_sample = "SGVsbG8gd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3JsZCEgSGVsbG8g\r\nd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3JsZCE=\r\n"

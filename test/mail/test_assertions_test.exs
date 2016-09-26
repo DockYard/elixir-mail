@@ -1,5 +1,5 @@
 defmodule Mail.TestAssertionsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "will not raise when two multipart messages are equal" do
     message1 =

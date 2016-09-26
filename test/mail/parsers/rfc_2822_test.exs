@@ -1,5 +1,5 @@
 defmodule Mail.Parsers.RFC2822Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "parses a singlepart message" do
     message = parse_email("""
