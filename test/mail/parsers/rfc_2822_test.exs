@@ -219,6 +219,21 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers[:from] == "me@example.com"
   end
 
+  test "address name contains comma" do
+    message = parse_email("""
+    To: "User, Test" <user@example.com>
+    CC: "User, First" <first@example.com>, "User, Second" <second@example.com>, third@example.com
+    From: "Lastname, First Names" <me@example.com>
+    Date: Fri, 1 Jan 2016 00:00:00 +0000
+    Subject: Blank body
+
+    """)
+
+    assert message.headers[:to] == [{"User, Test", "user@example.com"}]
+    assert message.headers[:cc] == [{"User, First", "first@example.com"}, {"User, Second", "second@example.com"}, "third@example.com"]
+    assert message.headers[:from] == {"Lastname, First Names", "me@example.com"}
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse
 
