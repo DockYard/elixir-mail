@@ -168,6 +168,8 @@ defmodule Mail.Parsers.RFC2822 do
       extract_parts(boundary, tail, [line | acc], parts)
     end
   end
+  defp extract_parts(boundary, [_line | tail], acc, nil),
+    do: extract_parts(boundary, tail, acc, nil)
   defp extract_parts(boundary, [head | tail], acc, parts),
     do: extract_parts(boundary, tail, [head | acc], parts)
 

@@ -55,6 +55,39 @@ defmodule Mail.Parsers.RFC2822Test do
     assert html_part.body == "<h1>This is some HTML</h1>"
   end
 
+  test "parses a multipart message with a body" do
+    message = parse_email("""
+    To: Test User <user@example.com>, Other User <other@example.com>
+    CC: The Dude <dude@example.com>, Batman <batman@example.com>
+    From: Me <me@example.com>
+    Subject: Test email
+    Mime-Version: 1.0
+    Content-Type: multipart/alternative; boundary=foobar
+
+    This is a multi-part message in MIME format
+    --foobar
+    Content-Type: text/plain
+
+    This is some text
+
+    --foobar
+    Content-Type: text/html
+
+    <h1>This is some HTML</h1>
+    --foobar--
+    """)
+
+    assert message.body == nil
+
+    [text_part, html_part] = message.parts
+
+    assert text_part.headers[:content_type] == "text/plain"
+    assert text_part.body == "This is some text"
+
+    assert html_part.headers[:content_type] == "text/html"
+    assert html_part.body == "<h1>This is some HTML</h1>"
+  end
+
   test "erl_from_timestamp\1" do
     date_time = Mail.Parsers.RFC2822.erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000")
 
