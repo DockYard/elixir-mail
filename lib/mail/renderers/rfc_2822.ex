@@ -23,16 +23,14 @@ defmodule Mail.Renderers.RFC2822 do
   Renders a message according to the RFC2882 spec
   """
   def render(%Mail.Message{multipart: true} = message) do
-    message = reorganize(message)
-    headers = put_in(message.headers, [:mime_version], "1.0")
-
-    Map.put(message, :headers, headers)
+    message
+    |> reorganize
+    |> Mail.Message.put_header(:mime_version, "1.0")
     |> render_part()
   end
 
-  def render(%Mail.Message{} = message) do
-    render_part(message)
-  end
+  def render(%Mail.Message{} = message),
+    do: render_part(message)
 
   @doc """
   Render an individual part
@@ -195,6 +193,6 @@ defmodule Mail.Renderers.RFC2822 do
   defp reorganize(%Mail.Message{} = message), do: message
 
   defp encode(body, message) do
-    Mail.Encoder.encode(body, get_in(message.headers, ["content-transfer-encoding"]))
+    Mail.Encoder.encode(body, Mail.Message.get_header(message, "content-transfer-encoding"))
   end
 end

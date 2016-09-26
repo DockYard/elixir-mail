@@ -34,14 +34,14 @@ defmodule Mail.MessageTest do
   end
 
   test "delete_header" do
-    message = Mail.Message.delete_header(%Mail.Message{headers: %{foo: "bar"}}, :foo)
+    message = Mail.Message.delete_header(%Mail.Message{headers: %{"foo" => "bar"}}, :foo)
     refute Map.has_key?(message.headers, :foo)
   end
 
   test "delete_headers" do
-    message = Mail.Message.delete_headers(%Mail.Message{headers: %{foo: "bar", baz: "qux"}}, [:foo, :baz])
-    refute Map.has_key?(message.headers, :foo)
-    refute Map.has_key?(message.headers, :baz)
+    message = Mail.Message.delete_headers(%Mail.Message{headers: %{"foo" => "bar", "baz" => "qux"}}, [:foo, :baz])
+    refute Mail.Message.has_header?(message, :foo)
+    refute Mail.Message.has_header?(message, :baz)
   end
 
   test "put_content_type" do

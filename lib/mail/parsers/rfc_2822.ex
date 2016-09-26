@@ -217,7 +217,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp decode(body, message) do
     body = String.rstrip(body)
-    transfer_encoding = message.headers["content-transfer-encoding"]
+    transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
     Mail.Encoder.decode(body, transfer_encoding)
   end
 

@@ -53,14 +53,13 @@ defmodule Mail.Message do
   """
   def put_header(message, key, content) when not is_binary(key),
     do: put_header(message, to_string(key), content)
-
   def put_header(message, key, content),
-    do: put_in(message.headers[fix_header(key)], content)
+    do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
 
   def get_header(message, key) when not is_binary(key),
     do: get_header(message, to_string(key))
   def get_header(message, key),
-    do: get_in(message.headers, [fix_header(key)])
+    do: Map.get(message.headers, fix_header(key))
 
   @doc """
   Deletes a specific header key
@@ -69,7 +68,7 @@ defmodule Mail.Message do
       %Mail.Message{headers: %{}}
   """
   def delete_header(message, header),
-    do: put_in(message.headers, Map.delete(message.headers, header))
+    do: %{message | headers: Map.delete(message.headers, fix_header(header))}
 
   @doc """
   Deletes a list of headers
@@ -81,6 +80,9 @@ defmodule Mail.Message do
   def delete_headers(message, []), do: message
   def delete_headers(message, [header | tail]),
     do: delete_headers(delete_header(message, header), tail)
+
+  def has_header?(message, header),
+    do: Map.has_key?(message.headers, fix_header(header))
 
   defp fix_header(key) when not is_binary(key),
     do: fix_header(to_string(key))
