@@ -2,7 +2,7 @@ defmodule Mail.Parsers.RFC2822Test do
   use ExUnit.Case
 
   test "parses a singlepart message" do
-    mail = """
+    message = parse_email("""
     To: user@example.com
     From: me@example.com
     Subject: Test Email
@@ -10,10 +10,7 @@ defmodule Mail.Parsers.RFC2822Test do
       baz=qux
 
     This is the body!
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:to] == ["user@example.com"]
     assert message.headers[:from] == "me@example.com"
@@ -23,7 +20,7 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parses a multipart message" do
-    mail = """
+    message = parse_email("""
     To: Test User <user@example.com>, Other User <other@example.com>
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
@@ -41,10 +38,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     <h1>This is some HTML</h1>
     --foobar--
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:to] == [{"Test User", "user@example.com"}, {"Other User", "other@example.com"}]
     assert message.headers[:cc] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
@@ -79,7 +73,7 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parses a nested multipart message with encoded part" do
-    mail = """
+    message = parse_email("""
     To: Test User <user@example.com>, Other User <other@example.com>
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
@@ -107,10 +101,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     SGVsbG8gd29ybGQh
     --foobar--
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:to] == [{"Test User", "user@example.com"}, {"Other User", "other@example.com"}]
     assert message.headers[:cc] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
@@ -136,7 +127,7 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parses unstructured headers" do
-    mail = """
+    message = parse_email("""
     Delivered-To: user@example.com
     Received: by 101.102.103.104 with SMTP id abcdefg;
             Fri, 1 Apr 2016 11:08:31 -0700 (PDT)
@@ -156,10 +147,7 @@ defmodule Mail.Parsers.RFC2822Test do
     Date: Fri, 1 Jan 2016 00:00:00 +0000
 
     Test
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:delivered_to] == "user@example.com"
     assert message.headers[:received] == ["by 101.102.103.104 with SMTP id abcdefg", date: {{2016, 4, 1}, {11, 8, 31}}]
@@ -168,7 +156,7 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parses with a '=' in boundary" do
-    mail = """
+    message = parse_email("""
     To: Test User <user@example.com>, Other User <other@example.com>
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
@@ -188,25 +176,25 @@ defmodule Mail.Parsers.RFC2822Test do
 
     <h1>This is some HTML</h1>
     ------=_Part_295474_20544590.1456382229928--
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:content_type] == ["multipart/mixed", boundary: "----=_Part_295474_20544590.1456382229928"]
   end
 
   test "parse long, wrapped header" do
-    mail = """
+    message = parse_email("""
     X-ReallyLongHeaderNameThatCausesBodyToWrap:
     \tBodyOnNewLine
 
     Body
-    """
-    |> String.replace("\n", "\r\n")
-
-    message = Mail.Parsers.RFC2822.parse(mail)
+    """)
 
     assert message.headers[:x_reallylongheadernamethatcausesbodytowrap] == "BodyOnNewLine"
   end
+
+  defp parse_email(email),
+    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse
+
+  def convert_crlf(text),
+    do: text |> String.replace("\n", "\r\n")
 end
