@@ -11,15 +11,27 @@ defmodule Mail.Parsers.RFC2822 do
 
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 
-  def parse(content) do
-    matcher = ~r/^(\r\n)?(?<headers>.+?)\r\n\r\n(?<body>.+)/s
-    %{"headers" => headers, "body" => body} = Regex.named_captures(matcher, content)
+  def parse(content)
+  def parse([_ | _] = lines) do
+    [headers, lines] = extract_headers(lines)
 
     %Mail.Message{}
     |> parse_headers(headers)
-    |> parse_body(body)
+    |> mark_multipart
+    |> parse_body(lines)
   end
+  def parse(content),
+    do: content |> String.split("\r\n") |> parse
 
+  defp extract_headers(list, headers \\ [])
+  defp extract_headers(["" | tail], headers),
+    do: [Enum.reverse(headers), tail]
+  defp extract_headers([<<" " <> _>> = folded_body | tail], [previous_header | headers]),
+    do: extract_headers(tail, [previous_header <> folded_body | headers])
+  defp extract_headers([<<"\t" <> _>> = folded_body | tail], [previous_header | headers]),
+    do: extract_headers(tail, [previous_header <> folded_body | headers])
+  defp extract_headers([header | tail], headers),
+    do: extract_headers(tail, [header | headers])
 
   @doc """
   Parses a RFC2822 timestamp to an Erlang timestamp
@@ -28,31 +40,56 @@ defmodule Mail.Parsers.RFC2822 do
 
   Timezone information is ignored
   """
-  def erl_from_timestamp(timestamp) do
-    regex = ~r/(\w{3},\s+)?(?<day>\d{1,2})\s+(?<month>\w{3})\s+(?<year>\d{4})\s+(?<hour>\d{2}):(?<minute>\d{2}):(?<second>\d{2})/
-    capture = Regex.named_captures(regex, timestamp)
+  def erl_from_timestamp(<<" ", rest :: binary>>), do: erl_from_timestamp(rest)
+  def erl_from_timestamp(<<"\t", rest :: binary>>), do: erl_from_timestamp(rest)
+  def erl_from_timestamp(<<
+                         _day :: binary-size(3),
+                         ", ",
+                         rest :: binary>>) do
+    erl_from_timestamp(rest)
+  end
+  def erl_from_timestamp(<<
+                         date :: binary-size(1),
+                         " ",
+                         rest :: binary>>) do
+    erl_from_timestamp("0" <> date <> " " <> rest)
+  end
+  def erl_from_timestamp(<<
+                         date  ::  binary-size(2),
+                         " ",
+                         month :: binary-size(3),
+                         " ",
+                         year :: binary-size(4),
+                         " ",
+                         hour :: binary-size(2),
+                         ":",
+                         minute :: binary-size(2),
+                         ":",
+                         second :: binary-size(2),
+                         " ",
+                         _timezone :: binary-size(5),
+                         _rest :: binary>>) do
+    year  = year  |> String.to_integer
+    month = Enum.find_index(@months, &(&1 == month)) + 1
+    date  = date  |> String.to_integer
 
-    year  = capture["year"] |> String.to_integer()
-    month = Enum.find_index(@months, &(&1 == capture["month"])) + 1
-    day   = capture["day"] |> String.to_integer()
+    hour   = hour   |> String.to_integer
+    minute = minute |> String.to_integer
+    second = second |> String.to_integer
 
-    hour   = capture["hour"] |> String.to_integer()
-    minute = capture["minute"] |> String.to_integer()
-    second = capture["second"] |> String.to_integer()
-
-    {{year, month, day}, {hour, minute, second}}
+    {{year, month, date}, {hour, minute, second}}
   end
 
-  defp parse_headers(message, headers) do
-    headers = String.split(headers, ~r/\r\n(?!\s+)/s)
-      |> Enum.map(&(String.split(&1, ":", parts: 2)))
-      |> Enum.into(%{}, fn([key, value]) ->
-        {key_to_atom(key), parse_header_value(key, value)}
-      end)
-
-    Map.put(message, :headers, headers)
-    |> Map.put(:multipart, multipart?(headers))
+  defp parse_headers(message, []), do: message
+  defp parse_headers(message, [header | tail]) do
+    [name, body] = String.split(header, ":", parts: 2)
+    headers = Map.put(message.headers, key_to_atom(name), parse_header_value(name, body))
+    message = %{message | headers: headers}
+    parse_headers(message, tail)
   end
+
+  defp mark_multipart(message),
+    do: Map.put(message, :multipart, multipart?(message.headers))
 
   defp parse_header_value(key, " " <> value),
     do: parse_header_value(key, value)
@@ -93,14 +130,10 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp parse_recipient_value(value) do
-    String.split(value, ", ")
-    |> Enum.map(fn(recipient) ->
-      case String.split(recipient, ~r/\s(?!.*\s)/) do
-        [name, address] ->
-          %{"address" => address} = Regex.named_captures(~r/<(?<address>.+)>/, address)
-          {name, address}
-        [address] -> address
-      end
+    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
+    |> Enum.map(fn
+      [_, "", address] -> address
+      [_, name, address] -> {name, address}
     end)
   end
 
@@ -121,19 +154,49 @@ defmodule Mail.Parsers.RFC2822 do
   defp normalize_subtype_value(_key, value),
     do: value
 
-  defp parse_body(%Mail.Message{multipart: true} = message, body) do
+  defp parse_body(%Mail.Message{multipart: true} = message, lines) do
     boundary = get_in(message.headers, [:content_type, :boundary])
-
     parts =
-      Regex.run(~r/--#{boundary}?(.+)--#{boundary}--/s, body)
-      |> List.last()
-      |> String.split("--#{boundary}")
-      |> Enum.map(&(parse(&1)))
+      boundary
+      |> extract_parts(lines)
+      |> Enum.map(fn(part) ->
+        parse(part)
+      end)
 
     Map.put(message, :parts, parts)
   end
-  defp parse_body(%Mail.Message{} = message, body),
-    do: Map.put(message, :body, decode(body, message))
+  defp parse_body(%Mail.Message{} = message, lines) do
+    decoded =
+      lines
+      |> join_body
+      |> decode(message)
+
+    Map.put(message, :body, decoded)
+  end
+
+  defp join_body(lines, acc \\ [])
+  defp join_body([], acc), do: acc |> Enum.reverse |> Enum.join("\r\n")
+  defp join_body([""], acc), do: acc |> Enum.reverse |> Enum.join("\r\n")
+  defp join_body([head | tail], acc), do: join_body(tail, [head | acc])
+
+  defp extract_parts(boundary, lines, acc \\ [], parts \\ nil)
+  defp extract_parts(_boundary, [], _acc, parts),
+    do: Enum.reverse(parts)
+  defp extract_parts(boundary, ["--" <> boundary | tail], acc, nil),
+    do: extract_parts(boundary, tail, acc, [])
+  defp extract_parts(boundary, ["--" <> boundary | tail], acc, parts),
+    do: extract_parts(boundary, tail, [], [Enum.reverse(acc) | parts])
+  defp extract_parts(boundary, [<<"--" <> rest>> = line | tail], acc, parts) do
+    if rest == boundary <> "--" do
+      extract_parts(boundary, [], [], [Enum.reverse(acc) | parts])
+    else
+      extract_parts(boundary, tail, [line | acc], parts)
+    end
+  end
+  defp extract_parts(boundary, [_line | tail], acc, nil),
+    do: extract_parts(boundary, tail, acc, nil)
+  defp extract_parts(boundary, [head | tail], acc, parts),
+    do: extract_parts(boundary, tail, [head | acc], parts)
 
   defp key_to_atom(key),
     do: String.downcase(key)
@@ -148,11 +211,8 @@ defmodule Mail.Parsers.RFC2822 do
     end)
   end
 
-  defp decode(body, message) do
-    body = String.rstrip(body)
-
-    Mail.Encoder.decode(body, get_in(message.headers, [:content_transfer_encoding]))
-  end
+  defp decode(body, message),
+    do: Mail.Encoder.decode(body, get_in(message.headers, [:content_transfer_encoding]))
 
   defp get_boundary(nil), do: nil
   defp get_boundary("\"" <> boundary), do: String.slice(boundary, 0..-2)
