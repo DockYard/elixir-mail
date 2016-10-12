@@ -1,5 +1,10 @@
 # Versions
 
+## 0.1.1
+
+* Moved API to using strings instead of atoms
+* Parser and Renderer should handle reply-to header
+
 ## 0.1.0
 
 * API is stable enough for a minor version release
