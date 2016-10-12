@@ -5,6 +5,7 @@ defmodule Mail.Parsers.RFC2822Test do
     message = parse_email("""
     To: user@example.com
     From: me@example.com
+    Reply-To: otherme@example.com
     Subject: Test Email
     Content-Type: text/plain; foo=bar;
       baz=qux
@@ -15,6 +16,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["to"] == ["user@example.com"]
     assert message.headers["from"] == "me@example.com"
+    assert message.headers["reply-to"] == "otherme@example.com"
     assert message.headers["subject"] == "Test Email"
     assert message.headers["content-type"] == ["text/plain", foo: "bar", baz: "qux"]
     assert message.body == "This is the body!\r\nIt has more than one line"
@@ -25,6 +27,7 @@ defmodule Mail.Parsers.RFC2822Test do
     To: Test User <user@example.com>, Other User <other@example.com>
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
     From: Me <me@example.com>
+    Reply-To: OtherMe <otherme@example.com>
     Subject: Test email
     Mime-Version: 1.0
     Content-Type: multipart/alternative; boundary=foobar
@@ -44,6 +47,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["to"] == [{"Test User", "user@example.com"}, {"Other User", "other@example.com"}]
     assert message.headers["cc"] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
     assert message.headers["from"] == {"Me", "me@example.com"}
+    assert message.headers["reply-to"] == {"OtherMe", "otherme@example.com"}
     assert message.headers["content-type"] == ["multipart/alternative", boundary: "foobar"]
 
     [text_part, html_part] = message.parts

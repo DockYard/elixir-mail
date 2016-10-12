@@ -14,7 +14,7 @@ defmodule Mail.Renderers.RFC2822 do
   """
 
   @blacklisted_headers ["bcc"]
-  @address_types ["From", "To", "Cc", "Bcc"]
+  @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
   @email_validation_regex ~r/\w+@\w+\.\w+/
