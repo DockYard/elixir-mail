@@ -3,27 +3,27 @@ defmodule Mail.Renderers.RFC2822Test do
   import Mail.Assertions.RFC2822
 
   test "header - capitalizes and hyphenates keys, joins lists according to spec" do
-    header = Mail.Renderers.RFC2822.render_header(:foo_bar, ["abcd", baz_buzz: "qux"])
+    header = Mail.Renderers.RFC2822.render_header("foo_bar", ["abcd", baz_buzz: "qux"])
     assert header == "Foo-Bar: abcd; baz-buzz=qux"
   end
 
   test "address headers renders list of recipients" do
-    header = Mail.Renderers.RFC2822.render_header(:from, "user1@example.com")
+    header = Mail.Renderers.RFC2822.render_header("from", "user1@example.com")
     assert header == "From: user1@example.com"
-    header = Mail.Renderers.RFC2822.render_header(:to, "user1@example.com")
+    header = Mail.Renderers.RFC2822.render_header("to", "user1@example.com")
     assert header == "To: user1@example.com"
-    header = Mail.Renderers.RFC2822.render_header(:cc, "user1@example.com")
+    header = Mail.Renderers.RFC2822.render_header("cc", "user1@example.com")
     assert header == "Cc: user1@example.com"
-    header = Mail.Renderers.RFC2822.render_header(:bcc, "user1@example.com")
+    header = Mail.Renderers.RFC2822.render_header("bcc", "user1@example.com")
     assert header == "Bcc: user1@example.com"
 
-    header = Mail.Renderers.RFC2822.render_header(:from, ["user1@example.com", {"User 2", "user2@example.com"}])
+    header = Mail.Renderers.RFC2822.render_header("from", ["user1@example.com", {"User 2", "user2@example.com"}])
     assert header == "From: user1@example.com, \"User 2\" <user2@example.com>"
-    header = Mail.Renderers.RFC2822.render_header(:to, ["user1@example.com", {"User 2", "user2@example.com"}])
+    header = Mail.Renderers.RFC2822.render_header("to", ["user1@example.com", {"User 2", "user2@example.com"}])
     assert header == "To: user1@example.com, \"User 2\" <user2@example.com>"
-    header = Mail.Renderers.RFC2822.render_header(:cc, ["user1@example.com", {"User 2", "user2@example.com"}])
+    header = Mail.Renderers.RFC2822.render_header("cc", ["user1@example.com", {"User 2", "user2@example.com"}])
     assert header == "Cc: user1@example.com, \"User 2\" <user2@example.com>"
-    header = Mail.Renderers.RFC2822.render_header(:bcc, ["user1@example.com", {"User 2", "user2@example.com"}])
+    header = Mail.Renderers.RFC2822.render_header("bcc", ["user1@example.com", {"User 2", "user2@example.com"}])
     assert header == "Bcc: user1@example.com, \"User 2\" <user2@example.com>"
   end
 
@@ -33,22 +33,22 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   test "renders simple key / value pair header" do
-    header = Mail.Renderers.RFC2822.render_header(:subject, "Hello World!")
+    header = Mail.Renderers.RFC2822.render_header("subject", "Hello World!")
     assert header == "Subject: Hello World!"
   end
 
   test "headers - renders all headers" do
-    headers = Mail.Renderers.RFC2822.render_headers(%{foo: "bar", baz: "qux"})
+    headers = Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"})
     assert headers == "Foo: bar\r\nBaz: qux"
   end
 
   test "headers - blacklist certain headers" do
-    headers = Mail.Renderers.RFC2822.render_headers(%{foo: "bar", baz: "qux"}, [:foo, :baz])
+    headers = Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"}, ["foo", "baz"])
     assert headers == ""
   end
 
   test "headers - date" do
-    header = Mail.Renderers.RFC2822.render_header(:date, {{2016,1,1}, {0,0,0}})
+    header = Mail.Renderers.RFC2822.render_header("date", {{2016,1,1}, {0,0,0}})
     assert header == "Date: Fri, 1 Jan 2016 00:00:00 +0000"
   end
 
@@ -107,7 +107,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.Renderers.RFC2822.render()
       |> Mail.Parsers.RFC2822.parse()
 
-    refute Map.has_key?(message.headers, :bcc)
+    refute Map.has_key?(message.headers, "bcc")
   end
 
   test "properly encodes body based upon Content-Transfer-Encoding value" do
@@ -116,7 +116,7 @@ defmodule Mail.Renderers.RFC2822Test do
     message =
       Mail.build()
       |> Mail.put_text(file)
-      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+      |> Mail.Message.put_header("content_transfer_encoding", "base64")
 
     result = Mail.Renderers.RFC2822.render(message)
 
