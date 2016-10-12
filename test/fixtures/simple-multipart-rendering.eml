@@ -1,4 +1,6 @@
-To: user@example.com
+To: user1@example.com
+From: User2 <user2@example.com>
+Reply-To: User3 <user3@example.com>
 Subject: Test email
 Mime-Version: 1.0
 Content-Type: multipart/alternative; boundary="foobar"

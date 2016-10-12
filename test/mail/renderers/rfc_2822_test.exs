@@ -86,7 +86,9 @@ defmodule Mail.Renderers.RFC2822Test do
   test "renders a multipart mail" do
     message =
       Mail.build_multipart()
-      |> Mail.put_to("user@example.com")
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from({"User2", "user2@example.com"})
+      |> Mail.put_reply_to({"User3", "user3@example.com"})
       |> Mail.put_subject("Test email")
       |> Mail.put_text("Some text")
       |> Mail.put_html("<h1>Some HTML</h1>")

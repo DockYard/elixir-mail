@@ -108,6 +108,9 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("From", value),
     do: parse_recipient_value(value)
         |> List.first()
+  defp parse_header_value("Reply-To", value),
+    do: parse_recipient_value(value)
+        |> List.first()
 
   defp parse_header_value("Date", timestamp),
     do: erl_from_timestamp(timestamp)
