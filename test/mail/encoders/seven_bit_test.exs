@@ -1,5 +1,5 @@
 defmodule Mail.Encoders.SevenBitTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   test "encode handles empty strings" do
     assert Mail.Encoders.SevenBit.encode("") == ""

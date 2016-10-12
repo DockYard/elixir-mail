@@ -51,11 +51,15 @@ defmodule Mail.Message do
   The individual headers will be in the `headers` field on the
   `%Mail.Message{}` struct
   """
+  def put_header(message, key, content) when not is_binary(key),
+    do: put_header(message, to_string(key), content)
   def put_header(message, key, content),
-    do: put_in(message.headers[key], content)
+    do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
 
+  def get_header(message, key) when not is_binary(key),
+    do: get_header(message, to_string(key))
   def get_header(message, key),
-    do: get_in(message.headers, [key])
+    do: Map.get(message.headers, fix_header(key))
 
   @doc """
   Deletes a specific header key
@@ -64,7 +68,7 @@ defmodule Mail.Message do
       %Mail.Message{headers: %{}}
   """
   def delete_header(message, header),
-    do: put_in(message.headers, Map.delete(message.headers, header))
+    do: %{message | headers: Map.delete(message.headers, fix_header(header))}
 
   @doc """
   Deletes a list of headers
@@ -76,6 +80,14 @@ defmodule Mail.Message do
   def delete_headers(message, []), do: message
   def delete_headers(message, [header | tail]),
     do: delete_headers(delete_header(message, header), tail)
+
+  def has_header?(message, header),
+    do: Map.has_key?(message.headers, fix_header(header))
+
+  defp fix_header(key) when not is_binary(key),
+    do: fix_header(to_string(key))
+  defp fix_header(key),
+    do: key |> String.downcase |> String.replace("_", "-")
 
   @doc """
   Add a new `content-type` header
@@ -149,7 +161,7 @@ defmodule Mail.Message do
   end
 
   @doc """
-  Sets the `body` field on the part 
+  Sets the `body` field on the part
 
       Mail.Message.put_body(%Mail.Message{}, "Some data")
       %Mail.Message{body: "Some Data", headers: %{}}
@@ -256,7 +268,7 @@ defmodule Mail.Message do
   Returns `Boolean`
   """
   def is_attachment?(message),
-    do: Enum.member?(List.wrap(get_in(message.headers, [:content_disposition])), :attachment)
+    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), :attachment)
 
   @doc """
   Determines the message has any attachment parts

@@ -1,5 +1,5 @@
 defmodule Mail.Renderers.RFC2822Test do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   import Mail.Assertions.RFC2822
 
   test "header - capitalizes and hyphenates keys, joins lists according to spec" do
