@@ -1,13 +1,28 @@
 defmodule Pdf.Mixfile do
   use Mix.Project
 
+  @version "0.0.1"
+  @github_url "https://github.com/andrewtimberlake/elixir-pdf"
+
   def project do
     [app: :pdf,
-     version: "0.0.1",
+     name: "PDF",
+     version: @version,
      elixir: "~> 1.3",
      build_embedded: Mix.env == :prod,
      start_permanent: Mix.env == :prod,
-     deps: deps()]
+     deps: deps(),
+     source_url: @github_url,
+     docs: fn ->
+       [source_ref: "v#{@version}",
+        canonical: "http://hexdocs.pm/pdf",
+        main: "PDF",
+        source_url: @github_url,
+        extras: ["README.md"]
+       ]
+     end,
+     description: description,
+     package: package]
   end
 
   # Configuration for the OTP application
@@ -27,6 +42,29 @@ defmodule Pdf.Mixfile do
   #
   # Type "mix help deps" for more examples and options
   defp deps do
-    []
+    [
+      {:erlguten, github: "andrewtimberlake/erlguten"},
+
+      # Code style
+      {:credo, "~> 0.4.8", only: [:dev, :test]},
+
+      # Docs
+      {:ex_doc, "~> 0.14.0", only: [:docs]},
+      {:earmark, "~> 1.0.0", only: [:docs]},
+    ]
+  end
+
+  defp description do
+    """
+    Elixir API for generating PDF documents.
+    """
+  end
+
+  defp package do
+    [
+     maintainers: ["Andrew Timberlake"],
+     contributors: ["Andrew Timberlake"],
+     licenses: ["MIT"],
+     links: %{"GitHub" => @github_url}]
   end
 end
