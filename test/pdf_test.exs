@@ -3,19 +3,17 @@ defmodule PdfTest do
   doctest Pdf
 
   test "test" do
-    pid = :eg_pdf.new
-    :eg_pdf.set_font(pid, ~c[Helvetica], 12)
-    :eg_pdf_lib.moveAndShow(pid, 100, 100, ~c[Hello World])
-    :eg_pdf.set_font(pid, ~c[Helvetica-Bold], 12)
-    :eg_pdf_lib.moveAndShow(pid, 100, 100, ~c[Hello World])
-    {doc, _} = :eg_pdf.export(pid)
-    File.write!("/Users/andrew/tmp/tmp.pdf", doc)
-    # IO.puts doc
-    :eg_pdf.delete(pid)
   end
 
   test "new/1" do
     {:ok, pdf} = Pdf.new(size: :a4)
+    pdf
+    |> Pdf.set_author("Test Author")
+    |> Pdf.set_creator("Test Creator")
+    |> Pdf.set_keywords("word word word")
+    |> Pdf.set_producer("Test producer")
+    |> Pdf.set_subject("Test Subject")
+    |> Pdf.set_title("Test Document")
     Pdf.delete(pdf)
   end
 

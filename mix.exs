@@ -43,8 +43,6 @@ defmodule Pdf.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
-      {:erlguten, github: "andrewtimberlake/erlguten"},
-
       # Code style
       {:credo, "~> 0.4.8", only: [:dev, :test]},
 
