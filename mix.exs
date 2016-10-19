@@ -49,8 +49,8 @@ defmodule Pdf.Mixfile do
       {:credo, "~> 0.4.8", only: [:dev, :test]},
 
       # Docs
-      {:ex_doc, "~> 0.14.0", only: [:docs]},
-      {:earmark, "~> 1.0.0", only: [:docs]},
+      {:ex_doc, "~> 0.14.0", only: [:dev, :docs]},
+      {:earmark, "~> 1.0.0", only: [:dev, :docs]},
     ]
   end
 

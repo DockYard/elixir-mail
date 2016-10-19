@@ -1,11 +1,33 @@
 defmodule Pdf do
-  def new, do: {:ok, :eg_pdf.new}
-  def new(func) do
-    {:ok, pid} = new
-    result = func.(pid)
-    stop(pid)
-    result
+  use GenServer
+
+  def new(opts \\ []),
+    do: GenServer.start_link(__MODULE__, opts)
+
+  def open(opts \\ [], func) do
+    {:ok, pdf} = new(opts)
+    func.(pdf)
+    delete(pdf)
+    :ok
   end
+
+  def delete(pdf),
+    do: GenServer.stop(pdf)
+
+  def init(args) do
+    args
+    {:ok, args}
+  end
+
+
+
+  # def new, do: {:ok, :eg_pdf.new}
+  # def new(func) do
+  #   {:ok, pid} = new
+  #   result = func.(pid)
+  #   stop(pid)
+  #   result
+  # end
 
   def points(x), do: x
   def picas(x),  do: x * 6

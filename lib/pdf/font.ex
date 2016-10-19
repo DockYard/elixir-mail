@@ -1,6 +1,8 @@
-defmodule Pdf.Font.Generator do
+defmodule Pdf.Font do
   @moduledoc false
+
   alias Pdf.Font.Metrics
+  alias Pdf.{Array,Dictionary}
 
   font_metrics =
     Path.join(__DIR__, "../../fonts/*.afm")
@@ -85,20 +87,30 @@ defmodule Pdf.Font.Generator do
     end
   end)
 
-  defmodule Elixir.Pdf.Font do
-    @doc ~S"""
-    Returns the font module for the named font
+  @doc ~S"""
+  Returns the font module for the named font
 
-    # Example:
+  # Example:
 
-        iex> Pdf.Font.lookup("Helvetica-BoldOblique")
-        Pdf.Font.HelveticaBoldOblique
-    """
-    def lookup(name)
-    font_metrics
-    |> Enum.each(fn(metrics) ->
-      font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
-      def lookup(unquote(metrics.name)), do: unquote(font_module)
-    end)
+  iex> Pdf.Font.lookup("Helvetica-BoldOblique")
+  Pdf.Font.HelveticaBoldOblique
+  """
+  def lookup(name)
+  font_metrics
+  |> Enum.each(fn(metrics) ->
+    font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
+    def lookup(unquote(metrics.name)), do: unquote(font_module)
+  end)
+
+  def to_dictionary(font, id) do
+    Dictionary.new
+    |> Dictionary.put("Type", "/Font")
+    |> Dictionary.put("Subtype", "/Type1")
+    |> Dictionary.put("Name", "/F#{id}")
+    |> Dictionary.put("BaseFont", "/" <> font.name)
+    |> Dictionary.put("FirstChar", font.first_char)
+    |> Dictionary.put("LastChar", font.last_char)
+    |> Dictionary.put("Widths", Array.new(Enum.map(font.widths, &to_string/1)))
+    |> Dictionary.put("Encoding", "/MacRomanEncoding")
   end
 end

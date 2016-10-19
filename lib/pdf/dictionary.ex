@@ -1,23 +1,44 @@
 defmodule Pdf.Dictionary do
-  defstruct size: 5, entries: %{}
+  import Pdf.Size
 
-  @dict_start "<< "
+  alias Pdf.Array
+
+  @dict_start "<<\n"
+  @dict_start_length byte_size(@dict_start)
   @dict_end ">>"
+  @dict_end_length byte_size(@dict_end)
+  @initial_length @dict_start_length + @dict_end_length
   @key_prefix "/"
-  @key_prefix_length 1
+  @key_prefix_length byte_size(@key_prefix)
   @value_separator " "
-  @value_separator_length 1
+  @value_separator_length byte_size(@value_separator)
   @entry_separator "\n"
-  @entry_separator_length 1
+  @entry_separator_length byte_size(@entry_separator)
 
-  def add(dictionary, key, %__MODULE__{} = value) do
+  defstruct size: @initial_length, entries: %{}
+
+  def new,
+    do: %__MODULE__{size: @initial_length}
+  def new(map) do
+    map
+    |> Enum.reduce(new(), fn({key, value}, dictionary) ->
+      put(dictionary, key, value)
+    end)
+  end
+
+  def put(dictionary, key, %__MODULE__{} = value) do
     entries = Map.put(dictionary.entries, key, value)
-    size = @key_prefix_length + String.length(key) + @value_separator_length + @entry_separator_length
+    size = @key_prefix_length + size_of(key) + @value_separator_length + @entry_separator_length
     %{dictionary | entries: entries, size: dictionary.size + size}
   end
-  def add(dictionary, key, value) do
+  def put(dictionary, key, %Array{} = value) do
     entries = Map.put(dictionary.entries, key, value)
-    size = @key_prefix_length + String.length(key) + @value_separator_length + String.length(value) + @entry_separator_length
+    size = @key_prefix_length + size_of(key) + @value_separator_length + @entry_separator_length
+    %{dictionary | entries: entries, size: dictionary.size + size}
+  end
+  def put(dictionary, key, value) do
+    entries = Map.put(dictionary.entries, key, value)
+    size = @key_prefix_length + size_of(key) + @value_separator_length + size_of(value) + @entry_separator_length
     %{dictionary | entries: entries, size: dictionary.size + size}
   end
 
@@ -27,11 +48,13 @@ defmodule Pdf.Dictionary do
 
   defp calculate_size([], acc), do: acc
   defp calculate_size([{_key, %__MODULE__{} = dictionary} | tail], acc),
-    do: calculate_size(tail, __MODULE__.size(dictionary) + acc)
+    do: calculate_size(tail, size_of(dictionary) + acc)
+  defp calculate_size([{_key, %Array{} = array} | tail], acc),
+    do: calculate_size(tail, size_of(array) + acc)
   defp calculate_size([_entry | tail], acc),
     do: calculate_size(tail, acc)
 
-  def to_iolist(%__MODULE__{} = dictionary) do
+  def to_iolist(dictionary) do
     [@dict_start, entries_to_iolist(dictionary.entries), @dict_end]
   end
 
@@ -42,10 +65,15 @@ defmodule Pdf.Dictionary do
     do: [entry_to_iolist(entry) | entries_to_iolist(tail)]
 
   defp entry_to_iolist({key, value}),
-    do: [@key_prefix, key, @value_separator, value_to_iolist(value), @entry_separator]
+    do: [@key_prefix, key, @value_separator, Pdf.Export.to_iolist(value), @entry_separator]
 
-  defp value_to_iolist(%__MODULE__{} = value),
-    do: to_iolist(value)
-  defp value_to_iolist(value),
-    do: value
+  defimpl Pdf.Size do
+    def size_of(%Pdf.Dictionary{} = dictionary),
+      do: Pdf.Dictionary.size(dictionary)
+  end
+
+  defimpl Pdf.Export do
+    def to_iolist(dictionary),
+      do: Pdf.Dictionary.to_iolist(dictionary)
+  end
 end

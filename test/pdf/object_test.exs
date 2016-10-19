@@ -23,7 +23,7 @@ defmodule Pdf.ObjectTest do
       Object.new(1)
       |> Object.set_value("A string")
 
-    iolist = Object.to_iolist(object)
+    iolist = Pdf.Export.to_iolist(object)
     assert iolist == ["1", " ", "0", " obj\n", ["(", "A string", ")"], "\nendobj\n"]
 
     string = :erlang.iolist_to_binary(iolist)
