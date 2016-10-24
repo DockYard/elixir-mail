@@ -18,6 +18,7 @@ defmodule Pdf.Array do
   def to_iolist(%Pdf.Array{values: values}),
     do: Pdf.Export.to_iolist([@array_start, Enum.map(values, fn(value) -> [value, " "] end), @array_end])
 
+  defp calculate_size([]), do: 0
   defp calculate_size([_ | _] = list),
     do: @initial_length + Enum.reduce(list, length(list), fn(value, acc) -> acc + size_of(value) end)
 

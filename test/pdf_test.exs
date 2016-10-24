@@ -14,7 +14,15 @@ defmodule PdfTest do
     |> Pdf.set_producer("Test producer")
     |> Pdf.set_subject("Test Subject")
     |> Pdf.set_title("Test Document")
-    Pdf.delete(pdf)
+    |> Pdf.set_font("Helvetica", 12)
+    |> Pdf.text_at({10, 400}, "Hello World")
+    |> Pdf.text_lines({10, 300}, [
+      "First line",
+      "Second line",
+      "Third line"
+      ])
+    |> Pdf.write_to(Path.join(__DIR__, "../tmp/test.pdf"))
+    |> Pdf.delete
   end
 
   test "open/2" do
@@ -23,11 +31,3 @@ defmodule PdfTest do
     end)
   end
 end
-
-pdf = %{
-  header: << "%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306 >>,
-  objects: [
-    %{}
-  ]
-}
-File.write("/Users/andrew/tmp/tmp2.pdf", [pdf.header])

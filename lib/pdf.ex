@@ -23,6 +23,25 @@ defmodule Pdf do
 
   def init(_args) do
     {:ok, %State{document: Document.new}}
+
+  defcall write_to(path, _from, %State{document: document} = state) do
+    File.write!(path, Document.to_iolist(document))
+    {:reply, self, state}
+  end
+
+  defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
+    document = Document.set_font(document, font_name, font_size)
+    {:reply, self, %{state | document: document}}
+  end
+
+  defcall text_at({x, y}, text, _from, %State{document: document} = state) do
+    document = Document.text_at(document, {x, y}, text)
+    {:reply, self, %{state | document: document}}
+  end
+
+  defcall text_lines({x, y}, [_ | _] = lines, _from, %State{document: document} = state) do
+    document = Document.text_lines(document, {x, y}, lines)
+    {:reply, self, %{state | document: document}}
   end
 
   @doc """

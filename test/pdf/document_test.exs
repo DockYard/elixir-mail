@@ -17,7 +17,7 @@ defmodule Pdf.DocumentTest do
     |> Document.put_info(:creator, "(Elixir)")
     |> Document.put_info(:producer, "(Elixir-PDF)")
     |> Document.put_info(:created, DateTime.utc_now)
-    |> Document.put_font("Helvetica")
+    |> Document.add_font("Helvetica")
     |> Document.add_page(page)
     |> Document.to_iolist
     # |> IO.inspect
