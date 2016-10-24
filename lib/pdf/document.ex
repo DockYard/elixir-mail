@@ -1,7 +1,7 @@
 defmodule Pdf.Document do
-  defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: []
+  defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: [], images: %{}
 
-  alias Pdf.{Dictionary,Font,RefTable,Trailer,Array,ObjectCollection,Page,Paper}
+  alias Pdf.{Dictionary,Font,RefTable,Trailer,Array,ObjectCollection,Page,Paper,Image}
 
   @header << "%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306, 10 >>
   @header_size byte_size(@header)
@@ -36,10 +36,27 @@ defmodule Pdf.Document do
     %{document | current: Page.text_lines(page, {x, y}, lines)}
   end
 
+  def add_image(%__MODULE__{current: page} = document, {x, y}, image_path) do
+    document = create_image(document, image_path)
+    image = document.images[image_path]
+    %{document | current: Page.add_image(page, {x, y}, image)}
+  end
+
+  defp create_image(%{objects: objects, images: images} = document, image_path) do
+    images = Map.put_new_lazy(images, image_path, fn ->
+      image = Image.new(image_path)
+      object = ObjectCollection.create_object(objects, image)
+      name = "I#{Map.size(images) + 1}"
+      %{name: name, object: object, image: image}
+    end)
+    %{document | images: images}
+  end
+
   def add_font(document, name) do
     unless document.fonts[name] do
       font_module = Font.lookup(name)
       id = Map.size(document.fonts) + 1
+      # I don't need to do this at this point, it can be done when exporting, like the pages
       font_object = ObjectCollection.create_object(document.objects, Font.to_dictionary(font_module, id))
       fonts = Map.put(document.fonts, name, %{id: id, font: font_module, object: font_object})
       %{document | fonts: fonts}
@@ -55,14 +72,27 @@ defmodule Pdf.Document do
 
   def to_iolist(document) do
     pages = Enum.reverse([document.current | document.pages])
+    proc_set = ["/PDF", "/Text"]
+    proc_set = if Map.size(document.images) > 0, do: ["/ImageB", "/ImageC", "/ImageI" | proc_set], else: proc_set
+    resources = Dictionary.new(%{
+      "Font" => font_dictionary(document.fonts),
+      "ProcSet" => Array.new(proc_set)
+    })
+    resources = if Map.size(document.fonts) do
+      Dictionary.put(resources, "Font", font_dictionary(document.fonts))
+    else
+      resources
+    end
+    resources = if Map.size(document.images) do
+      Dictionary.put(resources, "XObject", xobject_dictionary(document.images))
+    else
+      resources
+    end
     page_collection = Dictionary.new(%{
       "Type" => "/Page",
       "Count" => length(pages),
       "MediaBox" => Array.new(Paper.size(default_page_size(document))),
-      "Resources" => Dictionary.new(%{
-        "Font" => font_dictionary(document.fonts),
-        "ProcSet" => Array.new(["/PDF", "/Text"])
-      })
+      "Resources" => resources
     })
     master_page = ObjectCollection.create_object(document.objects, page_collection)
     page_objects = pages_to_objects(document, pages, master_page)
@@ -106,6 +136,14 @@ defmodule Pdf.Document do
     fonts
     |> Enum.reduce(%{}, fn({_name, %{id: id, object: {:object, _, _, reference}}}, map) ->
       Map.put(map, "F#{id}", reference)
+    end)
+    |> Dictionary.new
+  end
+
+  defp xobject_dictionary(images) do
+    images
+    |> Enum.reduce(%{}, fn({_name, %{name: name, object: {:object, _, _, reference}}}, map) ->
+      Map.put(map, name, reference)
     end)
     |> Dictionary.new
   end

@@ -13,6 +13,7 @@ defmodule Pdf.Mixfile do
      start_permanent: Mix.env == :prod,
      deps: deps(),
      source_url: @github_url,
+     elixirc_paths: elixirc_paths(Mix.env),
      docs: fn ->
        [source_ref: "v#{@version}",
         canonical: "http://hexdocs.pm/pdf",
@@ -24,6 +25,9 @@ defmodule Pdf.Mixfile do
      description: description,
      package: package]
   end
+
+  defp elixirc_paths(:test), do: ["lib", "test/support"]
+  defp elixirc_paths(_), do: ["lib"]
 
   # Configuration for the OTP application
   #

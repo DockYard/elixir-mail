@@ -21,8 +21,8 @@ defmodule Pdf do
   def delete(pdf),
     do: GenServer.stop(pdf)
 
-  def init(_args) do
-    {:ok, %State{document: Document.new}}
+  def init(_args),
+    do: {:ok, %State{document: Document.new}}
 
   defcall write_to(path, _from, %State{document: document} = state) do
     File.write!(path, Document.to_iolist(document))
@@ -43,6 +43,9 @@ defmodule Pdf do
     document = Document.text_lines(document, {x, y}, lines)
     {:reply, self, %{state | document: document}}
   end
+
+  defcall add_image({x, y}, image_path, _from, %State{document: document} = state),
+    do: {:reply, self, %{state | document: Document.add_image(document, {x, y}, image_path)}}
 
   @doc """
   Sets the author in the PDF information section.

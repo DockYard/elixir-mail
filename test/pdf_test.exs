@@ -1,5 +1,5 @@
 defmodule PdfTest do
-  use ExUnit.Case
+  use Pdf.Case, async: true
   doctest Pdf
 
   test "test" do
@@ -7,6 +7,7 @@ defmodule PdfTest do
 
   test "new/1" do
     {:ok, pdf} = Pdf.new(size: :a4)
+    file_path = Path.join(__DIR__, "../tmp/test.pdf")
     pdf
     |> Pdf.set_author("Test Author")
     |> Pdf.set_creator("Test Creator")
@@ -21,8 +22,13 @@ defmodule PdfTest do
       "Second line",
       "Third line"
       ])
-    |> Pdf.write_to(Path.join(__DIR__, "../tmp/test.pdf"))
+    |> Pdf.add_image({50, 50}, fixture("rgb.jpg"))
+    |> Pdf.add_image({200, 50}, fixture("cmyk.jpg"))
+    |> Pdf.add_image({350, 50}, fixture("grayscale.jpg"))
+    |> Pdf.write_to(file_path)
     |> Pdf.delete
+
+    System.cmd("open", ["-g", file_path])
   end
 
   test "open/2" do

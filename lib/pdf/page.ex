@@ -1,7 +1,7 @@
 defmodule Pdf.Page do
   defstruct size: :a4, stream: nil
 
-  alias Pdf.Stream
+  alias Pdf.{Image,Stream}
 
   def new(opts \\ [size: :a4]),
     do: init(opts, %__MODULE__{stream: Stream.new})
@@ -42,6 +42,15 @@ defmodule Pdf.Page do
   end
   def draw_lines(page, [line | tail]) do
     draw_lines(push(page, "(#{line}) Tj T*"), tail)
+  end
+
+  def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do
+    page
+    |> push("q")
+    |> push("1 0 0 1 #{x} #{y} cm")
+    |> push("#{width} 0 0 #{height} 0 0 cm")
+    |> push("/#{image_name} Do")
+    |> push("Q")
   end
 
   defimpl Pdf.Size do
