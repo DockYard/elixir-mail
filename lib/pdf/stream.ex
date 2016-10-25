@@ -2,6 +2,7 @@ defmodule Pdf.Stream do
   defstruct size: 0, content: []
 
   import Pdf.Size
+  import Pdf.Utils
   alias Pdf.Dictionary
 
   @stream_start "\nstream\n"
@@ -10,10 +11,12 @@ defmodule Pdf.Stream do
   def new,
     do: %__MODULE__{}
 
-  def push(stream, command) do
+  def push(stream, {:command, _} = command) do
     size = size_of(command) + 1
     %{stream | size: stream.size + size, content: ["\n", command | stream.content]}
   end
+  def push(stream, command),
+    do: push(stream, c(command))
 
   def size(stream) do
     dictionary = Dictionary.new |> Dictionary.put("Length", stream.size)

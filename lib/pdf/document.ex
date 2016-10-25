@@ -47,7 +47,7 @@ defmodule Pdf.Document do
     images = Map.put_new_lazy(images, image_path, fn ->
       image = Image.new(image_path)
       object = ObjectCollection.create_object(objects, image)
-      name = "I#{Map.size(images) + 1}"
+      name = n("I#{Map.size(images) + 1}")
       %{name: name, object: object, image: image}
     end)
     %{document | images: images}
@@ -59,7 +59,7 @@ defmodule Pdf.Document do
       id = Map.size(document.fonts) + 1
       # I don't need to do this at this point, it can be done when exporting, like the pages
       font_object = ObjectCollection.create_object(document.objects, Font.to_dictionary(font_module, id))
-      fonts = Map.put(document.fonts, name, %{id: id, font: font_module, object: font_object})
+      fonts = Map.put(document.fonts, name, %{name: n("F#{id}"), font: font_module, object: font_object})
       %{document | fonts: fonts}
     else
       document
@@ -135,8 +135,8 @@ defmodule Pdf.Document do
 
   defp font_dictionary(fonts) do
     fonts
-    |> Enum.reduce(%{}, fn({_name, %{id: id, object: reference}}, map) ->
-      Map.put(map, "F#{id}", reference)
+    |> Enum.reduce(%{}, fn({_name, %{name: name, object: reference}}, map) ->
+      Map.put(map, name, reference)
     end)
     |> Dictionary.new
   end

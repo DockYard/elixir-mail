@@ -13,9 +13,9 @@ defmodule Pdf.DocumentTest do
       |> Page.push("ET")
 
     Document.new
-    |> Document.put_info(:title, "(Test Document)")
-    |> Document.put_info(:creator, "(Elixir)")
-    |> Document.put_info(:producer, "(Elixir-PDF)")
+    |> Document.put_info(:title, "Test Document")
+    |> Document.put_info(:creator, "Elixir")
+    |> Document.put_info(:producer, "Elixir-PDF")
     |> Document.put_info(:created, DateTime.utc_now)
     |> Document.add_font("Helvetica")
     |> Document.add_page(page)

@@ -33,6 +33,13 @@ defimpl Pdf.Export, for: DateTime do
 end
 
 defimpl Pdf.Export, for: Tuple do
+  def to_iolist({:command, []}),
+    do: []
+  def to_iolist({:command, [head | tail]}),
+    do: [head, Enum.map(tail, &([" ", &1]))]
+  def to_iolist({:command, command}),
+    do: command
+
   def to_iolist({:name, name}),
     do: ["/", name]
 
