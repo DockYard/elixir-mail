@@ -2,6 +2,7 @@ defmodule Pdf.Image do
   defstruct bits: nil, width: nil, height: nil, channels: nil, size: nil, path: nil, dictionary: nil
 
   import Pdf.Size
+  import Pdf.Utils
   alias Pdf.{Array,Dictionary}
 
   @stream_start "\nstream\n"
@@ -19,16 +20,16 @@ defmodule Pdf.Image do
     })
   end
 
-  def build_dictionary(%__MODULE__{bits: bits, width: width, height: height, channels: channels, path: path, size: size} = image) do
+  def build_dictionary(%__MODULE__{bits: bits, width: width, height: height, channels: channels, size: size} = image) do
     image_dic = Dictionary.new(%{
-      "Type" => "/XObject",
-      "Subtype" => "/Image",
+      "Type" => n("XObject"),
+      "Subtype" => n("Image"),
       "ColorSpace" => get_colorspace(channels),
       "BitsPerComponent" => bits,
       "Width" => width,
       "Height" => height,
       "Length" => size,
-      "Filter" => Array.new(["/DCTDecode"])
+      "Filter" => Array.new([n("DCTDecode")])
     })
     image_dic = if channels == 4 do
       Dictionary.put(image_dic, "Decode", Array.new([1, 0, 1, 0, 1, 0, 1, 0])) # Invert colours, See :4.8.4 of the spec
@@ -38,9 +39,9 @@ defmodule Pdf.Image do
     %{image | dictionary: image_dic}
   end
 
-  defp get_colorspace(1), do: "/DeviceGray"
-  defp get_colorspace(3), do: "/DeviceRGB"
-  defp get_colorspace(4), do: "/DeviceCMYK"
+  defp get_colorspace(1), do: n("DeviceGray")
+  defp get_colorspace(3), do: n("DeviceRGB")
+  defp get_colorspace(4), do: n("DeviceCMYK")
   defp get_colorspace(_), do: raise "Unsupported number of JPG channels"
 
   defp get_file_size(path) do

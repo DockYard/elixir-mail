@@ -43,18 +43,8 @@ defmodule Pdf.Object do
       do: Pdf.Object.size(object)
   end
 
-  defimpl Pdf.Size, for: Tuple do
-    def size_of({:object, _, _, reference}),
-      do: Pdf.Size.size_of(reference)
-  end
-
   defimpl Pdf.Export do
     def to_iolist(object),
       do: Pdf.Object.to_iolist(object)
-  end
-
-  defimpl Pdf.Export, for: Tuple do
-    def to_iolist({:object, _, _, reference}),
-      do: Pdf.Export.to_iolist(reference)
   end
 end

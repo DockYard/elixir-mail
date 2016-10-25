@@ -1,5 +1,6 @@
 defmodule Pdf.Document do
   defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: [], images: %{}
+  import Pdf.Utils
 
   alias Pdf.{Dictionary,Font,RefTable,Trailer,Array,ObjectCollection,Page,Paper,Image}
 
@@ -72,8 +73,8 @@ defmodule Pdf.Document do
 
   def to_iolist(document) do
     pages = Enum.reverse([document.current | document.pages])
-    proc_set = ["/PDF", "/Text"]
-    proc_set = if Map.size(document.images) > 0, do: ["/ImageB", "/ImageC", "/ImageI" | proc_set], else: proc_set
+    proc_set = [n("PDF"), n("Text")]
+    proc_set = if Map.size(document.images) > 0, do: [n("ImageB"), n("ImageC"), n("ImageI") | proc_set], else: proc_set
     resources = Dictionary.new(%{
       "Font" => font_dictionary(document.fonts),
       "ProcSet" => Array.new(proc_set)
@@ -89,7 +90,7 @@ defmodule Pdf.Document do
       resources
     end
     page_collection = Dictionary.new(%{
-      "Type" => "/Page",
+      "Type" => n("Page"),
       "Count" => length(pages),
       "MediaBox" => Array.new(Paper.size(default_page_size(document))),
       "Resources" => resources
@@ -98,7 +99,7 @@ defmodule Pdf.Document do
     page_objects = pages_to_objects(document, pages, master_page)
     ObjectCollection.call(document.objects, master_page, :put, ["Kids", Array.new(page_objects)])
 
-    catalogue = ObjectCollection.create_object(document.objects, Dictionary.new(%{"Type" => "/Catalogue", "Pages" => master_page}))
+    catalogue = ObjectCollection.create_object(document.objects, Dictionary.new(%{"Type" => n("Catalogue"), "Pages" => master_page}))
 
     objects = ObjectCollection.all(document.objects)
 
@@ -117,7 +118,7 @@ defmodule Pdf.Document do
       page_object = ObjectCollection.create_object(objects, page)
       dictionary =
         Dictionary.new(%{
-          "Type" => "/Page",
+          "Type" => n("Page"),
           "Parent" => parent,
           "Contents" => page_object
         })
@@ -134,7 +135,7 @@ defmodule Pdf.Document do
 
   defp font_dictionary(fonts) do
     fonts
-    |> Enum.reduce(%{}, fn({_name, %{id: id, object: {:object, _, _, reference}}}, map) ->
+    |> Enum.reduce(%{}, fn({_name, %{id: id, object: reference}}, map) ->
       Map.put(map, "F#{id}", reference)
     end)
     |> Dictionary.new
@@ -142,7 +143,7 @@ defmodule Pdf.Document do
 
   defp xobject_dictionary(images) do
     images
-    |> Enum.reduce(%{}, fn({_name, %{name: name, object: {:object, _, _, reference}}}, map) ->
+    |> Enum.reduce(%{}, fn({_name, %{name: name, object: reference}}, map) ->
       Map.put(map, name, reference)
     end)
     |> Dictionary.new

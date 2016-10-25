@@ -12,7 +12,7 @@ defmodule Pdf.StreamTest do
       |> Stream.push("ET")
 
     iolist = Pdf.Export.to_iolist(stream)
-    assert iolist == [["<<\n", [["/", "Length", " ", "34", "\n"]], ">>"],
+    assert iolist == [["<<\n", [[["/", "Length"], " ", "34", "\n"]], ">>"],
                       "\nstream\n", [
                         "BT", "\n",
                         "100 100 Td", "\n",

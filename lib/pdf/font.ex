@@ -1,6 +1,7 @@
 defmodule Pdf.Font do
   @moduledoc false
 
+  import Pdf.Utils
   alias Pdf.Font.Metrics
   alias Pdf.{Array,Dictionary}
 
@@ -104,13 +105,13 @@ defmodule Pdf.Font do
 
   def to_dictionary(font, id) do
     Dictionary.new
-    |> Dictionary.put("Type", "/Font")
-    |> Dictionary.put("Subtype", "/Type1")
-    |> Dictionary.put("Name", "/F#{id}")
-    |> Dictionary.put("BaseFont", "/" <> font.name)
+    |> Dictionary.put("Type", n("Font"))
+    |> Dictionary.put("Subtype", n("Type1"))
+    |> Dictionary.put("Name", n("F#{id}"))
+    |> Dictionary.put("BaseFont", n(font.name))
     |> Dictionary.put("FirstChar", font.first_char)
     |> Dictionary.put("LastChar", font.last_char)
     |> Dictionary.put("Widths", Array.new(Enum.map(font.widths, &to_string/1)))
-    |> Dictionary.put("Encoding", "/MacRomanEncoding")
+    |> Dictionary.put("Encoding", n("MacRomanEncoding"))
   end
 end

@@ -1,5 +1,6 @@
 defmodule Pdf.Dictionary do
   import Pdf.Size
+  import Pdf.Utils
 
   alias Pdf.Array
 
@@ -8,8 +9,6 @@ defmodule Pdf.Dictionary do
   @dict_end ">>"
   @dict_end_length byte_size(@dict_end)
   @initial_length @dict_start_length + @dict_end_length
-  @key_prefix "/"
-  @key_prefix_length byte_size(@key_prefix)
   @value_separator " "
   @value_separator_length byte_size(@value_separator)
   @entry_separator "\n"
@@ -26,19 +25,19 @@ defmodule Pdf.Dictionary do
     end)
   end
 
-  def put(dictionary, key, %__MODULE__{} = value) do
-    entries = Map.put(dictionary.entries, key, value)
-    size = @key_prefix_length + size_of(key) + @value_separator_length + @entry_separator_length
-    %{dictionary | entries: entries, size: dictionary.size + size}
+  def put(dictionary, key, value) when is_binary(value) do
+    put(dictionary, key, s(value))
   end
-  def put(dictionary, key, %Array{} = value) do
+  def put(dictionary, key, %{size: _size} = value) do
+    key = n(key)
     entries = Map.put(dictionary.entries, key, value)
-    size = @key_prefix_length + size_of(key) + @value_separator_length + @entry_separator_length
+    size = size_of(key) + @value_separator_length + @entry_separator_length
     %{dictionary | entries: entries, size: dictionary.size + size}
   end
   def put(dictionary, key, value) do
+    key = n(key)
     entries = Map.put(dictionary.entries, key, value)
-    size = @key_prefix_length + size_of(key) + @value_separator_length + size_of(value) + @entry_separator_length
+    size = size_of(key) + @value_separator_length + @entry_separator_length + size_of(value)
     %{dictionary | entries: entries, size: dictionary.size + size}
   end
 
@@ -65,7 +64,7 @@ defmodule Pdf.Dictionary do
     do: [entry_to_iolist(entry) | entries_to_iolist(tail)]
 
   defp entry_to_iolist({key, value}),
-    do: [@key_prefix, key, @value_separator, Pdf.Export.to_iolist(value), @entry_separator]
+    do: Pdf.Export.to_iolist([key, @value_separator, value, @entry_separator])
 
   defimpl Pdf.Size do
     def size_of(%Pdf.Dictionary{} = dictionary),

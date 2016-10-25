@@ -22,9 +22,9 @@ defmodule PdfTest do
       "Second line",
       "Third line"
       ])
-    |> Pdf.add_image({50, 50}, fixture("rgb.jpg"))
-    |> Pdf.add_image({200, 50}, fixture("cmyk.jpg"))
-    |> Pdf.add_image({350, 50}, fixture("grayscale.jpg"))
+    |> Pdf.add_image({25, 50}, fixture("rgb.jpg"))
+    |> Pdf.add_image({175, 50}, fixture("cmyk.jpg"))
+    |> Pdf.add_image({325, 50}, fixture("grayscale.jpg"))
     |> Pdf.write_to(file_path)
     |> Pdf.delete
 

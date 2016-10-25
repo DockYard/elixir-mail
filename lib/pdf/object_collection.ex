@@ -17,7 +17,7 @@ defmodule Pdf.ObjectCollection do
 
   defcall create_object(object, _from, %State{size: size, objects: objects} = state) do
     new_size = size + 1
-    key = {:object, new_size, 0, "#{new_size} 0 R"}
+    key = {:object, new_size, 0}
     {:reply, key, %{state | size: new_size, objects: Map.put(objects, key, object)}}
   end
 
@@ -30,7 +30,7 @@ defmodule Pdf.ObjectCollection do
   defcall all(_from, %State{objects: objects} = state) do
     result =
       objects
-      |> Enum.map(fn({{:object, number, _generation, _reference}, object}) ->
+      |> Enum.map(fn({{:object, number, _generation}, object}) ->
         Object.new(number, object)
       end)
     {:reply, result, state}

@@ -7,6 +7,6 @@ defmodule Pdf.ObjectCollectionTest do
     {:ok, collection} = ObjectCollection.start_link
     dictionary = Dictionary.new
     object = ObjectCollection.create_object(collection, dictionary)
-    assert object == {:object, 1, 0, "1 0 R"}
+    assert object == {:object, 1, 0}
   end
 end

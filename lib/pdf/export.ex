@@ -21,10 +21,24 @@ end
 defimpl Pdf.Export, for: DateTime do
   def to_iolist(date),
     do: ["(D:", to_string(date.year),
-         String.pad_leading(to_string(date.month), 2, "0"),
-         String.pad_leading(to_string(date.day), 2, "0"),
-         String.pad_leading(to_string(date.hour), 2, "0"),
-         String.pad_leading(to_string(date.minute), 2, "0"),
-         String.pad_leading(to_string(date.second), 2, "0"),
+         pad_datepart(date.month),
+         pad_datepart(date.day),
+         pad_datepart(date.hour),
+         pad_datepart(date.minute),
+         pad_datepart(date.second),
          "Z00'00)"]
+
+  defp pad_datepart(part),
+    do: part |> to_string |> String.pad_leading(2, "0")
+end
+
+defimpl Pdf.Export, for: Tuple do
+  def to_iolist({:name, name}),
+    do: ["/", name]
+
+  def to_iolist({:string, string}),
+    do: ["(", string, ")"]
+
+  def to_iolist({:object, number, generation}),
+    do: [Integer.to_string(number), " ", Integer.to_string(generation), " R"]
 end

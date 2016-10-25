@@ -47,8 +47,7 @@ defmodule Pdf.Page do
   def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do
     page
     |> push("q")
-    |> push("1 0 0 1 #{x} #{y} cm")
-    |> push("#{width} 0 0 #{height} 0 0 cm")
+    |> push(Enum.join([width, 0, 0, height, x, y, "cm"], " "))
     |> push("/#{image_name} Do")
     |> push("Q")
   end
