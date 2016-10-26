@@ -24,17 +24,17 @@ defmodule Pdf.Images.JPEG do
     parse_jpeg(data, io)
   end
   [192, 193, 194, 195, 197, 198, 199, 201, 202, 203, 205, 206, 207] |> Enum.each(fn(code) ->
-    defp parse_jpeg(<<255, unquote(code), length :: unsigned-integer-size(16), rest :: binary>> = data, io),
+    defp parse_jpeg(<<255, unquote(code), _length :: unsigned-integer-size(16), rest :: binary>>, io),
       do: parse_image_data(rest, io)
   end)
-  defp parse_jpeg(<<255, code, length :: unsigned-integer-size(16), rest :: binary>> = data, io) do
+  defp parse_jpeg(<<255, _code, length :: unsigned-integer-size(16), rest :: binary>>, io) do
     {:ok, data, io} = chomp(rest, length - 2, io)
     parse_jpeg(data, io)
   end
-  defp parse_jpeg(data, io),
+  defp parse_jpeg(_data, _io),
     do: {:error, :not_jpeg}
 
-  def parse_image_data(<<bits, height :: unsigned-integer-size(16), width :: unsigned-integer-size(16), channels, _rest :: binary>>, io),
+  def parse_image_data(<<bits, height :: unsigned-integer-size(16), width :: unsigned-integer-size(16), channels, _rest :: binary>>, _io),
     do: {:ok, {bits, height, width, channels}}
   def parse_image_data(_, _),
     do: {:error, :parse_error}
