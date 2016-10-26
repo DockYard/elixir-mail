@@ -1,0 +1,8 @@
+language: elixir
+elixir:
+  - 1.3.0
+otp_release:
+  - 19.0
+notifications:
+  recipients:
+    - andrew@andrewtimberlake.com
