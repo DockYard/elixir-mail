@@ -2,9 +2,7 @@ defmodule PdfTest do
   use Pdf.Case, async: true
   doctest Pdf
 
-  test "test" do
-  end
-
+  @open false
   test "new/1" do
     file_path = output("qtest.pdf")
     assert_unchanged(file_path, fn ->
@@ -30,7 +28,7 @@ defmodule PdfTest do
       |> Pdf.delete
     end)
 
-    System.cmd("open", ["-g", file_path])
+    if @open, do: System.cmd("open", ["-g", file_path])
   end
 
   test "open/2" do
