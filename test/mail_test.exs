@@ -244,7 +244,7 @@ defmodule MailTest do
     assert is_nil(Mail.get_html(mail))
   end
 
-  test "put_attachment with a simglepart" do
+  test "put_attachment with a singlepart" do
     mail = Mail.put_attachment(Mail.build(), "README.md")
 
     assert Enum.empty?(mail.parts)
@@ -254,6 +254,19 @@ defmodule MailTest do
     assert Mail.Message.get_content_type(mail) == ["text/markdown"]
     assert Mail.Message.get_header(mail, :content_disposition) == ["attachment", filename: "README.md"]
     assert Mail.Message.get_header(mail, :content_transfer_encoding) == :base64
+    assert mail.body == file_content
+  end
+
+  test "put_attachment (from memory) with a singlepart" do
+    {:ok, file_content} = File.read("README.md")
+
+    mail = Mail.put_attachment(Mail.build(), {"DOESNOTEXIST.md", file_content})
+
+    assert Enum.empty?(mail.parts)
+
+    assert Mail.Message.get_content_type(mail) == ["text/markdown"]
+    assert mail.headers.content_disposition == [:attachment, filename: "DOESNOTEXIST.md"]
+    assert mail.headers.content_transfer_encoding == :base64
     assert mail.body == file_content
   end
 
@@ -268,6 +281,20 @@ defmodule MailTest do
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
     assert Mail.Message.get_header(part, :content_disposition) == ["attachment", filename: "README.md"]
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert part.body == file_content
+  end
+
+  test "put_attachment (from memory) with a multipart" do
+    {:ok, file_content} = File.read("README.md")
+
+    mail = Mail.put_attachment(Mail.build_multipart(), {"DOESNOTEXIST.md", file_content})
+
+    assert length(mail.parts) == 1
+    part = List.first(mail.parts)
+
+    assert Mail.Message.get_content_type(part) == ["text/markdown"]
+    assert part.headers.content_disposition == [:attachment, filename: "DOESNOTEXIST.md"]
+    assert part.headers.content_transfer_encoding == :base64
     assert part.body == file_content
   end
 
