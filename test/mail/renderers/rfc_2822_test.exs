@@ -42,6 +42,11 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == "Foo: bar\r\nBaz: qux"
   end
 
+  test "headers - handles empty headers" do
+    headers = Mail.Renderers.RFC2822.render_headers(%{"content-type" => "text/plain", "message-id" => nil, "to" => [], "from" => "      ", "content-disposition" => "attachment"})
+    assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
+  end
+
   test "headers - blacklist certain headers" do
     headers = Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"}, ["foo", "baz"])
     assert headers == ""
