@@ -42,8 +42,18 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == "Foo: bar\r\nBaz: qux"
   end
 
-  test "headers - handles empty headers" do
-    headers = Mail.Renderers.RFC2822.render_headers(%{"content-type" => "text/plain", "message-id" => nil, "to" => [], "from" => "      ", "content-disposition" => "attachment"})
+  test "headers - handles empty headers as nil" do
+    headers = Mail.Renderers.RFC2822.render_headers(%{"content-type" => "text/plain", "message-id" => nil, "content-disposition" => "attachment"})
+    assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
+  end
+
+  test "headers - handles empty headers as empty list" do
+    headers = Mail.Renderers.RFC2822.render_headers(%{"content-type" => "text/plain", "to" => [], "content-disposition" => "attachment"})
+    assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
+  end
+
+  test "headers - handles empty headers as blank string" do
+    headers = Mail.Renderers.RFC2822.render_headers(%{"content-type" => "text/plain", "from" => "         ", "content-disposition" => "attachment"})
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
 
