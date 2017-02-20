@@ -279,4 +279,23 @@ defmodule MailTest do
 
     assert result == "Test!"
   end
+
+  test "has_attachments" do
+    message_with_attachment =
+      %Mail.Message{body: "new part"}
+      |> Mail.Message.put_attachment("CHANGELOG.md")
+    message =
+      %Mail.Message{multipart: true}
+      |> Mail.Message.put_part(message_with_attachment)
+
+    assert Mail.has_attachments?(message) == true
+  end
+
+  test "has_attachments without attachments" do
+    message =
+      %Mail.Message{multipart: true}
+      |> Mail.Message.put_part(%Mail.Message{body: "second new part"})
+
+    assert Mail.has_attachments?(message) == false
+  end
 end
