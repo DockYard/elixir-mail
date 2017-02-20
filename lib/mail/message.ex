@@ -277,7 +277,6 @@ defmodule Mail.Message do
   """
   def has_attachment?(parts) when is_list(parts),
     do: has_part?(parts, &is_attachment?/1)
-    # do: Enum.any?(parts, &(Mail.Message.is_attachment?(&1)))
   def has_attachment?(message),
     do: has_attachment?(message.parts)
 
@@ -299,7 +298,6 @@ defmodule Mail.Message do
   """
   def has_text_part?(parts) when is_list(parts),
     do: has_part?(parts, &is_text_part?/1)
-    # do: Enum.any?(parts, &(Mail.Message.is_text_part?(&1)))
   def has_text_part?(message),
     do: has_text_part?(message.parts)
 
