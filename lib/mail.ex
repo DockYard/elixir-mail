@@ -312,6 +312,30 @@ defmodule Mail do
     renderer.render(message)
   end
 
+  @doc """
+  Get messages containing attachments
+
+  Argument must be a `Mail.Message` or `List` of `Mail.Message`
+
+  Return a `List` of `Mail.Message` or emty `List`
+  """
+  def get_attachments(parts, attachments \\ [])
+  def get_attachments(%Mail.Message{} = message, attachments) do
+    get_attachments([message], attachments)
+  end
+  def get_attachments(parts, attachments) when is_list(parts) do
+    Enum.reduce(parts, attachments, fn (message, acc) ->
+      get_attachment(message, acc)
+    end)
+  end
+
+  defp get_attachment(%Mail.Message{multipart: true} = message, acc) do
+    get_attachments(message.parts, acc)
+  end
+  defp get_attachment(%Mail.Message{multipart: false} = message, acc) do
+    if Mail.Message.is_attachment?(message), do: [message | acc], else: acc
+  end
+
   defp validate_recipients([]), do: nil
   defp validate_recipients([recipient|tail]) do
     case recipient do

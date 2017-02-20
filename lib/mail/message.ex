@@ -282,15 +282,6 @@ defmodule Mail.Message do
     do: has_attachment?(message.parts)
 
   @doc """
-  Get messages containing attachments
-
-  Argument must be a `Mail.Message` or `List` of `Mail.Message`
-
-  Return a `List` of `Mail.Message` or emty `List`
-  """
-  def get_attachments(messages), do: do_get_attachments(messages, [])
-
-  @doc """
   Is the message text based or not
 
   Can be a message with a `content_type` of `text/plain` or `text/html`
@@ -324,19 +315,5 @@ defmodule Mail.Message do
       |> List.last()
 
     mimetype_fn.(extension)
-  end
-
-  defp do_get_attachments(messages, attachments) do
-    List.wrap(messages)
-    |> Enum.reduce(attachments, fn
-      %Mail.Message{multipart: true} = message, acc ->
-        do_get_attachments(message.parts, acc)
-      %Mail.Message{multipart: false} = message, acc ->
-        get_attachment(message, acc)
-    end)
-  end
-
-  defp get_attachment(message, acc) do
-    if Mail.Message.is_attachment?(message), do: [message | acc], else: acc
   end
 end

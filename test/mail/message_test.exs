@@ -152,24 +152,4 @@ defmodule Mail.MessageTest do
     message = Mail.put_text(message, "Some text")
     assert Mail.Message.has_text_part?(message)
   end
-
-  test "get_attachments" do
-    message = %Mail.Message{multipart: true}
-    |> Mail.put_attachment("README.md")
-    |> Mail.put_attachment("CONTRIBUTING.md")
-    |> Mail.Message.put_part(%Mail.Message{body: "new part"})
-    attachments = Mail.Message.get_attachments(message)
-    readme_message = Enum.at(message.parts, 0)
-    contributing_message = Enum.at(message.parts, 1)
-
-    assert attachments == [contributing_message, readme_message]
-  end
-
-  test "get_attachments without attachments" do
-    message = %Mail.Message{multipart: true}
-    |> Mail.Message.put_part(%Mail.Message{body: "new part"})
-    attachments = Mail.Message.get_attachments(message)
-
-    assert attachments == []
-  end
 end
