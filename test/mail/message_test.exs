@@ -106,7 +106,7 @@ defmodule Mail.MessageTest do
     {:ok, file_content} = File.read("README.md")
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
-    assert Mail.Message.get_header(part, :content_disposition) == [:attachment, filename: "README.md"]
+    assert Mail.Message.get_header(part, :content_disposition) == ["attachment", filename: "README.md"]
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
@@ -116,7 +116,7 @@ defmodule Mail.MessageTest do
     {:ok, file_content} = File.read("README.md")
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
-    assert Mail.Message.get_header(part, :content_disposition) == [:attachment, filename: "README.md"]
+    assert Mail.Message.get_header(part, :content_disposition) == ["attachment", filename: "README.md"]
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end

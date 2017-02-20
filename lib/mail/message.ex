@@ -204,10 +204,10 @@ defmodule Mail.Message do
   The mimetype of the file is determined by the file extension.
 
       Mail.Message.build_attachment("README.md")
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
       Mail.Message.build_attachment({"README.md", "file contents})
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
   ## Options
 
@@ -241,10 +241,10 @@ defmodule Mail.Message do
   The first argument must be a `Mail.Message`. The remaining argument is descibed in `build_attachment/1`
 
       Mail.Message.put_attachment(%Mail.Message{}, "README.md")
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
       Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents})
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: [:attachment, filename: "README.md"], content_transfer_encoding: :base64}}
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
   """
   def put_attachment(message, path_or_file_tuple)
   def put_attachment(%Mail.Message{} = message, path) when is_binary(path) do
@@ -258,7 +258,7 @@ defmodule Mail.Message do
 
     put_body(message, data)
     |> put_content_type(mimetype(filename))
-    |> put_header(:content_disposition, [:attachment, filename: filename])
+    |> put_header(:content_disposition, ["attachment", filename: filename])
     |> put_header(:content_transfer_encoding, :base64)
   end
 
@@ -268,7 +268,7 @@ defmodule Mail.Message do
   Returns `Boolean`
   """
   def is_attachment?(message),
-    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), :attachment)
+    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), "attachment")
 
   @doc """
   Determines the message has any attachment parts
@@ -277,7 +277,6 @@ defmodule Mail.Message do
   """
   def has_attachment?(parts) when is_list(parts),
     do: has_part?(parts, &is_attachment?/1)
-    # do: Enum.any?(parts, &(Mail.Message.is_attachment?(&1)))
   def has_attachment?(message),
     do: has_attachment?(message.parts)
 
@@ -299,7 +298,6 @@ defmodule Mail.Message do
   """
   def has_text_part?(parts) when is_list(parts),
     do: has_part?(parts, &is_text_part?/1)
-    # do: Enum.any?(parts, &(Mail.Message.is_text_part?(&1)))
   def has_text_part?(message),
     do: has_text_part?(message.parts)
 
