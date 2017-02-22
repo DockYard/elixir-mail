@@ -55,11 +55,12 @@ defmodule Mail.TestAssertions do
       headers["content-type"]
       |> List.wrap()
 
-    case Keyword.fetch(content_type, :boundary) do
-      nil -> headers
-      _boundary ->
-        content_type = put_in(content_type, [:boundary], "")
-        put_in(headers, ["content-type"], content_type)
-    end
+    content_type = Enum.map(content_type, fn(item) ->
+      case item do
+        {:boundary, _} -> {:boundary, ""}
+        _ -> item
+      end
+    end)
+    put_in(headers, ["content-type"], content_type)
   end
 end
