@@ -8,8 +8,8 @@ defmodule Mail.Encoder do
   @spec encoder_for(encoding :: String.t | atom) :: atom
   def encoder_for(encoding) when is_atom(encoding) do
     encoding
-    |> Atom.to_string
-    |> encoder_for
+    |> Atom.to_string()
+    |> encoder_for()
   end
 
   def encoder_for(encoding) when is_binary(encoding) do
