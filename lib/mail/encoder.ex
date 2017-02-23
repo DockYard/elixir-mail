@@ -13,7 +13,7 @@ defmodule Mail.Encoder do
   end
 
   def encoder_for(encoding) when is_binary(encoding) do
-    case String.downcase(encoding) do
+    case encoding |> String.trim |> String.downcase do
       "7bit" -> Mail.Encoders.SevenBit
       "8bit" -> Mail.Encoders.EightBit
       "base64" -> Mail.Encoders.Base64
