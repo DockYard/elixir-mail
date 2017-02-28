@@ -28,6 +28,21 @@ defmodule Mail.Proplist do
   end
 
   @doc """
+  Detects if the list contains the specified key.
+
+  Args:
+  * `list` - the list to look in
+  * `key` - the key to look for
+  """
+  @spec has_key?(list :: __MODULE__.t, key :: term) :: [term]
+  def has_key?(list, key) do
+    Enum.any?(list, fn
+      {k, _value} -> key == k
+      _value -> false
+    end)
+  end
+
+  @doc """
   Stores a key-value pair in the list, will replace an existing pair with the
   same key.
 
@@ -67,10 +82,7 @@ defmodule Mail.Proplist do
   def merge(a, b) do
     Enum.reduce(a ++ b, [], fn
       {key, _value} = value, acc ->
-        if Enum.any?(acc, fn
-            {subkey, _value} -> key == subkey
-            value -> false
-          end) do
+        if has_key?(acc, key) do
           :lists.keystore(key, 1, acc, value)
         else
           [value | acc]
