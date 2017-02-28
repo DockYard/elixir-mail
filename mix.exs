@@ -11,7 +11,7 @@ defmodule Mail.Mixfile do
      description: description(),
      package: package(),
      docs: [main: "Mail"],
-     deps: deps]
+     deps: deps()]
   end
 
   # Configuration for the OTP application
