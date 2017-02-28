@@ -127,7 +127,7 @@ defmodule Mail.Parsers.RFC2822 do
     do: value
 
   defp parse_structured_header_value(value) do
-    case String.split(value, ~r/;\s+/) do
+    case String.split(value, ~r/;\s*/) do
       [value | []] -> value
       [value | subtypes] -> [value | parse_header_subtypes(subtypes)]
     end
@@ -142,7 +142,7 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp parse_received_value(value) do
-    [value | [date]] = String.split(value, ~r/;\s+/)
+    [value | [date]] = String.split(value, ~r/;\s*/)
     [value | [{"date", erl_from_timestamp(date)}]]
   end
 
