@@ -1,6 +1,9 @@
 defmodule Mail.Proplist do
   @moduledoc """
-  A hybrid of erlang's proplists and lists keystores
+  A hybrid of erlang's proplists and lists keystores.
+
+  It acts as a Set for key-value pairs, but stil maintains it's order like a
+  List.
   """
 
   @type t :: [{term, term} | term]
@@ -57,6 +60,25 @@ defmodule Mail.Proplist do
   end
 
   @doc """
+  Prepends the key-value pair to the list if it doesn't already exist, otherwise
+  it will replace the existing pair
+
+  Args:
+  * `list` - the list to store in
+  * `key` - the key of the pair
+  * `value` - the value of the pair
+  """
+  @spec prepend(list :: __MODULE__.t, key :: term, value :: term) :: __MODULE__.t
+  def prepend(list, key, value) do
+    if has_key?(list, key) do
+      # replace the existing pair
+      put(list, key, value)
+    else
+      [{key, value} | list]
+    end
+  end
+
+  @doc """
   Retrieves a value from the list
 
   Args:
@@ -72,6 +94,27 @@ defmodule Mail.Proplist do
   end
 
   @doc """
+  Merges duplicate pairs with the latest value.
+
+  Args:
+  * `list` - the list to normalize
+  """
+  @spec normalize(list :: __MODULE__.t) :: __MODULE__.t
+  def normalize(list) do
+    Enum.reduce(list, [], fn
+      {key, value}, acc ->
+        if has_key?(acc, key) do
+          put(acc, key, value)
+        else
+          [{key, value} | acc]
+        end
+      value, acc ->
+        [value | acc]
+    end)
+    |> Enum.reverse()
+  end
+
+  @doc """
   Concatentates the given lists.
 
   Args:
@@ -80,15 +123,9 @@ defmodule Mail.Proplist do
   """
   @spec merge(a :: __MODULE__.t, b :: __MODULE__.t) :: __MODULE__.t
   def merge(a, b) do
-    Enum.reduce(a ++ b, [], fn
-      {key, _value} = value, acc ->
-        if has_key?(acc, key) do
-          :lists.keystore(key, 1, acc, value)
-        else
-          [value | acc]
-        end
-      value, acc ->
-        [value | acc]
+    Enum.reduce(b, Enum.reverse(a), fn
+      {key, v}, acc -> prepend(acc, key, v)
+      value, acc -> [value | acc]
     end)
     |> Enum.reverse()
   end

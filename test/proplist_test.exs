@@ -44,6 +44,14 @@ defmodule Mail.ProplistTest do
     end
   end
 
+  describe "normalize" do
+    test "updates duplicate pairs with the latest" do
+      a = [{"a", 3}, {"b", 4}, {"a", 4}, {"b", 5}, {"c", 6}]
+
+      assert [{"a", 4}, {"b", 5}, {"c", 6}] == Proplist.normalize(a)
+    end
+  end
+
   describe "merge" do
     test "concatenates two proplists (with new keys)" do
       a = [{"a", 3}, :a]
