@@ -143,7 +143,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_received_value(value) do
     [value | [date]] = String.split(value, ~r/;\s+/)
-    [value | [date: erl_from_timestamp(date)]]
+    [value | [{"date", erl_from_timestamp(date)}]]
   end
 
   defp parse_header_subtypes([]), do: []
@@ -153,14 +153,14 @@ defmodule Mail.Parsers.RFC2822 do
     [{key, normalize_subtype_value(key, value)} | parse_header_subtypes(tail)]
   end
 
-  defp normalize_subtype_value(:boundary, value),
+  defp normalize_subtype_value("boundary", value),
     do: get_boundary(value)
   defp normalize_subtype_value(_key, value),
     do: value
 
   defp parse_body(%Mail.Message{multipart: true} = message, lines) do
     content_type = message.headers["content-type"]
-    boundary = Keyword.get(content_type, :boundary)
+    boundary = Mail.Proplist.get(content_type, "boundary")
 
     parts =
       boundary
@@ -207,14 +207,13 @@ defmodule Mail.Parsers.RFC2822 do
   defp key_to_atom(key),
     do: String.downcase(key)
         |> String.replace("-", "_")
-        |> String.to_atom()
 
   defp multipart?(headers) do
     content_type = headers["content-type"]
     !!(case content_type do
          nil -> nil
          type when is_binary(type) -> nil
-         content_type -> content_type[:boundary]
+         content_type -> Mail.Proplist.get(content_type, "boundary")
        end)
   end
 

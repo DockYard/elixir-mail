@@ -55,10 +55,10 @@ defmodule Mail.TestAssertions do
       headers["content-type"]
       |> List.wrap()
 
-    case Keyword.fetch(content_type, :boundary) do
+    case Mail.Proplist.get(content_type, "boundary") do
       nil -> headers
       _boundary ->
-        content_type = put_in(content_type, [:boundary], "")
+        content_type = Mail.Proplist.put(content_type, "boundary", "")
         put_in(headers, ["content-type"], content_type)
     end
   end

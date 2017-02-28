@@ -18,7 +18,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["from"] == "me@example.com"
     assert message.headers["reply-to"] == "otherme@example.com"
     assert message.headers["subject"] == "Test Email"
-    assert message.headers["content-type"] == ["text/plain", foo: "bar", baz: "qux"]
+    assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
     assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
@@ -48,7 +48,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["cc"] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
     assert message.headers["from"] == {"Me", "me@example.com"}
     assert message.headers["reply-to"] == {"OtherMe", "otherme@example.com"}
-    assert message.headers["content-type"] == ["multipart/alternative", boundary: "foobar"]
+    assert message.headers["content-type"] == ["multipart/alternative", {"boundary", "foobar"}]
 
     [text_part, html_part] = message.parts
 
@@ -138,12 +138,12 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["to"] == [{"Test User", "user@example.com"}, {"Other User", "other@example.com"}]
     assert message.headers["cc"] == [{"The Dude", "dude@example.com"}, {"Batman", "batman@example.com"}]
     assert message.headers["from"] == {"Me", "me@example.com"}
-    assert message.headers["content-type"] == ["multipart/mixed", boundary: "foobar"]
+    assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "foobar"}]
     assert message.headers["date"] == {{2016,1,1},{0,0,0}}
 
     [alt_part, attach_part] = message.parts
 
-    assert alt_part.headers["content-type"] == ["multipart/alternative", boundary: "bazqux"]
+    assert alt_part.headers["content-type"] == ["multipart/alternative", {"boundary", "bazqux"}]
     [text_part, html_part] = alt_part.parts
 
     assert text_part.headers["content-type"] == "text/plain"
@@ -153,7 +153,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert html_part.body == "<h1>This is the HTML</h1>"
 
     assert attach_part.headers["content-type"] == "text/markdown"
-    assert attach_part.headers["content-disposition"] == ["attachment", filename: "README.md"]
+    assert attach_part.headers["content-disposition"] == ["attachment", {"filename", "README.md"}]
     assert attach_part.headers["content-transfer-encoding"] == "base64"
     assert attach_part.body == "Hello world!"
   end
@@ -182,7 +182,7 @@ defmodule Mail.Parsers.RFC2822Test do
     """)
 
     assert message.headers["delivered-to"] == "user@example.com"
-    assert message.headers["received"] == ["by 101.102.103.104 with SMTP id abcdefg", date: {{2016, 4, 1}, {11, 8, 31}}]
+    assert message.headers["received"] == ["by 101.102.103.104 with SMTP id abcdefg", {"date", {{2016, 4, 1}, {11, 8, 31}}}]
     assert message.headers["x-received"] == "201.202.203.204 with SMTP id abcdefg.12.123456;        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
     assert message.headers["dkim-signature"] == "v=1; a=rsa-sha256; c=relaxed/relaxed;        d=example.com; s=20160922;        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/         abcd=="
   end
@@ -208,7 +208,7 @@ defmodule Mail.Parsers.RFC2822Test do
     ------=_Part_295474_20544590.1456382229928--
     """)
 
-    assert message.headers["content-type"] == ["multipart/mixed", boundary: "----=_Part_295474_20544590.1456382229928"]
+    assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "----=_Part_295474_20544590.1456382229928"}]
   end
 
   test "parse long, wrapped header" do
