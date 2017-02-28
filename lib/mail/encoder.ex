@@ -5,21 +5,26 @@ defmodule Mail.Encoder do
   Will delegate to the proper encoding/decoding functions based upon name
   """
 
-  def encode(data, encoding) when is_binary(encoding),
-    do: encode(data, String.to_atom(encoding))
-  def encode(data, encoding) do
-    case encoding do
-      :base64 -> Mail.Encoders.Base64.encode(data)
-      _ -> Mail.Encoders.Binary.encode(data)
+  @spec encoder_for(encoding :: String.t | atom) :: atom
+  def encoder_for(encoding) when is_atom(encoding) do
+    encoding
+    |> Atom.to_string()
+    |> encoder_for()
+  end
+
+  def encoder_for(encoding) when is_binary(encoding) do
+    case encoding |> String.trim |> String.downcase do
+      "7bit" -> Mail.Encoders.SevenBit
+      "8bit" -> Mail.Encoders.EightBit
+      "base64" -> Mail.Encoders.Base64
+      "quoted-printable" -> Mail.Encoders.QuotedPrintable
+      _ -> Mail.Encoders.Binary
     end
   end
 
-  def decode(data, encoding) when is_binary(encoding),
-    do: decode(data, String.to_atom(encoding))
-  def decode(data, encoding) do
-    case encoding do
-      :base64 -> Mail.Encoders.Base64.decode(data)
-      _ -> Mail.Encoders.Binary.decode(data)
-    end
-  end
+  @spec encode(data :: binary, encoding :: String.t) :: binary
+  def encode(data, encoding), do: encoder_for(encoding).encode(data)
+
+  @spec decode(data :: binary, encoding :: String.t) :: binary
+  def decode(data, encoding), do: encoder_for(encoding).decode(data)
 end
