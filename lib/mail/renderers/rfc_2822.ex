@@ -20,6 +20,7 @@ defmodule Mail.Renderers.RFC2822 do
 
   @blacklisted_headers ["bcc"]
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
+  @message_id_types ["Message-ID", "References", "In-Reply-To"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
   @email_validation_regex Application.get_env(
@@ -27,6 +28,8 @@ defmodule Mail.Renderers.RFC2822 do
                             :email_regex,
                             ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
                           )
+  # TODO: stick to the ref.
+  @message_id_validation_regex ~r/<[^\s]+@[^\s]+>/
 
   @doc """
   Renders a message according to the RFC2822 spec
@@ -109,6 +112,12 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(address_type, address) when address_type in @address_types,
     do: render_address(address)
 
+  defp render_header_value(message_id_type, message_ids) when is_list(message_ids) and message_id_type in @message_id_types,
+    do: Enum.map(message_ids, &render_message_id(&1))
+        |> Enum.join(" ")
+  defp render_header_value(message_id_type, message_id) when message_id_type in @message_id_types,
+    do: render_address(message_id)
+
   defp render_header_value("Content-Transfer-Encoding" = key, value) when is_atom(value) do
     value =
       value
@@ -137,8 +146,19 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
+  defp validate_message_id(message_id) do
+    case Regex.match?(@message_id_validation_regex, message_id) do
+      true -> message_id
+      false -> raise ArgumentError,
+        message: """
+        The email message-id `#{message_id}` is invalid.
+        """
+    end
+  end
+
   defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
   defp render_address(email), do: validate_address(email)
+  defp render_message_id(message_id), do: validate_message_id(message_id)
   defp render_subtypes([]), do: []
 
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),

@@ -58,6 +58,18 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Bcc: user1@example.com, \"User 2\" <user2@example.com>"
   end
 
+  test "message id headers renders list of references, in_reply_to" do
+    header = Mail.Renderers.RFC2822.render_header("references", "<TOKEN@TOKENexample.com>")
+    assert header == "References: <TOKEN@TOKENexample.com>"
+    header = Mail.Renderers.RFC2822.render_header("in_reply_to", "<TOKEN@TOKENexample.com>")
+    assert header == "In-Reply-To: <TOKEN@TOKENexample.com>"
+
+    header = Mail.Renderers.RFC2822.render_header("references", ["<TOKENMSG1@example.com>", "<TOKENMSG2@example.com>"])
+    assert header == "References: <TOKENMSG1@example.com> <TOKENMSG2@example.com>"
+    header = Mail.Renderers.RFC2822.render_header("in_reply_to", ["<TOKEN1@example.com>", "<TOKEN2@example.com>"])
+    assert header == "In-Reply-To: <TOKEN1@example.com> <TOKEN2@example.com>"
+  end
+
   test "content-transfer-encoding rendering hyphenates values" do
     header = Mail.Renderers.RFC2822.render_header("content_transfer_encoding", :quoted_printable)
     assert header == "Content-Transfer-Encoding: quoted-printable"
@@ -271,6 +283,22 @@ defmodule Mail.Renderers.RFC2822Test do
     assert_raise ArgumentError, fn ->
       Mail.build()
       |> Mail.put_cc("@example.com")
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  test "will raise when an invalid message-id with `references`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_references(["@example.com"])
+      |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  test "will raise when an invalid message-id with `in_reply_to`" do
+    assert_raise ArgumentError, fn ->
+      Mail.build()
+      |> Mail.put_in_reply_to(["@example.com"])
       |> Mail.Renderers.RFC2822.render()
     end
   end
