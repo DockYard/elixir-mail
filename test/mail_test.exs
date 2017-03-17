@@ -117,6 +117,11 @@ defmodule MailTest do
     assert Mail.get_reply_to(mail) == "other@example.com"
   end
 
+  test "get_message_id" do
+    mail = Mail.Message.put_header(Mail.build(), "Message-ID", "TOKEN@TOKENexample.com")
+    assert Mail.get_message_id(mail) == "TOKEN@TOKENexample.com"
+  end
+
   test "put_references when single message id" do
     mail = Mail.put_references(Mail.build(), "TOKEN@TOKENexample.com")
     assert Mail.get_references(mail) == ["TOKEN@TOKENexample.com"]
