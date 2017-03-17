@@ -8,6 +8,9 @@ defmodule Mail.Parsers.RFC2822Test do
       From: me@example.com
       Reply-To: otherme@example.com
       Subject: Test Email
+      Message-ID: <SELF@MESSAGE.example.test.domain.com>
+      References: <PARENT1@MESSAGE.example.test.domain.com>
+      In-Reply-To: <PARENT1@MESSAGE.example.test.domain.com>
       Content-Type: text/plain; foo=bar;
         baz=qux;
 
@@ -19,6 +22,9 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["from"] == "me@example.com"
     assert message.headers["reply-to"] == "otherme@example.com"
     assert message.headers["subject"] == "Test Email"
+    assert message.headers["message-id"] == "<SELF@MESSAGE.example.test.domain.com>"
+    assert message.headers["references"] == ["<PARENT1@MESSAGE.example.test.domain.com>"]
+    assert message.headers["in-reply-to"] == ["<PARENT1@MESSAGE.example.test.domain.com>"]
     assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
     assert message.body == "This is the body!\r\nIt has more than one line"
   end
@@ -31,6 +37,10 @@ defmodule Mail.Parsers.RFC2822Test do
       From: Me <me@example.com>
       Reply-To: OtherMe <otherme@example.com>
       Subject: Test email
+      Message-ID: <SELF@MESSAGE.example.test.domain.com>
+      References: <PARENT1@MESSAGE.example.test.domain.com> <PARENT1@MESSAGE.example.test.domain.com>
+      In-Reply-To: <PARENT1@MESSAGE.example.test.domain.com>
+        <PARENT2@MESSAGE.example.test.domain.com>
       Mime-Version: 1.0
       Content-Type: multipart/alternative; boundary=foobar
 
@@ -58,6 +68,9 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["from"] == {"Me", "me@example.com"}
     assert message.headers["reply-to"] == {"OtherMe", "otherme@example.com"}
+    assert message.headers["message-id"] == "<SELF@MESSAGE.example.test.domain.com>"
+    assert message.headers["references"] == ["<PARENT1@MESSAGE.example.test.domain.com>", "<PARENT1@MESSAGE.example.test.domain.com>"]
+    assert message.headers["in-reply-to"] == ["<PARENT1@MESSAGE.example.test.domain.com>", "<PARENT2@MESSAGE.example.test.domain.com>"]
     assert message.headers["content-type"] == ["multipart/alternative", {"boundary", "foobar"}]
 
     [text_part, html_part] = message.parts
