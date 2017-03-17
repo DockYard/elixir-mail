@@ -357,6 +357,82 @@ defmodule Mail do
     do: Mail.Message.get_header(message, "reply-to")
 
   @doc """
+  Add new message id to the `references` header
+
+  Message id can be added as a single string or a list of strings.
+  The list of message ids will be concated to the previous value.
+
+      Mail.put_references(%Mail.Message{}, "<MESSAGETOKEN@example.com>")
+      %Mail.Message{headers: %{references: ["<MESSAGETOKEN@example.com>"]}}
+
+      Mail.put_references(%Mail.Message{}, ["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"])
+      %Mail.Message{headers: %{references: ["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"]}}
+
+      Mail.put_references(%Mail.Message{}, "<MESSAGETOKEN@example.com>")
+      |> Mail.put_references(["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"])
+      %Mail.Message{headers: %{references: [<MESSAGETOKEN@example.com>", "<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"]}}
+
+  The value of a message id must conform to a string value otherwise an
+  `ArgumentError` is raised.
+
+  Valid forms:
+  * `"<MESSAGETOKEN@TOKEN.example.com>"`
+  """
+  def put_references(message, message_ids)
+
+  def put_references(message, message_ids) when is_list(message_ids) do
+    validate_message_ids(message_ids, "references")
+    Mail.Message.put_header(message, "references", (get_references(message) || []) ++ message_ids)
+  end
+
+  def put_references(message, message_id),
+    do: put_references(message, [message_id])
+
+  @doc ~S"""
+  Retrieves the list of references from the `references` header
+  """
+  def get_references(message),
+    do: Mail.Message.get_header(message, "references")
+
+    @doc """
+    Add new message id to the `in_reply_to` header
+
+    Message id can be added as a single string or a list of strings.
+    The list of message ids will be concated to the previous value.
+
+        Mail.put_in_reply_to(%Mail.Message{}, "<MESSAGETOKEN@example.com>")
+        %Mail.Message{headers: %{in_reply_to: ["<MESSAGETOKEN@example.com>"]}}
+
+        Mail.put_in_reply_to(%Mail.Message{}, ["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"])
+        %Mail.Message{headers: %{in_reply_to: ["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"]}}
+
+        Mail.put_in_reply_to(%Mail.Message{}, "<MESSAGETOKEN@example.com>")
+        |> Mail.put_in_reply_to(["<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"])
+        %Mail.Message{headers: %{in_reply_to: [<MESSAGETOKEN@example.com>", "<MESSAGE1TOKEN@example.com>", "<MESSAGE2TOKEN@example.com>"]}}
+
+    The value of a message id must conform to a string value otherwise an
+    `ArgumentError` is raised.
+
+    Valid forms:
+    * `"<MESSAGETOKEN@TOKEN.example.com>"`
+    """
+    def put_in_reply_to(message, message_id)
+
+    def put_in_reply_to(message, message_ids) when is_list(message_ids) do
+      validate_message_ids(message_ids, "in_reply_to")
+      Mail.Message.put_header(message, "in_reply_to", (get_in_reply_to(message) || []) ++ message_ids)
+    end
+
+    def put_in_reply_to(message, message_id),
+      do: put_in_reply_to(message, [message_id])
+
+    @doc ~S"""
+    Retrieves the list of message id from the `in_reply_to` header
+    """
+    def get_in_reply_to(message),
+      do: Mail.Message.get_header(message, "in_reply_to")
+
+  @doc """
   Returns a unique list of all recipients
 
   Will collect all recipients from `to`, `cc`, and `bcc`
@@ -398,6 +474,19 @@ defmodule Mail do
           Recipients must be in the format of either a string,
           or a tuple with two elements `{name, address}`
           """
+    end
+  end
+
+  defp validate_message_ids([], _), do: nil
+  defp validate_message_ids([message_id|tail], as) do
+    case message_id do
+      message_id when is_binary(message_id) -> validate_recipients(tail)
+      other -> raise ArgumentError,
+        message: """
+        The #{as} `#{inspect other}` is invalid.
+
+        References must be in the format of either a string
+        """
     end
   end
 end

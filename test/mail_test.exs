@@ -117,6 +117,46 @@ defmodule MailTest do
     assert Mail.get_reply_to(mail) == "other@example.com"
   end
 
+  test "put_references when single message id" do
+    mail = Mail.put_references(Mail.build(), "TOKEN@TOKENexample.com")
+    assert Mail.get_references(mail) == ["TOKEN@TOKENexample.com"]
+  end
+
+  test "put_references when multiple message ids" do
+    mail = Mail.put_references(Mail.build(), ["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"])
+    assert Mail.get_references(mail) == ["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"]
+  end
+
+  test "composing multiple `references` message id" do
+    mail =
+      Mail.put_references(Mail.build(), "TOKEN@TOKENexample.com")
+      |> Mail.put_references(["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"])
+
+    assert Mail.get_references(mail) == ["TOKEN@TOKENexample.com",
+                                 "TOKEN1@TOKENexample.com",
+                                 "TOKEN2@TOKENexample.com"]
+  end
+
+  test "put_in_reply_to when single message id" do
+    mail = Mail.put_in_reply_to(Mail.build(), "TOKEN@TOKENexample.com")
+    assert Mail.get_in_reply_to(mail) == ["TOKEN@TOKENexample.com"]
+  end
+
+  test "put_in_reply_to when multiple message ids" do
+    mail = Mail.put_in_reply_to(Mail.build(), ["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"])
+    assert Mail.get_in_reply_to(mail) == ["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"]
+  end
+
+  test "composing multiple `in_reply_to` message id" do
+    mail =
+      Mail.put_in_reply_to(Mail.build(), "TOKEN@TOKENexample.com")
+      |> Mail.put_in_reply_to(["TOKEN1@TOKENexample.com", "TOKEN2@TOKENexample.com"])
+
+    assert Mail.get_in_reply_to(mail) == ["TOKEN@TOKENexample.com",
+                                 "TOKEN1@TOKENexample.com",
+                                 "TOKEN2@TOKENexample.com"]
+  end
+
   test "all_recipients combins :to, :cc, and :bcc" do
     mail =
       Mail.put_to(Mail.build(), ["one@example.com", "two@example.com"])
