@@ -1,8 +1,8 @@
-# Mail
+# Mail [![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](http://travis-ci.org/DockYard/elixir-mail)
 
 An RFC2822 implementation in Elixir, built for composability.
 
-[![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](http://travis-ci.org/DockYard/elixir-mail)
+**[Courier is built and maintained by DockYard, contact us for expert Elixir and Phoenix consulting](https://dockyard.com/phoenix-consulting)**.
 
 ## Building
 
