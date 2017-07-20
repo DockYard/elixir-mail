@@ -79,6 +79,9 @@ defmodule Mail.Parsers.RFC2822 do
 
     {{year, month, date}, {hour, minute, second}}
   end
+
+  # This adds support for a now obsolete format
+  # https://tools.ietf.org/html/rfc2822#section-4.3
   def erl_from_timestamp(<<
                          date  ::  binary-size(2),
                          " ",
