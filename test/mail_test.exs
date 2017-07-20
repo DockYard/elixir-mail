@@ -265,8 +265,8 @@ defmodule MailTest do
     assert Enum.empty?(mail.parts)
 
     assert Mail.Message.get_content_type(mail) == ["text/markdown"]
-    assert mail.headers.content_disposition == [:attachment, filename: "DOESNOTEXIST.md"]
-    assert mail.headers.content_transfer_encoding == :base64
+    assert Mail.Message.get_header(mail, :content_disposition) == ["attachment", filename: "DOESNOTEXIST.md"]
+    assert Mail.Message.get_header(mail, :content_transfer_encoding) == :base64
     assert mail.body == file_content
   end
 
@@ -293,8 +293,8 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
-    assert part.headers.content_disposition == [:attachment, filename: "DOESNOTEXIST.md"]
-    assert part.headers.content_transfer_encoding == :base64
+    assert Mail.Message.get_header(part, :content_disposition) == ["attachment", filename: "DOESNOTEXIST.md"]
+    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
 
