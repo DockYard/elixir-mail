@@ -113,14 +113,21 @@ defmodule Mail do
   Add an attachment part to the message
 
       Mail.put_attachment(%Mail.Message{}, "README.md")
-
+      Mail.put_attachment(%Mail.Message{}, {"README.md", data})
+      
   Each call will add a new attachment part.
   """
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
     do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
 
+  def put_attachment(%Mail.Message{multipart: true} = message, {filename, data}),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment({filename, data}))
+
   def put_attachment(%Mail.Message{} = message, path) when is_binary(path),
     do: Mail.Message.put_attachment(message, path)
+
+  def put_attachment(%Mail.Message{} = message, {filename, data}),
+    do: Mail.Message.put_attachment(message, {filename, data})
 
   @doc """
   Add a new `subject` header
