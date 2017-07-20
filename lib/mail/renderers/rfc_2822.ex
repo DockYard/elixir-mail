@@ -11,13 +11,18 @@ defmodule Mail.Renderers.RFC2822 do
   from a `%Mail.Message{}` data model.
 
       Mail.Renderers.RFC2822.render(message)
+
+  The email validation regex defaults to `~r/\w+@\w+\.\w+/`
+  and can be overridden with the following config:
+
+      config :mail, email_regex: custom_regex
   """
 
   @blacklisted_headers ["bcc"]
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex ~r/\w+@\w+\.\w+/
+  @email_validation_regex Application.get_env(:mail, :email_regex, ~r/\w+@\w+\.\w+/)
 
   @doc """
   Renders a message according to the RFC2882 spec
