@@ -79,6 +79,23 @@ defmodule Mail.Parsers.RFC2822 do
 
     {{year, month, date}, {hour, minute, second}}
   end
+  def erl_from_timestamp(<<
+                         date  ::  binary-size(2),
+                         " ",
+                         month :: binary-size(3),
+                         " ",
+                         year :: binary-size(4),
+                         " ",
+                         hour :: binary-size(2),
+                         ":",
+                         minute :: binary-size(2),
+                         ":",
+                         second :: binary-size(2),
+                         " ",
+                         timezone :: binary-size(3),
+                         _rest :: binary>>) do
+    erl_from_timestamp(date <> " " <> month <> " " <> year <> " " <> hour <> ":" <> minute <> ":" <> second <> " (" <> timezone <> ")")
+  end  
 
   defp parse_headers(message, []), do: message
   defp parse_headers(message, [header | tail]) do

@@ -101,6 +101,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert erl_from_timestamp("\t1 Apr 2016 22:33:44 +0000") == {{2016, 4, 1}, {22,33,44}}
     assert erl_from_timestamp("12 Jan 2016 00:00:00 +0000") == {{2016, 1, 12}, {0,0,0}}
     assert erl_from_timestamp("25 Dec 2016 00:00:00 +0000 (UTC)") == {{2016, 12, 25}, {0,0,0}}
+    assert erl_from_timestamp("03 Apr 2017 12:30:55 GMT") == {{2017, 04, 03}, {12,30,55}}
   end
 
   test "parses a nested multipart message with encoded part" do
