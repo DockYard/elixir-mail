@@ -161,8 +161,8 @@ defmodule Mail.Renderers.RFC2822 do
         |> String.rjust(2, ?0)
 
   defp do_render_headers([]), do: []
-  defp do_render_headers([{key, nil} | headers]), do: do_render_headers(headers)
-  defp do_render_headers([{key, []} | headers]), do: do_render_headers(headers)
+  defp do_render_headers([{_key, nil} | headers]), do: do_render_headers(headers)
+  defp do_render_headers([{_key, []} | headers]), do: do_render_headers(headers)
   defp do_render_headers([{key, value} | headers]) when is_binary(value) do
     if String.trim(value) == "" do
       do_render_headers(headers)
