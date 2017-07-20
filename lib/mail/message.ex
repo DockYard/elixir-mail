@@ -111,8 +111,8 @@ defmodule Mail.Message do
       Mail.Message.get_content_type(%Mail.Message{content_type: "text/plain"})
       ["text/plain"]
 
-      Mail.Message.get_content_type(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}})
-      ["multipart/mixed", boundary: "foobar"]
+      Mail.Message.get_content_type(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}})
+      ["multipart/mixed", {"boundary", "foobar"}]
   """
   def get_content_type(message),
     do: (get_header(message, :content_type) || "")
@@ -125,15 +125,15 @@ defmodule Mail.Message do
   values in the list
 
       Mail.Message.put_boundary(%Mail.Message{}, "foobar")
-      %Mail.Message{headers: %{content_type: ["", boundary: "foobar"]}}
+      %Mail.Message{headers: %{content_type: ["", {"boundary", "foobar"}]}}
 
-      Mail.Message.put_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "bazqux"]}})
-      %Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}}
+      Mail.Message.put_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "bazqux"}]}})
+      %Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}}
   """
   def put_boundary(message, boundary) do
     content_type =
       get_content_type(message)
-      |> List.keystore(:boundary, 0, {:boundary, boundary})
+      |> Mail.Proplist.put("boundary", boundary)
 
     put_content_type(message, content_type)
   end
@@ -143,14 +143,14 @@ defmodule Mail.Message do
 
   Will retrieve the boundary value. If one is not set a random one is generated.
 
-      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", boundary: "foobar"]}})
+      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}})
       "foobar"
 
       Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed"]}})
       "ASDFSHNEW3473423"
   """
   def get_boundary(message) do
-    case get_content_type(message)[:boundary] do
+    case Mail.Proplist.get(get_content_type(message), "boundary") do
       nil -> generate_boundary()
       boundary -> boundary
     end
@@ -258,7 +258,7 @@ defmodule Mail.Message do
 
     put_body(message, data)
     |> put_content_type(mimetype(filename))
-    |> put_header(:content_disposition, ["attachment", filename: filename])
+    |> put_header(:content_disposition, ["attachment", {"filename", filename}])
     |> put_header(:content_transfer_encoding, :base64)
   end
 
