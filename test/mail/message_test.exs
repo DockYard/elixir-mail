@@ -134,27 +134,11 @@ defmodule Mail.MessageTest do
     refute Mail.Message.is_attachment?(message)
   end
 
-  test "has_attachment?" do
-    message = Mail.put_text(%Mail.Message{multipart: true}, "Some text")
-    refute Mail.Message.has_attachment?(message)
-
-    message = Mail.put_attachment(message, "README.md")
-    assert Mail.Message.has_attachment?(message)
-  end
-
   test "is_text_part?" do
     message = Mail.Message.build_attachment("README.md")
     assert Mail.Message.is_attachment?(message)
 
     message = Mail.Message.put_body(%Mail.Message{}, "test body")
     refute Mail.Message.is_attachment?(message)
-  end
-
-  test "has_text_part" do
-    message = Mail.put_attachment(%Mail.Message{multipart: true}, "README.md")
-    refute Mail.Message.has_text_part?(message)
-
-    message = Mail.put_text(message, "Some text")
-    assert Mail.Message.has_text_part?(message)
   end
 end

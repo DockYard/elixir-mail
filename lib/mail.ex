@@ -128,6 +128,44 @@ defmodule Mail do
 
   def put_attachment(%Mail.Message{} = message, {filename, data}),
     do: Mail.Message.put_attachment(message, {filename, data})
+  
+  @doc """
+  Determines the message has any attachment parts
+
+  Returns a `Boolean`
+  """
+  def has_attachments?(%Mail.Message{} = message) do
+    walk_parts([message], {:cont, false}, fn(message, _acc) ->
+      case Mail.Message.is_attachment?(message) do
+        true -> {:halt, true}
+        false -> {:cont, false}
+      end  
+    end)
+    |> elem(1)
+  end
+
+  @doc """
+  Determines the message has any text parts
+
+  Returns a `Boolean`
+  """
+  def has_text_parts?(%Mail.Message{} = message) do
+    walk_parts([message], {:cont, false}, fn(message, _acc) ->
+      case Mail.Message.is_text_part?(message) do
+        true -> {:halt, true}
+        false -> {:cont, false}
+      end  
+    end)
+    |> elem(1)
+  end
+
+  defp walk_parts(_parts, {:halt, acc}, _fun), do: {:halt, acc}
+  defp walk_parts([], {:cont, acc}, _fun), do: {:cont, acc}
+  defp walk_parts([message | parts], {:cont, acc}, fun) do
+    {tag, acc} = fun.(message, acc)
+    {tag, acc} = walk_parts(message.parts, {tag, acc}, fun)
+    walk_parts(parts, {tag, acc}, fun)
+  end
 
   @doc """
   Add a new `subject` header
