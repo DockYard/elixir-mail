@@ -365,4 +365,26 @@ defmodule MailTest do
 
     assert result == "Test!"
   end
+
+  test "get_attachments" do
+    message =
+      %Mail.Message{multipart: true}
+      |> Mail.put_attachment("README.md")
+      |> Mail.put_attachment("CONTRIBUTING.md")
+      |> Mail.Message.put_part(%Mail.Message{body: "new part"})
+    attachments = Mail.get_attachments(message)
+    readme_message = Enum.at(message.parts, 0)
+    contributing_message = Enum.at(message.parts, 1)
+
+    assert attachments == [contributing_message, readme_message]
+  end
+
+  test "get_attachments without attachments" do
+    message =
+      %Mail.Message{multipart: true}
+      |> Mail.Message.put_part(%Mail.Message{body: "new part"})
+    attachments = Mail.get_attachments(message)
+
+    assert attachments == []
+  end
 end
