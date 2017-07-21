@@ -319,6 +319,25 @@ defmodule Mail do
     renderer.render(message)
   end
 
+  @doc """
+  Determines the mail has any attachment parts
+
+  Argument must be a `Mail.Message` or `List` of `Mail.Message`
+
+  Returns a `Boolean`
+  """
+  def has_attachments?(%Mail.Message{} = message) do
+    has_attachments?([message])
+  end
+  def has_attachments?(parts) when is_list(parts) do
+    Enum.any?(parts, &has_attachment?/1)
+  end
+
+  defp has_attachment?(%Mail.Message{multipart: true} = message) do
+    if Mail.Message.is_attachment?(message), do: true, else: has_attachments?(message.parts)
+  end
+  defp has_attachment?(%Mail.Message{multipart: false} = message), do: Mail.Message.is_attachment?(message)
+
   defp validate_recipients([]), do: nil
   defp validate_recipients([recipient|tail]) do
     case recipient do
