@@ -298,6 +298,47 @@ defmodule MailTest do
     assert part.body == file_content
   end
 
+  test "has_attachments? walks all parts and returns boolean if any attachments found" do
+    mail =
+      Mail.build_multipart()
+      |> Mail.put_html("<p>Hello</p>")
+      |> Mail.put_text("Hello")
+
+    refute Mail.has_attachments?(mail)
+
+    mail
+    |> Mail.put_attachment("README.md")
+    |> Mail.has_attachments?()
+    |> assert()
+
+    subpart = Mail.build_multipart() |> Mail.put_attachment("README.md")
+
+    mail
+    |> Mail.Message.put_part(subpart)
+    |> Mail.has_attachments?()
+    |> assert()
+  end
+
+  test "has_text_parts? walks all parts and returns boolean if any text parts found" do
+    mail =
+      Mail.build_multipart()
+      |> Mail.put_attachment("README.md")
+
+    refute Mail.has_text_parts?(mail)
+
+    mail
+    |> Mail.put_text("Hello")
+    |> Mail.has_text_parts?()
+    |> assert()
+
+    subpart = Mail.build_multipart() |> Mail.put_text("Hello")
+
+    mail
+    |> Mail.Message.put_part(subpart)
+    |> Mail.has_text_parts?()
+    |> assert()
+  end
+
   test "renders with the given renderer" do
     result =
       Mail.build()
