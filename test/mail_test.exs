@@ -338,6 +338,24 @@ defmodule MailTest do
     |> Mail.has_text_parts?()
     |> assert()
   end
+  
+  test "get_attachments walks all parts and collects attachments" do
+    mail =
+      Mail.build_multipart()
+      |> Mail.put_attachment("README.md")
+
+    expected = [{"README.md", File.read!("README.md")}]
+    attachments = Mail.get_attachments(mail)
+    assert attachments == expected
+
+    subpart = Mail.build_multipart() |> Mail.put_attachment("CONTRIBUTING.md")
+
+    mail = Mail.Message.put_part(mail, subpart)
+
+    expected = List.insert_at(expected, -1, {"CONTRIBUTING.md", File.read!("CONTRIBUTING.md")})
+    attachments = Mail.get_attachments(mail)
+    assert attachments == expected
+  end
 
   test "renders with the given renderer" do
     result =

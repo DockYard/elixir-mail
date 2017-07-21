@@ -159,6 +159,23 @@ defmodule Mail do
     |> elem(1)
   end
 
+  @doc """
+  Walks the message parts and collects all attachments
+
+  Each member in the list is `{filename, content}`
+  """
+  def get_attachments(%Mail.Message{} = message) do
+    walk_parts([message], {:cont, []}, fn(message, acc) ->
+      case Mail.Message.is_attachment?(message) do
+        true ->
+          ["attachment", {"filename", filename}] = Mail.Message.get_header(message, :content_disposition)
+          {:cont, List.insert_at(acc, -1, {filename, message.body})}
+        false -> {:cont, acc}
+      end  
+    end)
+    |> elem(1)
+  end
+
   defp walk_parts(_parts, {:halt, acc}, _fun), do: {:halt, acc}
   defp walk_parts([], {:cont, acc}, _fun), do: {:cont, acc}
   defp walk_parts([message | parts], {:cont, acc}, fun) do
