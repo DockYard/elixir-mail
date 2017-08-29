@@ -98,7 +98,7 @@ defmodule Mail.Parsers.RFC2822 do
                          timezone :: binary-size(3),
                          _rest :: binary>>) do
     erl_from_timestamp(date <> " " <> month <> " " <> year <> " " <> hour <> ":" <> minute <> ":" <> second <> " (" <> timezone <> ")")
-  end  
+  end
 
   defp parse_headers(message, []), do: message
   defp parse_headers(message, [header | tail]) do
@@ -238,7 +238,7 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp decode(body, message) do
-    body = String.rstrip(body)
+    body = String.trim_trailing(body)
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
     Mail.Encoder.decode(body, transfer_encoding)
   end
