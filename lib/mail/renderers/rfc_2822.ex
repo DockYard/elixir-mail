@@ -163,7 +163,7 @@ defmodule Mail.Renderers.RFC2822 do
   defp pad(num),
     do: num
         |> Integer.to_string()
-        |> String.rjust(2, ?0)
+        |> String.pad_leading(2, "0")
 
   defp do_render_headers([]), do: []
   defp do_render_headers([{_key, nil} | headers]), do: do_render_headers(headers)

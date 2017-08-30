@@ -11,7 +11,7 @@ defmodule Mail.MIME do
     if String.starts_with?(line, ["#", "\n"]) do
       []
     else
-      [type|exts] = line |> String.strip |> String.split
+      [type|exts] = line |> String.trim |> String.split
       Enum.each exts, fn(ext) ->
         def type(unquote(ext)) do
           unquote(type)
