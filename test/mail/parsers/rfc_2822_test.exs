@@ -313,18 +313,34 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["x-reallylongheadernamethatcausesbodytowrap"] == "BodyOnNewLine"
   end
 
-  test "parses headers even when does not follow usual format: Upper-Dash-Upper" do
+  test "parses a message even when headers do not follow usual format: Upper-Dash-Upper" do
     message = parse_email("""
     X-all-lower-case: ImportantValue
+    To: user@example.com
     Cc: "User, First" <first@example.com>, "User, Second" <second@example.com>, third@example.com
+    From: me@example.com
+    Reply-to: otherme@example.com
+    Subject: Test Email
+    Message-id: <SELF@MESSAGE.example.test.domain.com>
+    References: <PARENT1@MESSAGE.example.test.domain.com>
     In-reply-to: <PARENT1@MESSAGE.example.test.domain.com>
+    Content-type: text/plain; foo=bar;
+      baz=qux
 
-    Body
+    This is the body!
+    It has more than one line
     """)
 
-    assert message.headers["x-all-lower-case"] == "ImportantValue"
+    assert message.headers["to"] == ["user@example.com"]
     assert message.headers["cc"] == [{"User, First", "first@example.com"}, {"User, Second", "second@example.com"}, "third@example.com"]
+    assert message.headers["from"] == "me@example.com"
+    assert message.headers["reply-to"] == "otherme@example.com"
+    assert message.headers["subject"] == "Test Email"
+    assert message.headers["message-id"] == "<SELF@MESSAGE.example.test.domain.com>"
+    assert message.headers["references"] == ["<PARENT1@MESSAGE.example.test.domain.com>"]
     assert message.headers["in-reply-to"] == ["<PARENT1@MESSAGE.example.test.domain.com>"]
+    assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
+    assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
   test "allow empty body (RFC2822 §3.5)" do
