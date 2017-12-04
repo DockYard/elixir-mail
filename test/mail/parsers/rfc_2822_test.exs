@@ -313,6 +313,20 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["x-reallylongheadernamethatcausesbodytowrap"] == "BodyOnNewLine"
   end
 
+  test "parses headers even when does not follow usual format: Upper-Dash-Upper" do
+    message = parse_email("""
+    X-all-lower-case: ImportantValue
+    Cc: "User, First" <first@example.com>, "User, Second" <second@example.com>, third@example.com
+    In-reply-to: <PARENT1@MESSAGE.example.test.domain.com>
+
+    Body
+    """)
+
+    assert message.headers["x-all-lower-case"] == "ImportantValue"
+    assert message.headers["cc"] == [{"User, First", "first@example.com"}, {"User, Second", "second@example.com"}, "third@example.com"]
+    assert message.headers["in-reply-to"] == ["<PARENT1@MESSAGE.example.test.domain.com>"]
+  end
+
   test "allow empty body (RFC2822 §3.5)" do
     message =
       parse_email("""

@@ -170,7 +170,7 @@ defmodule Mail.Parsers.RFC2822 do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
     decoded = parse_encoded_word(body)
-    headers = put_header(message.headers, key, parse_header_value(name, decoded))
+    headers = put_header(message.headers, key, parse_header_value(key, decoded))
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
@@ -196,40 +196,40 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value(key, "\t" <> value),
     do: parse_header_value(key, value)
 
-  defp parse_header_value("To", value),
+  defp parse_header_value("to", value),
     do: parse_recipient_value(value)
 
-  defp parse_header_value("CC", value),
+  defp parse_header_value("cc", value),
     do: parse_recipient_value(value)
 
-  defp parse_header_value("From", value),
+  defp parse_header_value("from", value),
     do:
       parse_recipient_value(value)
       |> List.first()
 
-  defp parse_header_value("Reply-To", value),
+  defp parse_header_value("reply-to", value),
     do:
       parse_recipient_value(value)
       |> List.first()
 
-  defp parse_header_value("Date", timestamp),
+  defp parse_header_value("date", timestamp),
     do: erl_from_timestamp(timestamp)
 
-  defp parse_header_value("Message-ID", value),
+  defp parse_header_value("message-id", value),
     do: parse_references_value(value)
         |> List.first()
-  defp parse_header_value("In-Reply-To", value),
+  defp parse_header_value("in-reply-to", value),
     do: parse_references_value(value)
-  defp parse_header_value("References", value),
+  defp parse_header_value("references", value),
     do: parse_references_value(value)
 
-  defp parse_header_value("Received", value),
+  defp parse_header_value("received", value),
     do: parse_received_value(value)
 
-  defp parse_header_value("Content-Type", value),
+  defp parse_header_value("content-type", value),
     do: parse_structured_header_value(value)
 
-  defp parse_header_value("Content-Disposition", value),
+  defp parse_header_value("content-disposition", value),
     do: parse_structured_header_value(value)
 
   defp parse_header_value(_key, value),
