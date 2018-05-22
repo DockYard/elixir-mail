@@ -10,7 +10,12 @@ defimpl Pdf.Size, for: Integer do
   def size_of(number), do: Pdf.Size.size_of(Integer.to_string(number))
 end
 
+defimpl Pdf.Size, for: Date do
+  def size_of(_date), do: 12
+end
+
 defimpl Pdf.Size, for: DateTime do
+  def size_of(%{utc_offset: 0}), do: 19
   def size_of(_date), do: 24
 end
 
@@ -20,13 +25,13 @@ defimpl Pdf.Size, for: List do
 end
 
 defimpl Pdf.Size, for: Tuple do
+  def size_of({:name, string}), do: 1 + Pdf.Size.size_of(string)
+
+  def size_of({:string, string}), do: 2 + Pdf.Size.size_of(string)
+
   def size_of({:object, number, generation}),
     do: 4 + Pdf.Size.size_of(number) + Pdf.Size.size_of(generation)
 
-  def size_of({:name, string}), do: 1 + Pdf.Size.size_of(string)
-
   def size_of({:command, [_ | _] = list}), do: length(list) + Pdf.Size.size_of(list)
   def size_of({:command, command}), do: Pdf.Size.size_of(command)
-
-  def size_of({:string, string}), do: 2 + Pdf.Size.size_of(string)
 end
