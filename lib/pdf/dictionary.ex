@@ -72,4 +72,16 @@ defmodule Pdf.Dictionary do
   defimpl Pdf.Export do
     def to_iolist(dictionary), do: Pdf.Dictionary.to_iolist(dictionary)
   end
+
+  def to_map(%__MODULE__{entries: entries}) do
+    entries
+    |> Enum.map(fn {{:name, name}, value} ->
+      {name, to_value(value)}
+    end)
+    |> Map.new()
+  end
+
+  defp to_value({:name, name}), do: name
+  defp to_value({:string, string}), do: string
+  defp to_value(other), do: other
 end

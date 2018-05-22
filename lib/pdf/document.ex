@@ -20,7 +20,7 @@ defmodule Pdf.Document do
     add_page(document, Page.new(opts))
   end
 
-  [
+  @info_map %{
     title: "Title",
     producer: "Producer",
     creator: "Creator",
@@ -29,15 +29,25 @@ defmodule Pdf.Document do
     keywords: "Keywords",
     author: "Author",
     subject: "Subject"
-  ]
-  |> Enum.each(fn {key, value} ->
-    def put_info(document, unquote(key), value), do: do_put_info(document, unquote(value), value)
-  end)
+  }
 
-  defp do_put_info(document, key, value) do
-    info = ObjectCollection.call(document.objects, document.info, :put, [key, value])
-    %{document | info: info}
+  def put_info(document, info_list) when is_list(info_list) do
+    info = ObjectCollection.get_object(document.objects, document.info)
+
+    info =
+      info_list
+      |> Enum.reduce(info, fn {key, value}, info ->
+        Dictionary.put(info, @info_map[key], value)
+      end)
+
+    ObjectCollection.update_object(document.objects, document.info, info)
+    document
   end
+
+  @info_map
+  |> Enum.each(fn {key, _value} ->
+    def put_info(document, unquote(key), value), do: put_info(document, [{unquote(key), value}])
+  end)
 
   def set_font(%__MODULE__{current: page} = document, font_name, font_size) do
     document = add_font(document, font_name)

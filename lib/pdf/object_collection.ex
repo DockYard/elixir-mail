@@ -19,6 +19,15 @@ defmodule Pdf.ObjectCollection do
     {:reply, key, %{state | size: new_size, objects: Map.put(objects, key, object)}}
   end
 
+  defcall get_object(key, _from, %State{objects: objects} = state) do
+    object = Map.get(objects, key)
+    {:reply, object, state}
+  end
+
+  defcall update_object(key, value, _from, %State{objects: objects} = state) do
+    {:reply, :ok, %{state | objects: Map.put(objects, key, value)}}
+  end
+
   defcall call(object_key, method, args, _from, %State{objects: objects} = state) do
     object = Map.get(objects, object_key)
     result = Kernel.apply(object.__struct__, method, [object | args])
