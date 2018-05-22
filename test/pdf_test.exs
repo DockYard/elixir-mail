@@ -10,12 +10,16 @@ defmodule PdfTest do
       {:ok, pdf} = Pdf.new(size: :a4)
 
       pdf
-      |> Pdf.set_author("Test Author")
-      |> Pdf.set_creator("Test Creator")
-      |> Pdf.set_keywords("word word word")
-      |> Pdf.set_producer("Test producer")
-      |> Pdf.set_subject("Test Subject")
-      |> Pdf.set_title("Test Document")
+      |> Pdf.set_info(
+        title: "Test Document",
+        producer: "Test producer",
+        creator: "Test Creator",
+        created: ~D"2018-05-22",
+        modified: ~D"2018-05-22",
+        keywords: "word word word",
+        author: "Test Author",
+        subject: "Test Subject"
+      )
       |> Pdf.set_font("Helvetica", 12)
       |> Pdf.text_at({10, 400}, "Hello World")
       |> Pdf.text_lines({10, 300}, [

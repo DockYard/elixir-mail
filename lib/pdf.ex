@@ -23,27 +23,27 @@ defmodule Pdf do
 
   defcall write_to(path, _from, %State{document: document} = state) do
     File.write!(path, Document.to_iolist(document))
-    {:reply, self, state}
+    {:reply, self(), state}
   end
 
   defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
     document = Document.set_font(document, font_name, font_size)
-    {:reply, self, %{state | document: document}}
+    {:reply, self(), %{state | document: document}}
   end
 
   defcall text_at({x, y}, text, _from, %State{document: document} = state) do
     document = Document.text_at(document, {x, y}, text)
-    {:reply, self, %{state | document: document}}
+    {:reply, self(), %{state | document: document}}
   end
 
   defcall text_lines({x, y}, [_ | _] = lines, _from, %State{document: document} = state) do
     document = Document.text_lines(document, {x, y}, lines)
-    {:reply, self, %{state | document: document}}
+    {:reply, self(), %{state | document: document}}
   end
 
   defcall(
     add_image({x, y}, image_path, _from, %State{document: document} = state),
-    do: {:reply, self, %{state | document: Document.add_image(document, {x, y}, image_path)}}
+    do: {:reply, self(), %{state | document: Document.add_image(document, {x, y}, image_path)}}
   )
 
   @doc """
@@ -76,8 +76,13 @@ defmodule Pdf do
   """
   defcall(set_title(title, _from, state), do: set_info(:title, title, state))
 
+  defcall set_info(info_list, _from, %State{document: document} = state) do
+    document = Document.put_info(document, info_list)
+    {:reply, self(), %{state | document: document}}
+  end
+
   defp set_info(key, value, %State{document: document} = state) do
     document = Document.put_info(document, key, value)
-    {:reply, self, %{state | document: document}}
+    {:reply, self(), %{state | document: document}}
   end
 end
