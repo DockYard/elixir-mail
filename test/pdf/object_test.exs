@@ -15,6 +15,7 @@ defmodule Pdf.ObjectTest do
     object =
       Object.new(1)
       |> Object.set_value("A string")
+
     assert %Object{value: "A string"} = object
   end
 

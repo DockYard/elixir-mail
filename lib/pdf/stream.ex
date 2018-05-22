@@ -8,18 +8,17 @@ defmodule Pdf.Stream do
   @stream_start "\nstream\n"
   @stream_end "endstream"
 
-  def new,
-    do: %__MODULE__{}
+  def new, do: %__MODULE__{}
 
   def push(stream, {:command, _} = command) do
     size = size_of(command) + 1
     %{stream | size: stream.size + size, content: ["\n", command | stream.content]}
   end
-  def push(stream, command),
-    do: push(stream, c(command))
+
+  def push(stream, command), do: push(stream, c(command))
 
   def size(stream) do
-    dictionary = Dictionary.new |> Dictionary.put("Length", stream.size)
+    dictionary = Dictionary.new() |> Dictionary.put("Length", stream.size)
     Dictionary.size(dictionary) + stream.size
   end
 
@@ -35,12 +34,10 @@ defmodule Pdf.Stream do
   end
 
   defimpl Pdf.Size do
-    def size_of(%Pdf.Stream{} = stream),
-      do: Pdf.Stream.size(stream)
+    def size_of(%Pdf.Stream{} = stream), do: Pdf.Stream.size(stream)
   end
 
   defimpl Pdf.Export do
-    def to_iolist(stream),
-      do: Pdf.Stream.to_iolist(stream)
+    def to_iolist(stream), do: Pdf.Stream.to_iolist(stream)
   end
 end

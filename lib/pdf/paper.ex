@@ -30,8 +30,10 @@ defmodule Pdf.Paper do
     legal: [612, 1008],
     letter: [612, 792],
     tabloid: [792, 1224]
-  ] |> Enum.each(fn({size, dimensions}) ->
+  ]
+  |> Enum.each(fn {size, dimensions} ->
     def size(unquote(size)), do: [0, 0 | unquote(dimensions)]
   end)
+
   def size([_width, _height] = dimensions), do: [0, 0, dimensions]
 end

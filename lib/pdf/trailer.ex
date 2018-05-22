@@ -9,7 +9,7 @@ defmodule Pdf.Trailer do
   defimpl Pdf.Export do
     def to_iolist(trailer) do
       dictionary =
-        Dictionary.new
+        Dictionary.new()
         |> Dictionary.put("Size", length(trailer.objects) + 1)
         |> Dictionary.put("Root", trailer.root)
         |> Dictionary.put("Info", trailer.info)

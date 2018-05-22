@@ -16,17 +16,17 @@ defmodule Pdf.Dictionary do
 
   defstruct size: @initial_length, entries: %{}
 
-  def new,
-    do: %__MODULE__{size: @initial_length}
+  def new, do: %__MODULE__{size: @initial_length}
+
   def new(map) do
     map
-    |> Enum.reduce(new(), fn({key, value}, dictionary) ->
+    |> Enum.reduce(new(), fn {key, value}, dictionary ->
       put(dictionary, key, value)
     end)
   end
 
-  def put(dictionary, key, value) when is_binary(value),
-    do: put(dictionary, key, s(value))
+  def put(dictionary, key, value) when is_binary(value), do: put(dictionary, key, s(value))
+
   def put(dictionary, key, value) do
     key = n(key)
     entries = Map.put(dictionary.entries, key, value)
@@ -36,6 +36,7 @@ defmodule Pdf.Dictionary do
 
   defp increment_internal_size(%__MODULE__{size: size}, key, %{size: _size}),
     do: size + size_of(key) + @value_separator_length + @entry_separator_length
+
   defp increment_internal_size(dictionary, key, value),
     do: increment_internal_size(dictionary, key, %{size: 0}) + size_of(value)
 
@@ -44,33 +45,31 @@ defmodule Pdf.Dictionary do
   end
 
   defp calculate_size([], acc), do: acc
+
   defp calculate_size([{_key, %__MODULE__{} = dictionary} | tail], acc),
     do: calculate_size(tail, size_of(dictionary) + acc)
+
   defp calculate_size([{_key, %Array{} = array} | tail], acc),
     do: calculate_size(tail, size_of(array) + acc)
-  defp calculate_size([_entry | tail], acc),
-    do: calculate_size(tail, acc)
+
+  defp calculate_size([_entry | tail], acc), do: calculate_size(tail, acc)
 
   def to_iolist(dictionary) do
     [@dict_start, entries_to_iolist(dictionary.entries), @dict_end]
   end
 
-  defp entries_to_iolist(%{} = entries),
-    do: entries_to_iolist(Enum.to_list(entries))
+  defp entries_to_iolist(%{} = entries), do: entries_to_iolist(Enum.to_list(entries))
   defp entries_to_iolist([]), do: []
-  defp entries_to_iolist([entry | tail]),
-    do: [entry_to_iolist(entry) | entries_to_iolist(tail)]
+  defp entries_to_iolist([entry | tail]), do: [entry_to_iolist(entry) | entries_to_iolist(tail)]
 
   defp entry_to_iolist({key, value}),
     do: Pdf.Export.to_iolist([key, @value_separator, value, @entry_separator])
 
   defimpl Pdf.Size do
-    def size_of(%Pdf.Dictionary{} = dictionary),
-      do: Pdf.Dictionary.size(dictionary)
+    def size_of(%Pdf.Dictionary{} = dictionary), do: Pdf.Dictionary.size(dictionary)
   end
 
   defimpl Pdf.Export do
-    def to_iolist(dictionary),
-      do: Pdf.Dictionary.to_iolist(dictionary)
+    def to_iolist(dictionary), do: Pdf.Dictionary.to_iolist(dictionary)
   end
 end

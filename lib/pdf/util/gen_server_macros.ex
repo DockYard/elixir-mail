@@ -2,6 +2,7 @@ defmodule Pdf.Util.GenServerMacros do
   defmacro defcall({name, _, args}, opts) do
     [state, from | args] = Enum.reverse(args)
     args = Enum.reverse(args)
+
     quote do
       def unquote(name)(pid, unquote_splicing(args)) do
         GenServer.call(pid, {unquote(name), unquote_splicing(args)})

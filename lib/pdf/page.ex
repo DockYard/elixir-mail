@@ -2,19 +2,15 @@ defmodule Pdf.Page do
   defstruct size: :a4, stream: nil
 
   import Pdf.Utils
-  alias Pdf.{Image,Stream}
+  alias Pdf.{Image, Stream}
 
-  def new(opts \\ [size: :a4]),
-    do: init(opts, %__MODULE__{stream: Stream.new})
+  def new(opts \\ [size: :a4]), do: init(opts, %__MODULE__{stream: Stream.new()})
 
   defp init([], page), do: page
-  defp init([{:size, size} | tail], page),
-    do: init(tail, %{page | size: size})
-  defp init([_ | tail], page),
-    do: init(tail, page)
+  defp init([{:size, size} | tail], page), do: init(tail, %{page | size: size})
+  defp init([_ | tail], page), do: init(tail, page)
 
-  def push(page, command),
-    do: %{page | stream: Stream.push(page.stream, command)}
+  def push(page, command), do: %{page | stream: Stream.push(page.stream, command)}
 
   def set_font(page, document, font_name, font_size) do
     font = document.fonts[font_name]
@@ -41,6 +37,7 @@ defmodule Pdf.Page do
   def draw_lines(page, [line]) do
     push(page, [s(line), "Tj"])
   end
+
   def draw_lines(page, [line | tail]) do
     draw_lines(push(page, [s(line), "Tj", "T*"]), tail)
   end
@@ -54,12 +51,10 @@ defmodule Pdf.Page do
   end
 
   defimpl Pdf.Size do
-    def size_of(%Pdf.Page{} = page),
-      do: Pdf.Size.size_of(page.stream)
+    def size_of(%Pdf.Page{} = page), do: Pdf.Size.size_of(page.stream)
   end
 
   defimpl Pdf.Export do
-    def to_iolist(%Pdf.Page{} = page),
-      do: Pdf.Export.to_iolist(page.stream)
+    def to_iolist(%Pdf.Page{} = page), do: Pdf.Export.to_iolist(page.stream)
   end
 end

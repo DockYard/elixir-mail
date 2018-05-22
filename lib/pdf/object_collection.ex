@@ -9,11 +9,9 @@ defmodule Pdf.ObjectCollection do
     defstruct size: 0, objects: %{}
   end
 
-  def start_link,
-    do: GenServer.start_link(__MODULE__, [])
+  def start_link, do: GenServer.start_link(__MODULE__, [])
 
-  def init(_),
-    do: {:ok, %State{}}
+  def init(_), do: {:ok, %State{}}
 
   defcall create_object(object, _from, %State{size: size, objects: objects} = state) do
     new_size = size + 1
@@ -30,9 +28,10 @@ defmodule Pdf.ObjectCollection do
   defcall all(_from, %State{objects: objects} = state) do
     result =
       objects
-      |> Enum.map(fn({{:object, number, _generation}, object}) ->
+      |> Enum.map(fn {{:object, number, _generation}, object} ->
         Object.new(number, object)
       end)
+
     {:reply, result, state}
   end
 end

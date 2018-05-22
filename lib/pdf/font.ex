@@ -3,26 +3,29 @@ defmodule Pdf.Font do
 
   import Pdf.Utils
   alias Pdf.Font.Metrics
-  alias Pdf.{Array,Dictionary}
+  alias Pdf.{Array, Dictionary}
 
   font_metrics =
     Path.join(__DIR__, "../../fonts/*.afm")
-    |> Path.wildcard
-    |> Enum.map(fn(afm_file) ->
-    # IO.puts afm_file
+    |> Path.wildcard()
+    |> Enum.map(fn afm_file ->
+      # IO.puts afm_file
+      metrics =
+        afm_file
+        |> File.stream!()
+        |> Enum.reduce(%Metrics{}, fn line, metrics ->
+          Metrics.process_line(String.replace_suffix(line, "\n", ""), metrics)
+        end)
 
-    metrics =
-      File.stream!(afm_file)
-      |> Enum.reduce(%Metrics{}, fn(line, metrics) ->
-        Metrics.process_line(String.replace_suffix(line, "\n", ""), metrics)
-      end)
-    metrics = %{metrics | widths: Enum.reverse(metrics.widths)}
-    %{metrics | last_char: metrics.first_char + length(metrics.widths)}
-  end)
+      widths = Enum.reverse(metrics.widths)
+      last_char = metrics.first_char + length(metrics.widths)
+      %{metrics | widths: widths, last_char: last_char}
+    end)
 
   font_metrics
-  |> Enum.each(fn(metrics) ->
+  |> Enum.each(fn metrics ->
     font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
+
     defmodule font_module do
       @doc "The name of the font"
       def name, do: unquote(metrics.name)
@@ -48,6 +51,7 @@ defmodule Pdf.Font do
       def cap_height, do: unquote(metrics.cap_height)
       @doc "The font x-height"
       def x_height, do: unquote(metrics.x_height)
+
       @doc """
       Returns the character widths of characters beginning from `first_char/0`
       """
@@ -62,11 +66,12 @@ defmodule Pdf.Font do
           123
       """
       def width(utf8_char)
+
       metrics.widths
       |> Enum.with_index(metrics.first_char)
-      |> Enum.each(fn({width, char_code}) ->
+      |> Enum.each(fn {width, char_code} ->
         # def width(unquote(char_code)), do: unquote(width)
-        def width(<< unquote(char_code) :: utf8 >>), do: unquote(width)
+        def width(<<unquote(char_code)::utf8>>), do: unquote(width)
       end)
 
       @doc ~S"""
@@ -74,7 +79,7 @@ defmodule Pdf.Font do
       """
       def text_width(string) do
         string
-        |> String.codepoints
+        |> String.codepoints()
         |> Enum.reduce(0, &(&2 + width(&1)))
       end
 
@@ -97,14 +102,15 @@ defmodule Pdf.Font do
   Pdf.Font.HelveticaBoldOblique
   """
   def lookup(name)
+
   font_metrics
-  |> Enum.each(fn(metrics) ->
+  |> Enum.each(fn metrics ->
     font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
     def lookup(unquote(metrics.name)), do: unquote(font_module)
   end)
 
   def to_dictionary(font, id) do
-    Dictionary.new
+    Dictionary.new()
     |> Dictionary.put("Type", n("Font"))
     |> Dictionary.put("Subtype", n("Type1"))
     |> Dictionary.put("Name", n("F#{id}"))
