@@ -4,6 +4,17 @@ An RFC2822 implementation in Elixir, built for composability.
 
 **[Mail is built and maintained by DockYard, contact us for expert Elixir and Phoenix consulting](https://dockyard.com/phoenix-consulting)**.
 
+## Installation
+
+```elixir
+def deps do
+  # Get from hex
+  [{:mail, "~> 0.2"}]
+  # Or use the latest from master
+  [{:mail, github: "DockYard/elixir-mail"}]
+end
+```
+
 ## Building
 
 You can quickly build an RFC2822 spec compliant message.
