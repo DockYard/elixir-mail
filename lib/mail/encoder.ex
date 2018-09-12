@@ -8,7 +8,7 @@ defmodule Mail.Encoder do
   @spec encoder_for(encoding :: String.t | atom) :: atom
   def encoder_for(encoding) when is_atom(encoding) do
     encoding
-    |> Atom.to_string()
+    |> normalize()
     |> encoder_for()
   end
 
@@ -27,4 +27,8 @@ defmodule Mail.Encoder do
 
   @spec decode(data :: binary, encoding :: String.t) :: binary
   def decode(data, encoding), do: encoder_for(encoding).decode(data)
+
+  defp normalize(:quoted_printable), do: normalize(:"quoted-printable")
+  defp normalize(encoding) when is_atom(encoding), do: Atom.to_string(encoding)
+  defp normalize(encoding) when is_binary(encoding), do: encoding
 end
