@@ -68,8 +68,8 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   test "renders each part recursively" do
-    sub_part_1 = Mail.Message.build_text("Hello there!")
-    sub_part_2 = Mail.Message.build_html("<h1>Hello there!</h1>")
+    sub_part_1 = Mail.Message.build_text("Hello there! 1 + 1 = 2")
+    sub_part_2 = Mail.Message.build_html(~s|<a href="/">Hello there! 1 + 1 = 2</a>|)
 
     part =
       Mail.build_multipart()

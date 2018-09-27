@@ -4,11 +4,11 @@ Content-Type: multipart/alternative; boundary="foobar"
 Content-Type: text/plain
 Content-Transfer-Encoding: quoted-printable
 
-Hello there!
+Hello there! 1 + 1 =3D 2
 
 --foobar
 Content-Type: text/html
 Content-Transfer-Encoding: quoted-printable
 
-<h1>Hello there!</h1>
+<a href=3D"/">Hello there! 1 + 1 =3D 2</a>
 --foobar--
