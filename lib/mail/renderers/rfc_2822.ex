@@ -22,7 +22,11 @@ defmodule Mail.Renderers.RFC2822 do
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex Application.get_env(:mail, :email_regex, ~r/\w+@\w+\.\w+/)
+  @email_validation_regex Application.get_env(
+                            :mail,
+                            :email_regex,
+                            ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
+                          )
 
   @doc """
   Renders a message according to the RFC2882 spec
@@ -44,6 +48,7 @@ defmodule Mail.Renderers.RFC2822 do
   individual part
   """
   def render_part(message, render_part_function \\ &render_part/1)
+
   def render_part(%Mail.Message{multipart: true} = message, fun) do
     boundary = Mail.Message.get_boundary(message)
     message = Mail.Message.put_boundary(message, boundary)
@@ -57,6 +62,7 @@ defmodule Mail.Renderers.RFC2822 do
 
     "#{headers}\r\n\r\n#{boundary}\r\n#{parts}\r\n#{boundary}--"
   end
+
   def render_part(%Mail.Message{} = message, _fun) do
     encoded_body = encode(message.body, message)
     "#{render_headers(message.headers, @blacklisted_headers)}\r\n\r\n#{encoded_body}"
@@ -69,8 +75,10 @@ defmodule Mail.Renderers.RFC2822 do
   Will render a given header according to the RFC2882 spec
   """
   def render_header(key, value)
+
   def render_header(key, value) when is_atom(key),
     do: render_header(Atom.to_string(key), value)
+
   def render_header(key, value) do
     key =
       key
@@ -84,11 +92,16 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_header_value("Date", date_time),
     do: timestamp_from_erl(date_time)
-  defp render_header_value(address_type, addresses) when is_list(addresses) and address_type in @address_types,
-    do: Enum.map(addresses, &render_address(&1))
-        |> Enum.join(", ")
+
+  defp render_header_value(address_type, addresses)
+       when is_list(addresses) and address_type in @address_types,
+       do:
+         Enum.map(addresses, &render_address(&1))
+         |> Enum.join(", ")
+
   defp render_header_value(address_type, address) when address_type in @address_types,
     do: render_address(address)
+
   defp render_header_value("Content-Transfer-Encoding" = key, value) when is_atom(value) do
     value =
       value
@@ -100,28 +113,34 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_header_value(_key, [value | subtypes]),
     do: Enum.join([value | render_subtypes(subtypes)], "; ")
+
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
 
   defp validate_address(address) do
     case Regex.match?(@email_validation_regex, address) do
-      true -> address
-      false -> raise ArgumentError,
-        message: """
-        The email address `#{address}` is invalid.
-        """
+      true ->
+        address
+
+      false ->
+        raise ArgumentError,
+          message: """
+          The email address `#{address}` is invalid.
+          """
     end
   end
 
   defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
   defp render_address(email), do: validate_address(email)
   defp render_subtypes([]), do: []
+
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),
     do: render_subtypes([{Atom.to_string(key), value} | subtypes])
 
   defp render_subtypes([{"boundary", value} | subtypes]) do
     [~s(boundary="#{value}") | render_subtypes(subtypes)]
   end
+
   defp render_subtypes([{key, value} | subtypes]) do
     key = String.replace(key, "_", "-")
     ["#{key}=#{value}" | render_subtypes(subtypes)]
@@ -133,11 +152,14 @@ defmodule Mail.Renderers.RFC2822 do
   Can take an optional list of headers to blacklist
   """
   def render_headers(headers, blacklist \\ [])
+
   def render_headers(map, blacklist) when is_map(map),
-    do: Map.to_list(map)
-        |> render_headers(blacklist)
+    do:
+      Map.to_list(map)
+      |> render_headers(blacklist)
+
   def render_headers(list, blacklist) when is_list(list) do
-    Enum.reject(list, &(Enum.member?(blacklist, elem(&1, 0))))
+    Enum.reject(list, &Enum.member?(blacklist, elem(&1, 0)))
     |> do_render_headers()
     |> Enum.reverse()
     |> Enum.join("\r\n")
@@ -161,13 +183,15 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp pad(num),
-    do: num
-        |> Integer.to_string()
-        |> String.pad_leading(2, "0")
+    do:
+      num
+      |> Integer.to_string()
+      |> String.pad_leading(2, "0")
 
   defp do_render_headers([]), do: []
   defp do_render_headers([{_key, nil} | headers]), do: do_render_headers(headers)
   defp do_render_headers([{_key, []} | headers]), do: do_render_headers(headers)
+
   defp do_render_headers([{key, value} | headers]) when is_binary(value) do
     if String.trim(value) == "" do
       do_render_headers(headers)
@@ -175,6 +199,7 @@ defmodule Mail.Renderers.RFC2822 do
       [render_header(key, value) | do_render_headers(headers)]
     end
   end
+
   defp do_render_headers([{key, value} | headers]) do
     [render_header(key, value) | do_render_headers(headers)]
   end
@@ -184,19 +209,20 @@ defmodule Mail.Renderers.RFC2822 do
 
     if Mail.Message.has_attachment?(message) do
       text_parts =
-        Enum.filter(message.parts, &(match_content_type?(&1, ~r/text\/(plain|html)/)))
+        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
         |> Enum.sort(&(&1 > &2))
 
       content_type = List.replace_at(content_type, 0, "multipart/mixed")
       message = Mail.Message.put_content_type(message, content_type)
 
       if Enum.any?(text_parts) do
-        message = Enum.reduce(text_parts, message, &(Mail.Message.delete_part(&2, &1)))
+        message = Enum.reduce(text_parts, message, &Mail.Message.delete_part(&2, &1))
+
         mixed_part =
           Mail.build_multipart()
           |> Mail.Message.put_content_type("multipart/alternative")
 
-        mixed_part = Enum.reduce(text_parts, mixed_part, &(Mail.Message.put_part(&2, &1)))
+        mixed_part = Enum.reduce(text_parts, mixed_part, &Mail.Message.put_part(&2, &1))
         put_in(message.parts, List.insert_at(message.parts, 0, mixed_part))
       end
     else
@@ -204,6 +230,7 @@ defmodule Mail.Renderers.RFC2822 do
       Mail.Message.put_content_type(message, content_type)
     end
   end
+
   defp reorganize(%Mail.Message{} = message), do: message
 
   defp encode(body, message) do
