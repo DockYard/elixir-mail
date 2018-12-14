@@ -198,6 +198,8 @@ defmodule Mail.Renderers.RFC2822 do
 
         mixed_part = Enum.reduce(text_parts, mixed_part, &(Mail.Message.put_part(&2, &1)))
         put_in(message.parts, List.insert_at(message.parts, 0, mixed_part))
+      else
+        message
       end
     else
       content_type = List.replace_at(content_type, 0, "multipart/alternative")
