@@ -1,0 +1,31 @@
+To: user1@example.com
+Subject: Test email
+Mime-Version: 1.0
+From: "User2" <user2@example.com>
+Content-Type: multipart/mixed; boundary="2753118483D4F18DC5FD1F1A"
+
+--2753118483D4F18DC5FD1F1A
+Content-Type: multipart/alternative; boundary="DB28EC13A6576C8F20B92FD0"
+
+--DB28EC13A6576C8F20B92FD0
+Content-Type: text/plain
+Content-Transfer-Encoding: quoted-printable
+
+Some text
+
+--DB28EC13A6576C8F20B92FD0
+Content-Type: text/html
+Content-Transfer-Encoding: quoted-printable
+
+<h1>Some HTML</h1>
+--DB28EC13A6576C8F20B92FD0--
+
+--2753118483D4F18DC5FD1F1A
+Content-Type: image/jpeg
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename=tiny_jpeg.jpg
+
+/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8Q
+EBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=
+
+--2753118483D4F18DC5FD1F1A--
