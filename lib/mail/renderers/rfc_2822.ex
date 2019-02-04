@@ -114,7 +114,7 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(_key, [value | subtypes]),
     do: Enum.join([value | render_subtypes(subtypes)], "; ")
 
-  defp render_header_value(key, value),
+  defp render_header_value(key, value) when not is_list(value),
     do: render_header_value(key, List.wrap(value))
 
   defp validate_address(address) do
