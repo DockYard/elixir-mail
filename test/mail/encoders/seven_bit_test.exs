@@ -29,8 +29,8 @@ defmodule Mail.Encoders.SevenBitTest do
     assert Mail.Encoders.SevenBit.decode("") == ""
   end
 
-  test "decode removes <CR><LF> pairs" do
+  test "decode handles <CR><LF> pairs" do
     message = "This is a \r\ntest\r\n"
-    assert Mail.Encoders.SevenBit.decode(message) == "This is a test"
+    assert Mail.Encoders.SevenBit.decode(message) == "This is a \ntest\n"
   end
 end

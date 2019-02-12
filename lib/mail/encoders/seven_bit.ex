@@ -46,6 +46,6 @@ defmodule Mail.Encoders.SevenBit do
     do_decode(tail, acc <> decoded)
   end
 
-  defp decode_char(?\r, <<?\n, tail::binary>>), do: {"", tail}
+  defp decode_char(?\r, <<?\n, tail::binary>>), do: {"\n", tail}
   defp decode_char(char, <<tail::binary>>), do: {<<char>>, tail}
 end
