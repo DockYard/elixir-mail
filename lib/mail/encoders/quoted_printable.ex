@@ -17,53 +17,50 @@ defmodule Mail.Encoders.QuotedPrintable do
       Mail.Encoders.QuotedPrintable.encode("façade")
       "fa=C3=A7ade"
   """
-  def encode(string), do: do_encode(string, "", 0)
-  defp do_encode(<<>>, acc, _), do: acc
-  defp do_encode(<<head, tail::binary>>, acc, line_length) do
-    {encoding, line_length} = encode_char(head, line_length, String.length(tail))
-    do_encode(tail, acc <> encoding, line_length)
+  @spec encode(binary) :: binary
+  @spec encode(binary, list, non_neg_integer) :: binary
+  def encode(string, acc \\ [], line_length \\ 0)
+  def encode(<<>>, acc, _) do
+    acc
+    |> Enum.reverse()
+    |> Enum.join()
   end
-
   # Encode ASCII characters in range 0x20..0x3C.
-  defp encode_char(char, line_length, _) when char in ?!..?< do
-    emit_raw_char(char, line_length)
-  end
-
   # Encode ASCII characters in range 0x3E..0x7E.
-  defp encode_char(char, line_length, _) when char in ?>..?~ do
-    emit_raw_char(char, line_length)
-  end
-
-  # Encode ASCII tab and space characters.
-  defp encode_char(char, line_length, remaining) when char in [?\t, ?\s] do
-    if remaining > 0 do
-      emit_raw_char(char, line_length)
-    else
-      emit_escaped_char(char, line_length, @max_length)
-    end
-  end
-
-  # Encode all other characters.
-  defp encode_char(char, line_length, _) do
-    emit_escaped_char(char, line_length, @max_length - 1)
-  end
-
-  defp emit_escaped_char(char, line_length, maximum) do
-    escaped = "=" <> Base.encode16(<<char>>)
-    escaped_length = String.length(escaped)
-
-    if line_length + escaped_length <= maximum do
-      {escaped, line_length + escaped_length}
-    else
-      {@new_line <> escaped, escaped_length}
-    end
-  end
-
-  defp emit_raw_char(char, line_length) do
+  def encode(<<char, tail :: binary>>, acc, line_length) when char in ?!..?< or char in ?>..?~ do
     if line_length < @max_length - 1 do
-      {<<char>>, line_length + 1}
+      encode(tail, [<<char>> | acc], line_length + 1)
     else
-      {@new_line <> <<char>>, 1}
+      encode(tail, [<<char>>, @new_line | acc], 1)
+    end
+  end
+  # Encode ASCII tab and space characters.
+  def encode(<<char, tail :: binary>>, acc, line_length) when char in [?\t, ?\s] do
+    # if remaining > 0 do
+    if byte_size(tail) > 0 do
+      if line_length < @max_length - 1 do
+        encode(tail, [<<char>> | acc], line_length + 1)
+      else
+        encode(tail, [<<char>>, @new_line | acc], 1)
+      end
+    else
+      escaped = "=" <> Base.encode16(<<char>>)
+      line_length = line_length + byte_size(escaped)
+      if line_length <= @max_length do
+        encode(tail, [escaped | acc], line_length)
+      else
+        encode(tail, [escaped, @new_line | acc], byte_size(escaped))
+      end
+    end
+  end
+  # Encode all other characters.
+  def encode(<<char, tail :: binary>>, acc, line_length) do
+    escaped = "=" <> Base.encode16(<<char>>)
+    line_length = line_length + byte_size(escaped)
+    if line_length < @max_length do
+      encode(tail, [escaped | acc], line_length)
+    else
+      encode(tail, [escaped, @new_line | acc], byte_size(escaped))
     end
   end
 
@@ -72,31 +69,26 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   ## Examples
 
-      Mail.Encoders.QuotedPrintable.decode("fa=C3=A7ade")
+      Mail.QuotedPrintable.decode("fa=C3=A7ade")
       "façade"
   """
-  def decode(string), do: do_decode(string, "")
-  defp do_decode(<<>>, acc), do: acc
-  defp do_decode(<<head, tail::binary>>, acc) do
-    {decoded, tail} = decode_char(head, tail)
-    do_decode(tail, acc <> decoded)
+  @spec decode(binary) :: binary
+  def decode(string, acc \\ [])
+  def decode(<<>>, acc) do
+    acc
+    |> Enum.reverse()
+    |> Enum.join()
   end
-
-  defp decode_char(?=, <<char1, char2, tail::binary>>) do
-    {decode_escaped_char(char1, char2), tail}
+  def decode(<<?=, ?\r, ?\n, tail :: binary>>, acc) do
+    decode(tail, acc)
   end
-
-  defp decode_char(char, tail) do
-    {<<char>>, tail}
-  end
-
-  defp decode_escaped_char(?\r, ?\n), do: ""
-  defp decode_escaped_char(char1, char2) do
-    chars = <<char1>> <> <<char2>>
-
+  def decode(<<?=, chars :: binary-size(2), tail :: binary>>, acc) do
     case Base.decode16(chars, case: :mixed) do
-      {:ok, decoded} -> decoded
-      :error -> "=" <> chars
+      {:ok, decoded} -> decode(tail, [decoded | acc])
+      :error -> decode(tail, [chars, "=" | acc])
     end
+  end
+  def decode(<<char :: binary-size(1), tail :: binary>>, acc) do
+    decode(tail, [char | acc])
   end
 end

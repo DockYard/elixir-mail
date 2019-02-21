@@ -1,0 +1,15 @@
+To: user1@example.com
+Subject: Test email
+Mime-Version: 1.0
+From: user2@example.com
+Content-Type: multipart/mixed; boundary="9B92CC274F0D648613F3DF31"
+
+--9B92CC274F0D648613F3DF31
+Content-Type: image/jpeg
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename=tiny_jpeg.jpg
+
+/9j/2wBDAAMCAgICAgMCAgIDAwMDBAYEBAQEBAgGBgUGCQgKCgkICQkKDA8MCgsOCwkJDRENDg8Q
+EBEQCgwSExIQEw8QEBD/yQALCAABAAEBAREA/8wABgAQEAX/2gAIAQEAAD8A0s8g/9k=
+
+--9B92CC274F0D648613F3DF31--

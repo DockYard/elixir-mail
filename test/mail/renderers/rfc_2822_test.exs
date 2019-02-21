@@ -2,6 +2,13 @@ defmodule Mail.Renderers.RFC2822Test do
   use ExUnit.Case, async: true
   import Mail.Assertions.RFC2822
 
+  # from https://github.com/mathiasbynens/small/blob/master/jpeg.jpg
+  @tiny_jpeg_binary <<255, 216, 255, 219, 0, 67, 0, 3, 2, 2, 2, 2, 2, 3, 2, 2, 2, 3, 3, 3, 3, 4, 6,
+      4, 4, 4, 4, 4, 8, 6, 6, 5, 6, 9, 8, 10, 10, 9, 8, 9, 9, 10, 12, 15, 12, 10,
+      11, 14, 11, 9, 9, 13, 17, 13, 14, 15, 16, 16, 17, 16, 10, 12, 18, 19, 18, 16,
+      19, 15, 16, 16, 16, 255, 201, 0, 11, 8, 0, 1, 0, 1, 1, 1, 17, 0, 255, 204, 0,
+      6, 0, 16, 16, 5, 255, 218, 0, 8, 1, 1, 0, 0, 63, 0, 210, 207, 32, 255, 217>>
+
   test "header - capitalizes and hyphenates keys, joins lists according to spec" do
     header = Mail.Renderers.RFC2822.render_header("foo_bar", ["abcd", baz_buzz: "qux"])
     assert header == "Foo-Bar: abcd; baz-buzz=qux"
@@ -110,6 +117,38 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.Message.put_boundary("foobar")
 
     {:ok, fixture} = File.read("test/fixtures/simple-multipart-rendering.eml")
+
+    result = Mail.Renderers.RFC2822.render(message)
+
+    assert_rfc2822_equal(result, fixture)
+  end
+
+  test "renders a multipart mail with jpeg attachment" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from({"User2", "user2@example.com"})
+      |> Mail.put_subject("Test email")
+      |> Mail.put_text("Some text")
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+
+    {:ok, fixture} = File.read("test/fixtures/multipart-jpeg-attachment-rendering.eml")
+
+    result = Mail.Renderers.RFC2822.render(message)
+
+    assert_rfc2822_equal(result, fixture)
+  end
+
+  test "renders a multipart mail consisting of an attachment only, no text parts" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from("user2@example.com")
+      |> Mail.put_subject("Test email")
+      |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+
+    {:ok, fixture} = File.read("test/fixtures/multipart-no-text-parts-rendering.eml")
 
     result = Mail.Renderers.RFC2822.render(message)
 
