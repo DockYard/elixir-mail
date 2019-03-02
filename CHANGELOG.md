@@ -1,5 +1,11 @@
 # Versions
 
+## 0.2.2
+
+* Fix quoted-printable encoding https://github.com/DockYard/elixir-mail/pull/83
+* Optimized quoted-printable encoder to reduce memory usage https://github.com/DockYard/elixir-mail/pull/87
+* Update RFC2822 email regex with a better one https://github.com/DockYard/elixir-mail/pull/86
+
 ## 0.2.0
 
 * Breaking - All message props are now binaries https://github.com/DockYard/elixir-mail/pull/69
