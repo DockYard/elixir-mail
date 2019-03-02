@@ -36,10 +36,11 @@ defmodule Mail do
   part with the new part.
   """
   def put_text(%Mail.Message{multipart: true} = message, body) do
-    message= case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/plain")) do
-      %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
-      _ -> message
-    end
+    message =
+      case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/plain")) do
+        %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
+        _ -> message
+      end
 
     Mail.Message.put_part(message, Mail.Message.build_text(body))
   end
@@ -59,10 +60,10 @@ defmodule Mail do
   If multipart without part having `content-type` "text/plain" will return `nil`
   """
   def get_text(%Mail.Message{multipart: true} = message) do
-    Enum.find message.parts, fn
+    Enum.find(message.parts, fn
       %Mail.Message{headers: %{"content-type" => "text/plain"}} = message -> message
       _ -> nil
-    end
+    end)
   end
 
   def get_text(%Mail.Message{headers: %{"content-type" => "text/plain"}} = message), do: message
@@ -77,10 +78,11 @@ defmodule Mail do
   part with the new part.
   """
   def put_html(%Mail.Message{multipart: true} = message, body) do
-    message= case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
-      %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
-      _ -> message
-    end
+    message =
+      case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
+        %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
+        _ -> message
+      end
 
     Mail.Message.put_part(message, Mail.Message.build_html(body))
   end
@@ -100,10 +102,10 @@ defmodule Mail do
   If multipart without part having `content-type` "text/html" will return `nil`
   """
   def get_html(%Mail.Message{multipart: true} = message) do
-    Enum.find message.parts, fn
+    Enum.find(message.parts, fn
       %Mail.Message{headers: %{"content-type" => "text/html"}} = message -> message
       _ -> nil
-    end
+    end)
   end
 
   def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
@@ -128,18 +130,18 @@ defmodule Mail do
 
   def put_attachment(%Mail.Message{} = message, {filename, data}),
     do: Mail.Message.put_attachment(message, {filename, data})
-  
+
   @doc """
   Determines the message has any attachment parts
 
   Returns a `Boolean`
   """
   def has_attachments?(%Mail.Message{} = message) do
-    walk_parts([message], {:cont, false}, fn(message, _acc) ->
+    walk_parts([message], {:cont, false}, fn message, _acc ->
       case Mail.Message.is_attachment?(message) do
         true -> {:halt, true}
         false -> {:cont, false}
-      end  
+      end
     end)
     |> elem(1)
   end
@@ -150,11 +152,11 @@ defmodule Mail do
   Returns a `Boolean`
   """
   def has_text_parts?(%Mail.Message{} = message) do
-    walk_parts([message], {:cont, false}, fn(message, _acc) ->
+    walk_parts([message], {:cont, false}, fn message, _acc ->
       case Mail.Message.is_text_part?(message) do
         true -> {:halt, true}
         false -> {:cont, false}
-      end  
+      end
     end)
     |> elem(1)
   end
@@ -165,19 +167,24 @@ defmodule Mail do
   Each member in the list is `{filename, content}`
   """
   def get_attachments(%Mail.Message{} = message) do
-    walk_parts([message], {:cont, []}, fn(message, acc) ->
+    walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
         true ->
-          ["attachment", {"filename", filename}] = Mail.Message.get_header(message, :content_disposition)
+          ["attachment", {"filename", filename}] =
+            Mail.Message.get_header(message, :content_disposition)
+
           {:cont, List.insert_at(acc, -1, {filename, message.body})}
-        false -> {:cont, acc}
-      end  
+
+        false ->
+          {:cont, acc}
+      end
     end)
     |> elem(1)
   end
 
   defp walk_parts(_parts, {:halt, acc}, _fun), do: {:halt, acc}
   defp walk_parts([], {:cont, acc}, _fun), do: {:cont, acc}
+
   defp walk_parts([message | parts], {:cont, acc}, fun) do
     {tag, acc} = fun.(message, acc)
     {tag, acc} = walk_parts(message.parts, {tag, acc}, fun)
@@ -356,9 +363,8 @@ defmodule Mail do
   and returns a unique list of recipients.
   """
   def all_recipients(message) do
-    List.wrap(Mail.get_to(message)) ++
-    List.wrap(Mail.get_cc(message)) ++
-    List.wrap(Mail.get_bcc(message))
+    (List.wrap(Mail.get_to(message)) ++
+       List.wrap(Mail.get_cc(message)) ++ List.wrap(Mail.get_bcc(message)))
     |> Enum.uniq()
   end
 
@@ -375,17 +381,23 @@ defmodule Mail do
   end
 
   defp validate_recipients([]), do: nil
-  defp validate_recipients([recipient|tail]) do
-    case recipient do
-      {name, address} when is_binary(name) and is_binary(address) -> validate_recipients(tail)
-      address when is_binary(address) -> validate_recipients(tail)
-      other -> raise ArgumentError,
-        message: """
-        The recipient `#{inspect other}` is invalid.
 
-        Recipients must be in the format of either a string,
-        or a tuple with two elements `{name, address}`
-        """
+  defp validate_recipients([recipient | tail]) do
+    case recipient do
+      {name, address} when is_binary(name) and is_binary(address) ->
+        validate_recipients(tail)
+
+      address when is_binary(address) ->
+        validate_recipients(tail)
+
+      other ->
+        raise ArgumentError,
+          message: """
+          The recipient `#{inspect(other)}` is invalid.
+
+          Recipients must be in the format of either a string,
+          or a tuple with two elements `{name, address}`
+          """
     end
   end
 end

@@ -233,8 +233,6 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
-  defp reorganize(%Mail.Message{} = message), do: message
-
   defp encode(body, message) do
     Mail.Encoder.encode(body, Mail.Message.get_header(message, "content-transfer-encoding"))
   end

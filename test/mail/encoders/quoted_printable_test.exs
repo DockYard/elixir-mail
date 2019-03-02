@@ -41,78 +41,98 @@ defmodule Mail.Encoders.QuotedPrintableTest do
   end
 
   test "encodes lines longer than 76 characters using soft line breaks" do
-    message  = """
+    message = """
     Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy \
     nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut \
     wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper \
     suscipit lobortis nisl ut aliquip ex ea commodo consequat.\
     """
+
     encoding = """
     Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy =\r\n\
     nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut wi=\r\n\
     si enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lo=\r\n\
     bortis nisl ut aliquip ex ea commodo consequat.\
     """
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 73 chars ending with an equal sign" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
     encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=3D"
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 74 chars ending with an equal sign" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
     encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D"
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 75 chars ending with an equal sign" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 76 chars ending with an equal sign" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=3D"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 77 chars ending with an equal sign" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nx=3D"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx="
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nx=3D"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 73 chars ending with a space" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
     encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=20"
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 74 chars ending with a space" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
     encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=20"
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 75 chars ending with a space" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=20"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=20"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 76 chars ending with a space" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=20"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=20"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
   test "encodes 77 chars ending with a space" do
-    message  = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
-    encoding = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nx=20"
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx "
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nx=20"
+
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
@@ -160,12 +180,14 @@ defmodule Mail.Encoders.QuotedPrintableTest do
     si enim ad minim veniam, quis nostrud exerci tation ullamcorper suscipit lo=\r\n\
     bortis nisl ut aliquip ex ea commodo consequat.\
     """
-    decoding  = """
+
+    decoding = """
     Lorem ipsum dolor sit amet, consectetuer adipiscing elit, sed diam nonummy \
     nibh euismod tincidunt ut laoreet dolore magna aliquam erat volutpat. Ut \
     wisi enim ad minim veniam, quis nostrud exerci tation ullamcorper \
     suscipit lobortis nisl ut aliquip ex ea commodo consequat.\
     """
+
     assert Mail.Encoders.QuotedPrintable.decode(encoding) == decoding
   end
 

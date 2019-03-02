@@ -2,16 +2,18 @@ defmodule Mail.Mixfile do
   use Mix.Project
 
   def project do
-    [app: :mail,
-     version: "0.2.0",
-     elixir: "~> 1.2",
-     elixirc_paths: elixirc_paths(Mix.env),
-     build_embedded: Mix.env == :prod,
-     start_permanent: Mix.env == :prod,
-     description: description(),
-     package: package(),
-     docs: [main: "Mail"],
-     deps: deps()]
+    [
+      app: :mail,
+      version: "0.2.0",
+      elixir: "~> 1.2",
+      elixirc_paths: elixirc_paths(Mix.env()),
+      build_embedded: Mix.env() == :prod,
+      start_permanent: Mix.env() == :prod,
+      description: description(),
+      package: package(),
+      docs: [main: "Mail"],
+      deps: deps()
+    ]
   end
 
   # Configuration for the OTP application
@@ -22,12 +24,14 @@ defmodule Mail.Mixfile do
   end
 
   def package do
-    [maintainers: ["Brian Cardarella"],
-     licenses: ["MIT"],
-     links: %{
-       "GitHub" => "https://github.com/DockYard/elixir-mail",
-       "Built by DockYard, Expert Elixir & Phoenix Consultants" => "https://dockyard.com/phoenix-consulting"
-     }
+    [
+      maintainers: ["Brian Cardarella"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/DockYard/elixir-mail",
+        "Built by DockYard, Expert Elixir & Phoenix Consultants" =>
+          "https://dockyard.com/phoenix-consulting"
+      }
     ]
   end
 
