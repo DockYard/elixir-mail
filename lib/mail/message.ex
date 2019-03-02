@@ -32,6 +32,7 @@ defmodule Mail.Message do
       false
   """
   def match_content_type?(message, string_or_regex)
+
   def match_content_type?(message, %Regex{} = regex) do
     content_type =
       get_content_type(message)
@@ -53,11 +54,13 @@ defmodule Mail.Message do
   """
   def put_header(message, key, content) when not is_binary(key),
     do: put_header(message, to_string(key), content)
+
   def put_header(message, key, content),
     do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
 
   def get_header(message, key) when not is_binary(key),
     do: get_header(message, to_string(key))
+
   def get_header(message, key),
     do: Map.get(message.headers, fix_header(key))
 
@@ -78,6 +81,7 @@ defmodule Mail.Message do
   """
   def delete_headers(message, headers)
   def delete_headers(message, []), do: message
+
   def delete_headers(message, [header | tail]),
     do: delete_headers(delete_header(message, header), tail)
 
@@ -86,8 +90,9 @@ defmodule Mail.Message do
 
   defp fix_header(key) when not is_binary(key),
     do: fix_header(to_string(key))
+
   defp fix_header(key),
-    do: key |> String.downcase |> String.replace("_", "-")
+    do: key |> String.downcase() |> String.replace("_", "-")
 
   @doc """
   Add a new `content-type` header
@@ -115,8 +120,9 @@ defmodule Mail.Message do
       ["multipart/mixed", {"boundary", "foobar"}]
   """
   def get_content_type(message),
-    do: (get_header(message, :content_type) || "")
-        |> List.wrap()
+    do:
+      (get_header(message, :content_type) || "")
+      |> List.wrap()
 
   @doc """
   Adds a boundary value to the `content_type` header
@@ -150,7 +156,10 @@ defmodule Mail.Message do
       "ASDFSHNEW3473423"
   """
   def get_boundary(message) do
-    case Mail.Proplist.get(get_content_type(message), "boundary") do
+    message
+    |> get_content_type()
+    |> Mail.Proplist.get("boundary")
+    |> case do
       nil -> generate_boundary()
       boundary -> boundary
     end
@@ -176,9 +185,10 @@ defmodule Mail.Message do
       %Mail.Message{body: "Some text", headers: %{content_type: "text/plain"}}
   """
   def build_text(body),
-    do: put_content_type(%Mail.Message{}, "text/plain")
-        |> put_header(:content_transfer_encoding, :quoted_printable)
-        |> put_body(body)
+    do:
+      put_content_type(%Mail.Message{}, "text/plain")
+      |> put_header(:content_transfer_encoding, :quoted_printable)
+      |> put_body(body)
 
   @doc """
   Build a new HTML message
@@ -187,9 +197,10 @@ defmodule Mail.Message do
       %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{content_type: "text/html"}}
   """
   def build_html(body),
-    do: put_content_type(%Mail.Message{}, "text/html")
-        |> put_header(:content_transfer_encoding, :quoted_printable)
-        |> put_body(body)
+    do:
+      put_content_type(%Mail.Message{}, "text/html")
+      |> put_header(:content_transfer_encoding, :quoted_printable)
+      |> put_body(body)
 
   @doc """
   Add attachment meta data to a `Mail.Message`
@@ -230,8 +241,10 @@ defmodule Mail.Message do
       "text/markdown"
   """
   def build_attachment(path_or_file_tuple)
+
   def build_attachment(path) when is_binary(path),
     do: put_attachment(%Mail.Message{}, path)
+
   def build_attachment(file) when is_tuple(file),
     do: put_attachment(%Mail.Message{}, file)
 
@@ -247,6 +260,7 @@ defmodule Mail.Message do
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
   """
   def put_attachment(message, path_or_file_tuple)
+
   def put_attachment(%Mail.Message{} = message, path) when is_binary(path) do
     {:ok, data} = File.read(path)
     basename = Path.basename(path)
@@ -277,6 +291,7 @@ defmodule Mail.Message do
   """
   def has_attachment?(parts) when is_list(parts),
     do: has_part?(parts, &is_attachment?/1)
+
   def has_attachment?(message),
     do: has_attachment?(message.parts)
 
@@ -298,14 +313,15 @@ defmodule Mail.Message do
   """
   def has_text_part?(parts) when is_list(parts),
     do: has_part?(parts, &is_text_part?/1)
+
   def has_text_part?(message),
     do: has_text_part?(message.parts)
 
   defp has_part?(parts, fun),
-    do: Enum.any?(parts, &(fun.(&1)))
+    do: Enum.any?(parts, &fun.(&1))
 
   defp mimetype(filename) do
-    mimetype_fn = Application.get_env(:mail, :mimetype_fn) || &Mail.MIME.type/1
+    mimetype_fn = Application.get_env(:mail, :mimetype_fn) || (&Mail.MIME.type/1)
 
     extension =
       Path.extname(filename)

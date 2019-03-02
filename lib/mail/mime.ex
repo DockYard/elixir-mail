@@ -11,12 +11,13 @@ defmodule Mail.MIME do
     if String.starts_with?(line, ["#", "\n"]) do
       []
     else
-      [type|exts] = line |> String.trim |> String.split
-      Enum.each exts, fn(ext) ->
+      [type | exts] = line |> String.trim() |> String.split()
+
+      Enum.each(exts, fn ext ->
         def type(unquote(ext)) do
           unquote(type)
         end
-      end
+      end)
     end
   end
 

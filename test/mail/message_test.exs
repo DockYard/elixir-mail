@@ -39,7 +39,12 @@ defmodule Mail.MessageTest do
   end
 
   test "delete_headers" do
-    message = Mail.Message.delete_headers(%Mail.Message{headers: %{"foo" => "bar", "baz" => "qux"}}, [:foo, :baz])
+    message =
+      Mail.Message.delete_headers(%Mail.Message{headers: %{"foo" => "bar", "baz" => "qux"}}, [
+        :foo,
+        :baz
+      ])
+
     refute Mail.Message.has_header?(message, :foo)
     refute Mail.Message.has_header?(message, :baz)
   end
@@ -62,6 +67,7 @@ defmodule Mail.MessageTest do
 
   test "put_boundary" do
     message = Mail.Message.put_boundary(%Mail.Message{}, "customboundary")
+
     boundary =
       message
       |> Mail.Message.get_header(:content_type)
@@ -72,12 +78,20 @@ defmodule Mail.MessageTest do
     message =
       Mail.Message.put_header(%Mail.Message{}, :content_type, ["multipart/mixed"])
       |> Mail.Message.put_boundary("customboundary")
-    assert Mail.Message.get_header(message, :content_type) == ["multipart/mixed", {"boundary", "customboundary"}]
+
+    assert Mail.Message.get_header(message, :content_type) == [
+             "multipart/mixed",
+             {"boundary", "customboundary"}
+           ]
 
     message =
       Mail.Message.put_header(%Mail.Message{}, :content_type, "multipart/mixed")
       |> Mail.Message.put_boundary("customboundary")
-    assert Mail.Message.get_header(message, :content_type) == ["multipart/mixed", {"boundary", "customboundary"}]
+
+    assert Mail.Message.get_header(message, :content_type) == [
+             "multipart/mixed",
+             {"boundary", "customboundary"}
+           ]
   end
 
   test "get_boundary" do
@@ -111,7 +125,12 @@ defmodule Mail.MessageTest do
     {:ok, file_content} = File.read("README.md")
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
-    assert Mail.Message.get_header(part, :content_disposition) == ["attachment", {"filename", "README.md"}]
+
+    assert Mail.Message.get_header(part, :content_disposition) == [
+             "attachment",
+             {"filename", "README.md"}
+           ]
+
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
@@ -121,7 +140,12 @@ defmodule Mail.MessageTest do
     {:ok, file_content} = File.read("README.md")
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
-    assert Mail.Message.get_header(part, :content_disposition) == ["attachment", {"filename", "README.md"}]
+
+    assert Mail.Message.get_header(part, :content_disposition) == [
+             "attachment",
+             {"filename", "README.md"}
+           ]
+
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end

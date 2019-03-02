@@ -5,7 +5,7 @@ defmodule Mail.Encoder do
   Will delegate to the proper encoding/decoding functions based upon name
   """
 
-  @spec encoder_for(encoding :: String.t | atom) :: atom
+  @spec encoder_for(encoding :: String.t() | atom) :: atom
   def encoder_for(encoding) when is_atom(encoding) do
     encoding
     |> normalize()
@@ -13,7 +13,7 @@ defmodule Mail.Encoder do
   end
 
   def encoder_for(encoding) when is_binary(encoding) do
-    case encoding |> String.trim |> String.downcase do
+    case encoding |> String.trim() |> String.downcase() do
       "7bit" -> Mail.Encoders.SevenBit
       "8bit" -> Mail.Encoders.EightBit
       "base64" -> Mail.Encoders.Base64
@@ -22,13 +22,12 @@ defmodule Mail.Encoder do
     end
   end
 
-  @spec encode(data :: binary, encoding :: String.t) :: binary
+  @spec encode(data :: binary, encoding :: String.t()) :: binary
   def encode(data, encoding), do: encoder_for(encoding).encode(data)
 
-  @spec decode(data :: binary, encoding :: String.t) :: binary
+  @spec decode(data :: binary, encoding :: String.t()) :: binary
   def decode(data, encoding), do: encoder_for(encoding).decode(data)
 
   defp normalize(:quoted_printable), do: normalize(:"quoted-printable")
   defp normalize(encoding) when is_atom(encoding), do: Atom.to_string(encoding)
-  defp normalize(encoding) when is_binary(encoding), do: encoding
 end

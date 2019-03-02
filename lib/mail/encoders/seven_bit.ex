@@ -17,6 +17,7 @@ defmodule Mail.Encoders.SevenBit do
   """
   def encode(string), do: do_encode(string, "", 0)
   defp do_encode(<<>>, acc, _line_length), do: acc
+
   defp do_encode(<<head, tail::binary>>, acc, line_length) do
     {encoding, line_length} = emit_char(head, line_length)
     do_encode(tail, acc <> encoding, line_length)
@@ -29,6 +30,7 @@ defmodule Mail.Encoders.SevenBit do
       {@new_line <> <<char>>, 1}
     end
   end
+
   defp emit_char(char, _line_length) do
     raise ArgumentError, message: "invalid character: #{char}"
   end
@@ -38,6 +40,7 @@ defmodule Mail.Encoders.SevenBit do
   """
   def decode(string), do: do_decode(string, "")
   defp do_decode(<<>>, acc), do: acc
+
   defp do_decode(<<head, tail::binary>>, acc) do
     {decoded, tail} = decode_char(head, tail)
     do_decode(tail, acc <> decoded)

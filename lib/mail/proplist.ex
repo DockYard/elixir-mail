@@ -15,7 +15,7 @@ defmodule Mail.Proplist do
   Args:
   * `list` - a list to retrieve all the keys from
   """
-  @spec keys(list :: __MODULE__.t) :: [term]
+  @spec keys(list :: __MODULE__.t()) :: [term]
   def keys(list) do
     Enum.reduce(list, [], fn
       {key, _value}, acc ->
@@ -25,7 +25,8 @@ defmodule Mail.Proplist do
           [key | acc]
         end
 
-      _value, acc -> acc
+      _value, acc ->
+        acc
     end)
     |> Enum.reverse()
   end
@@ -37,7 +38,7 @@ defmodule Mail.Proplist do
   * `list` - the list to look in
   * `key` - the key to look for
   """
-  @spec has_key?(list :: __MODULE__.t, key :: term) :: [term]
+  @spec has_key?(list :: __MODULE__.t(), key :: term) :: [term] | false
   def has_key?(list, key) do
     Enum.any?(list, fn
       {k, _value} -> key == k
@@ -54,7 +55,7 @@ defmodule Mail.Proplist do
   * `key` - the key of the pair
   * `value` - the value of the pair
   """
-  @spec put(list :: __MODULE__.t, key :: term, value :: term) :: __MODULE__.t
+  @spec put(list :: __MODULE__.t(), key :: term, value :: term) :: __MODULE__.t()
   def put(list, key, value) do
     :lists.keystore(key, 1, list, {key, value})
   end
@@ -68,7 +69,7 @@ defmodule Mail.Proplist do
   * `key` - the key of the pair
   * `value` - the value of the pair
   """
-  @spec prepend(list :: __MODULE__.t, key :: term, value :: term) :: __MODULE__.t
+  @spec prepend(list :: __MODULE__.t(), key :: term, value :: term) :: __MODULE__.t()
   def prepend(list, key, value) do
     if has_key?(list, key) do
       # replace the existing pair
@@ -85,7 +86,6 @@ defmodule Mail.Proplist do
   * `list` - the list to look in
   * `key` - the key of the pair to retrieve it's value
   """
-  @spec get(list :: __MODULE__.t, key :: term) :: __MODULE__.t
   def get(list, key) do
     case :proplists.get_value(key, list) do
       :undefined -> nil
@@ -99,7 +99,7 @@ defmodule Mail.Proplist do
   Args:
   * `list` - the list to normalize
   """
-  @spec normalize(list :: __MODULE__.t) :: __MODULE__.t
+  @spec normalize(list :: __MODULE__.t()) :: __MODULE__.t()
   def normalize(list) do
     Enum.reduce(list, [], fn
       {key, value}, acc ->
@@ -108,6 +108,7 @@ defmodule Mail.Proplist do
         else
           [{key, value} | acc]
         end
+
       value, acc ->
         [value | acc]
     end)
@@ -121,7 +122,7 @@ defmodule Mail.Proplist do
   * `a` - base list to merge unto
   * `b` - list to merge with
   """
-  @spec merge(a :: __MODULE__.t, b :: __MODULE__.t) :: __MODULE__.t
+  @spec merge(a :: __MODULE__.t(), b :: __MODULE__.t()) :: __MODULE__.t()
   def merge(a, b) do
     Enum.reduce(b, Enum.reverse(a), fn
       {key, v}, acc -> prepend(acc, key, v)
@@ -137,7 +138,7 @@ defmodule Mail.Proplist do
   * `list` - the list to remove the pair from
   * `key` - the key to remove
   """
-  @spec delete(list :: __MODULE__.t, key :: term) :: __MODULE__.t
+  @spec delete(list :: __MODULE__.t(), key :: term) :: __MODULE__.t()
   def delete(list, key) do
     :proplists.delete(key, list)
   end
@@ -150,7 +151,7 @@ defmodule Mail.Proplist do
   * `list` - the list to filter
   * `func` - the function to execute
   """
-  @spec filter(list :: __MODULE__.t, func :: any) :: __MODULE__.t
+  @spec filter(list :: __MODULE__.t(), func :: any) :: __MODULE__.t()
   def filter(list, func) do
     Enum.filter(list, fn
       {_key, _value} = value -> func.(value)
@@ -165,7 +166,7 @@ defmodule Mail.Proplist do
   * `list` - the list
   * `keys` - the keys to remove
   """
-  @spec drop(list :: __MODULE__.t, keys :: list) :: __MODULE__.t
+  @spec drop(list :: __MODULE__.t(), keys :: list) :: __MODULE__.t()
   def drop(list, keys) do
     filter(list, fn {key, _value} -> !Enum.member?(keys, key) end)
   end
@@ -177,7 +178,7 @@ defmodule Mail.Proplist do
   * `list` - the list
   * `keys` - the keys to keep
   """
-  @spec take(list :: __MODULE__.t, keys :: list) :: __MODULE__.t
+  @spec take(list :: __MODULE__.t(), keys :: list) :: __MODULE__.t()
   def take(list, keys) do
     filter(list, fn {key, _value} -> Enum.member?(keys, key) end)
   end
