@@ -94,10 +94,15 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_headers(message, [header | tail]) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
-    headers = Map.put(message.headers, key, parse_header_value(name, body))
+    headers = put_header(message.headers, key, parse_header_value(name, body))
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
+  
+  defp put_header(headers, "received" = key, value),
+    do: Map.update(headers, key, [value],  &[value | &1])
+  defp put_header(headers, key, value),
+    do: Map.put(headers, key, value)
 
   defp mark_multipart(message),
     do: Map.put(message, :multipart, multipart?(message.headers))

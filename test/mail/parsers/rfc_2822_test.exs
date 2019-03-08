@@ -205,16 +205,50 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["delivered-to"] == "user@example.com"
 
-    assert message.headers["received"] == [
+    assert message.headers["received"] == [[
              "by 101.102.103.104 with SMTP id abcdefg",
              {"date", {{2016, 4, 1}, {11, 8, 31}}}
-           ]
+           ]]
 
     assert message.headers["x-received"] ==
              "201.202.203.204 with SMTP id abcdefg.12.123456;        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
 
     assert message.headers["dkim-signature"] ==
              "v=1; a=rsa-sha256; c=relaxed/relaxed;        d=example.com; s=20160922;        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/         abcd=="
+  end
+
+  test "parses more than 1 'Received:' header" do
+    message =
+      parse_email("""
+      Received: from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10]);
+              Fri, 1 Apr 2016 11:09:07 -0700 (PDT)
+      Received: from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1]);
+              Fri, 1 Apr 2016 11:08:35 -0700 (PDT)
+      Received: from localhost ([127.0.0.1]) by localhost (MyMailSoftware); 
+              Fri, 1 Apr 2016 11:08:31 -0700 (PDT)
+      To: user@example.com
+      From: me@example.com
+      Subject: Test Email
+      Content-Type: text/plain
+
+      Test
+      """)
+
+      assert message.headers["received"] == [
+        [
+          "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
+          {"date", {{2016, 4, 1}, {11, 8, 31}}}
+        ],
+        [
+          "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
+          {"date", {{2016, 4, 1}, {11, 8, 35}}}
+        ],
+        [
+          "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
+          {"date", {{2016, 4, 1}, {11, 9, 7}}}
+        ],
+      ]
+
   end
 
   test "parses with a '=' in boundary" do
