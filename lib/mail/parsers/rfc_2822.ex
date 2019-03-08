@@ -100,7 +100,7 @@ defmodule Mail.Parsers.RFC2822 do
   end
   
   defp put_header(headers, "received" = key, value),
-    do: Map.update(headers, key, [],  &[value | &1])
+    do: Map.update(headers, key, [value],  &[value | &1])
   defp put_header(headers, key, value),
     do: Map.put(headers, key, value)
 
