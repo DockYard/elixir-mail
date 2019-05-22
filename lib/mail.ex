@@ -116,7 +116,7 @@ defmodule Mail do
 
       Mail.put_attachment(%Mail.Message{}, "README.md")
       Mail.put_attachment(%Mail.Message{}, {"README.md", data})
-      
+
   Each call will add a new attachment part.
   """
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
@@ -170,7 +170,7 @@ defmodule Mail do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
         true ->
-          ["attachment", {"filename", filename}] =
+          [_, {"filename", filename}] =
             Mail.Message.get_header(message, :content_disposition)
 
           {:cont, List.insert_at(acc, -1, {filename, message.body})}

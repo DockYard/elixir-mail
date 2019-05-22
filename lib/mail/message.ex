@@ -281,8 +281,12 @@ defmodule Mail.Message do
 
   Returns `Boolean`
   """
-  def is_attachment?(message),
-    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), "attachment")
+  def is_attachment?(message) do
+    message
+    |> get_header(:content_disposition)
+    |> List.wrap()
+    |> Enum.any?(&Enum.member?(["attachment", "inline"], &1))
+  end
 
   @doc """
   Determines the message has any attachment parts
