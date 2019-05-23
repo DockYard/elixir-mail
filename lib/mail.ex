@@ -170,8 +170,11 @@ defmodule Mail do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
         true ->
-          [_, {"filename", filename}] =
-            Mail.Message.get_header(message, :content_disposition)
+          filename =
+            message
+            |> Mail.Message.get_header(:content_disposition)
+            |> Enum.slice(1..-1)
+            |> get_attachment_filename()
 
           {:cont, List.insert_at(acc, -1, {filename, message.body})}
 
@@ -180,6 +183,12 @@ defmodule Mail do
       end
     end)
     |> elem(1)
+  end
+
+  defp get_attachment_filename(header) do
+    header
+    |> Enum.filter(fn {k, _} -> Regex.match?(~r/^filename/, k) end)
+    |> Enum.reduce("", fn {_, v}, acc -> acc <> v end)
   end
 
   defp walk_parts(_parts, {:halt, acc}, _fun), do: {:halt, acc}
