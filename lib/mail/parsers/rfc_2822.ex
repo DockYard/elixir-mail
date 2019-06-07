@@ -438,9 +438,12 @@ defmodule Mail.Parsers.RFC2822 do
     !!case content_type do
       nil -> nil
       type when is_binary(type) -> nil
-      content_type -> Mail.Proplist.get(content_type, "boundary")
+      content_type -> !text?(content_type) && Mail.Proplist.get(content_type, "boundary")
     end
   end
+
+  defp text?(["text/" <> _ | _]), do: true
+  defp text?(_), do: false
 
   defp decode(body, message) do
     body = String.trim_trailing(body)
