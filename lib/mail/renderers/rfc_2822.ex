@@ -72,7 +72,7 @@ defmodule Mail.Renderers.RFC2822 do
     do: Enum.map(parts, &fun.(&1))
 
   @doc """
-  Will render a given header according to the RFC2882 spec
+  Will render a given header according to the RFC2822 spec
   """
   def render_header(key, value)
 
