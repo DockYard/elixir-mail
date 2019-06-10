@@ -94,7 +94,8 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_headers(message, [header | tail]) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
-    headers = put_header(message.headers, key, parse_header_value(name, body))
+    decoded = parse_encoded_word(body)
+    headers = put_header(message.headers, key, parse_header_value(name, decoded))
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
@@ -149,6 +150,27 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_header_value(_key, value),
     do: value
+
+  # See https://tools.ietf.org/html/rfc2047
+  defp parse_encoded_word(""), do: ""
+
+  defp parse_encoded_word(<<"=?", value::binary>>) do
+    [_charset, encoding, encoded_string, <<"=", remainder::binary>>] = String.split(value, "?", parts: 4)
+
+    decoded_string =
+      case String.upcase(encoding) do
+        "Q" ->
+          Mail.Encoders.QuotedPrintable.decode(encoded_string)
+
+        "B" ->
+          Mail.Encoders.Base64.decode(encoded_string)
+      end
+
+    decoded_string <> parse_encoded_word(remainder)
+  end
+
+  defp parse_encoded_word(<<char::utf8, rest::binary>>),
+    do: <<char::utf8, parse_encoded_word(rest)::binary>>
 
   defp parse_structured_header_value(value) do
     case String.split(value, ~r/;\s*/) do
