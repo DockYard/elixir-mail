@@ -342,6 +342,36 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["from"] == {"Lastname, First Names", "me@example.com"}
   end
 
+  # See https://tools.ietf.org/html/rfc2047
+  test "parses headers with encoded word syntax" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: =?utf-8?Q?=C2=A3?=200.00 =?UTF-8?q?=F0=9F=92=B5?=
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: image/png
+      Content-Disposition: attachment; filename=Emoji =?utf-8?B?8J+YgA=?= Filename.png
+
+      iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    assert message.headers["subject"] == "£200.00 💵"
+    [_, part] = message.parts
+
+    assert ["attachment", {"filename", "Emoji 😀 Filename.png"}] =
+             part.headers["content-disposition"]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
