@@ -29,7 +29,7 @@ defmodule Mail.Renderers.RFC2822 do
                           )
 
   @doc """
-  Renders a message according to the RFC2882 spec
+  Renders a message according to the RFC2822 spec
   """
   def render(%Mail.Message{multipart: true} = message) do
     message
@@ -147,7 +147,7 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   @doc """
-  Will render all headers according to the RFC2882 spec
+  Will render all headers according to the RFC2822 spec
 
   Can take an optional list of headers to blacklist
   """
