@@ -84,6 +84,10 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
 
+  test "header - reject nil" do
+    refute Mail.Renderers.RFC2822.render_header("message-id", nil)
+  end
+
   test "headers - handles empty headers as empty list" do
     headers =
       Mail.Renderers.RFC2822.render_headers(%{
@@ -95,6 +99,10 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
 
+  test "header - reject empty list" do
+    refute Mail.Renderers.RFC2822.render_header("to", [])
+  end
+
   test "headers - handles empty headers as blank string" do
     headers =
       Mail.Renderers.RFC2822.render_headers(%{
@@ -104,6 +112,11 @@ defmodule Mail.Renderers.RFC2822Test do
       })
 
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
+  end
+
+  test "header - reject blank_string" do
+    refute Mail.Renderers.RFC2822.render_header("from", "")
+    refute Mail.Renderers.RFC2822.render_header("from", "        ")
   end
 
   test "headers - blacklist certain headers" do
