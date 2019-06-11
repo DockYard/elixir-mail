@@ -359,7 +359,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
       ------=_Part_295474_20544590.1456382229928
       Content-Type: image/png
-      Content-Disposition: attachment; filename=Emoji =?utf-8?B?8J+YgA=?= Filename.png
+      Content-Disposition: attachment; filename=Emoji =?utf-8?B?8J+YgA==?= Filename.png
 
       iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
       ------=_Part_295474_20544590.1456382229928--
