@@ -71,10 +71,17 @@ defmodule Mail.Renderers.RFC2822 do
   def render_parts(parts, fun \\ &render_part/1) when is_list(parts),
     do: Enum.map(parts, &fun.(&1))
 
+  defp render_header({key, value}), do: render_header(key, value)
+
   @doc """
   Will render a given header according to the RFC2822 spec
   """
   def render_header(key, value)
+
+  def render_header(_key, nil), do: nil
+  def render_header(_key, []), do: nil
+  def render_header(_key, ""), do: nil
+  def render_header(key, <<" ", rest::binary>>), do: render_header(key, rest)
 
   def render_header(key, value) when is_atom(key),
     do: render_header(Atom.to_string(key), value)
@@ -153,14 +160,17 @@ defmodule Mail.Renderers.RFC2822 do
   """
   def render_headers(headers, blacklist \\ [])
 
-  def render_headers(map, blacklist) when is_map(map),
-    do:
-      Map.to_list(map)
-      |> render_headers(blacklist)
+  def render_headers(map, blacklist) when is_map(map) do
+    map
+    |> Map.to_list()
+    |> render_headers(blacklist)
+  end
 
   def render_headers(list, blacklist) when is_list(list) do
-    Enum.reject(list, &Enum.member?(blacklist, elem(&1, 0)))
-    |> do_render_headers()
+    list
+    |> Enum.reject(&Enum.member?(blacklist, elem(&1, 0)))
+    |> Enum.map(&render_header/1)
+    |> Enum.filter(& &1)
     |> Enum.reverse()
     |> Enum.join("\r\n")
   end
@@ -187,22 +197,6 @@ defmodule Mail.Renderers.RFC2822 do
       num
       |> Integer.to_string()
       |> String.pad_leading(2, "0")
-
-  defp do_render_headers([]), do: []
-  defp do_render_headers([{_key, nil} | headers]), do: do_render_headers(headers)
-  defp do_render_headers([{_key, []} | headers]), do: do_render_headers(headers)
-
-  defp do_render_headers([{key, value} | headers]) when is_binary(value) do
-    if String.trim(value) == "" do
-      do_render_headers(headers)
-    else
-      [render_header(key, value) | do_render_headers(headers)]
-    end
-  end
-
-  defp do_render_headers([{key, value} | headers]) do
-    [render_header(key, value) | do_render_headers(headers)]
-  end
 
   defp reorganize(%Mail.Message{multipart: true} = message) do
     content_type = Mail.Message.get_content_type(message)
