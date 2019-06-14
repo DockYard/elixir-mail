@@ -112,7 +112,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert erl_from_timestamp("\t1 Apr 2016 22:33:44 +0000") == {{2016, 4, 1}, {22, 33, 44}}
     assert erl_from_timestamp("12 Jan 2016 00:00:00 +0000") == {{2016, 1, 12}, {0, 0, 0}}
     assert erl_from_timestamp("25 Dec 2016 00:00:00 +0000 (UTC)") == {{2016, 12, 25}, {0, 0, 0}}
-    assert erl_from_timestamp("03 Apr 2017 12:30:55 GMT") == {{2017, 04, 03}, {12, 30, 55}}
+    assert erl_from_timestamp("03 Apr 2017 12:30:55 GMT") == {{2017, 4, 3}, {12, 30, 55}}
+    # The spec specifies that the seconds are optional
+    assert erl_from_timestamp("14 Jun 2019 11:24 +0000") == {{2019, 6, 14}, {11, 24, 0}}
+  end
+
+  test "erl_from_timestamp\1 with invalid RFC2822 timestamps (found in the wild)" do
+    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
+
+    assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
   end
 
   test "parses a nested multipart message with encoded part" do
