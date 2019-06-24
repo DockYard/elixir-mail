@@ -380,6 +380,26 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-disposition"]
   end
 
+  test "parse invalid Received header" do
+    message =
+      parse_email("""
+      Received: by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb;
+        Sat, 22 Jun 2019 17:59:49 -0700 (PDT)
+      Received: by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32
+        2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+
+      Body
+      """)
+
+    assert message.headers["received"] == [
+      ["by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32  2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415"],
+      ["by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb", {"date", {{2019, 6, 22}, {17, 59, 49}}}]
+    ]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
