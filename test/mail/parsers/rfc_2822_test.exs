@@ -9,7 +9,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Reply-To: otherme@example.com
       Subject: Test Email
       Content-Type: text/plain; foo=bar;
-        baz=qux
+        baz=qux;
 
       This is the body!
       It has more than one line
@@ -378,6 +378,21 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert ["attachment", {"filename", "Emoji 😀 Filename.png"}] =
              part.headers["content-disposition"]
+  end
+
+  test "parses structured header with extraneous semicolon" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: text/plain;
+        charset=utf-8;
+
+      This is some text
+      """)
+
+    assert message.body == "This is some text"
   end
 
   test "parse invalid Received header" do
