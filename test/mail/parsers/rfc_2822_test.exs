@@ -213,10 +213,12 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["delivered-to"] == "user@example.com"
 
-    assert message.headers["received"] == [[
-             "by 101.102.103.104 with SMTP id abcdefg",
-             {"date", {{2016, 4, 1}, {11, 8, 31}}}
-           ]]
+    assert message.headers["received"] == [
+             [
+               "by 101.102.103.104 with SMTP id abcdefg",
+               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+             ]
+           ]
 
     assert message.headers["x-received"] ==
              "201.202.203.204 with SMTP id abcdefg.12.123456;        Fri, 01 Apr 2016 11:08:31 -0700 (PDT)"
@@ -242,21 +244,20 @@ defmodule Mail.Parsers.RFC2822Test do
       Test
       """)
 
-      assert message.headers["received"] == [
-        [
-          "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
-          {"date", {{2016, 4, 1}, {11, 8, 31}}}
-        ],
-        [
-          "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
-          {"date", {{2016, 4, 1}, {11, 8, 35}}}
-        ],
-        [
-          "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
-          {"date", {{2016, 4, 1}, {11, 9, 7}}}
-        ],
-      ]
-
+    assert message.headers["received"] == [
+             [
+               "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
+               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+             ],
+             [
+               "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
+               {"date", {{2016, 4, 1}, {11, 8, 35}}}
+             ],
+             [
+               "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
+               {"date", {{2016, 4, 1}, {11, 9, 7}}}
+             ]
+           ]
   end
 
   test "parses with a '=' in boundary" do
@@ -410,9 +411,14 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["received"] == [
-      ["by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32  2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415"],
-      ["by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb", {"date", {{2019, 6, 22}, {17, 59, 49}}}]
-    ]
+             [
+               "by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32  2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415"
+             ],
+             [
+               "by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb",
+               {"date", {{2019, 6, 22}, {17, 59, 49}}}
+             ]
+           ]
   end
 
   defp parse_email(email),

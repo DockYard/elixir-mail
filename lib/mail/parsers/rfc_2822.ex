@@ -63,7 +63,10 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("#{date} 0#{hour}:#{rest}")
   end
 
-  def erl_from_timestamp(<<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ", rest::binary>>) do
+  def erl_from_timestamp(
+        <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
+          rest::binary>>
+      ) do
     erl_from_timestamp("#{date} #{hour}:#{minute}:00 #{rest}")
   end
 
@@ -108,9 +111,10 @@ defmodule Mail.Parsers.RFC2822 do
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
-  
+
   defp put_header(headers, "received" = key, value),
-    do: Map.update(headers, key, [value],  &[value | &1])
+    do: Map.update(headers, key, [value], &[value | &1])
+
   defp put_header(headers, key, value),
     do: Map.put(headers, key, value)
 
@@ -164,7 +168,8 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(""), do: ""
 
   defp parse_encoded_word(<<"=?", value::binary>>) do
-    [_charset, encoding, encoded_string, <<"=", remainder::binary>>] = String.split(value, "?", parts: 4)
+    [_charset, encoding, encoded_string, <<"=", remainder::binary>>] =
+      String.split(value, "?", parts: 4)
 
     decoded_string =
       case String.upcase(encoding) do
@@ -200,7 +205,9 @@ defmodule Mail.Parsers.RFC2822 do
     case String.split(value, ";") do
       [value, date] ->
         [value, {"date", erl_from_timestamp(date)}]
-      value -> value
+
+      value ->
+        value
     end
   end
 
