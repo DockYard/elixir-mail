@@ -234,7 +234,7 @@ defmodule Mail.Parsers.RFC2822Test do
               Fri, 1 Apr 2016 11:09:07 -0700 (PDT)
       Received: from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1]);
               Fri, 1 Apr 2016 11:08:35 -0700 (PDT)
-      Received: from localhost ([127.0.0.1]) by localhost (MyMailSoftware); 
+      Received: from localhost ([127.0.0.1]) by localhost (MyMailSoftware);
               Fri, 1 Apr 2016 11:08:31 -0700 (PDT)
       To: user@example.com
       From: me@example.com
@@ -417,6 +417,31 @@ defmodule Mail.Parsers.RFC2822Test do
              [
                "by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb",
                {"date", {{2019, 6, 22}, {17, 59, 49}}}
+             ]
+           ]
+  end
+
+  test "parse received header with wrapped date" do
+    message =
+      parse_email("""
+      Received: from EUR01-HE1-obe.outbound.protection.outlook.com
+               (213.199.154.213) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer
+               Signature Manager ESMTP Proxy us1.smtp.exclaimer.net; Wed, 1 Aug 2018
+               09:49:43 +0000
+      Received: from EUR01-HE1-obe.outbound.protection.outlook.com
+      	 (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer
+      	 Signature Manager ESMTP Proxy us1.smtp.exclaimer.net; Mon, 6 Aug 2018
+      	 07:23:18 +0000
+      """)
+
+    assert message.headers["received"] == [
+             [
+               "from EUR01-HE1-obe.outbound.protection.outlook.com\t (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer\t Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
+               {"date", {{2018, 8, 6}, {7, 23, 18}}}
+             ],
+             [
+               "from EUR01-HE1-obe.outbound.protection.outlook.com         (213.199.154.213) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer         Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
+               {"date", {{2018, 8, 1}, {9, 49, 43}}}
              ]
            ]
   end
