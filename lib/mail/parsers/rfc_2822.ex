@@ -31,10 +31,10 @@ defmodule Mail.Parsers.RFC2822 do
   defp extract_headers(["" | tail], headers),
     do: [Enum.reverse(headers), tail]
 
-  defp extract_headers([<<" " <> _>> = folded_body | tail], [previous_header | headers]),
+  defp extract_headers([<<" ", _::binary>> = folded_body | tail], [previous_header | headers]),
     do: extract_headers(tail, [previous_header <> folded_body | headers])
 
-  defp extract_headers([<<"\t" <> _>> = folded_body | tail], [previous_header | headers]),
+  defp extract_headers([<<"\t", _::binary>> = folded_body | tail], [previous_header | headers]),
     do: extract_headers(tail, [previous_header <> folded_body | headers])
 
   defp extract_headers([header | tail], headers),
@@ -204,12 +204,23 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_received_value(value) do
     case String.split(value, ";") do
       [value, date] ->
-        [value, {"date", erl_from_timestamp(date)}]
+        [value, {"date", erl_from_timestamp(remove_excess_whitespace(date))}]
 
       value ->
         value
     end
   end
+
+  defp remove_excess_whitespace(<<>>), do: <<>>
+
+  defp remove_excess_whitespace(<<"  ", rest::binary>>),
+    do: remove_excess_whitespace(<<" ", rest::binary>>)
+
+  defp remove_excess_whitespace(<<"\t", rest::binary>>),
+    do: remove_excess_whitespace(<<" ", rest::binary>>)
+
+  defp remove_excess_whitespace(<<char::utf8, rest::binary>>),
+    do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
 
   defp parse_header_subtypes([]), do: []
 
