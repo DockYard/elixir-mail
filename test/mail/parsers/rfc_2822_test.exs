@@ -446,6 +446,122 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
   end
 
+  test "parse invalid date in Received header" do
+    message =
+      parse_email("""
+      Received: from local-ip[x.x.x.x] by FTGS; 28-Dec-2014 20:04:31 +0200
+      Received: from trusted client by mx4.sika.com; Tue May 30 15:29:15 2017
+      Received: from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])
+      	by x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw
+      	for <x@example.com>; Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
+      Received: from ip<x.x.x.> ([x.x.x.x])
+      	by zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org;
+      	Tue Aug  8 12:05:31 2017
+      Received: from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs);
+      Received: from x.x.x.x
+      	by Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>; Fri Apr 15 17:22:55 CAT 2016
+      """)
+
+    assert message.headers["received"] == [
+      ["from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>", {"date", {{2016, 4, 15}, {17, 22, 55}}}],
+             ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
+             [
+               "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
+               {"date", {{2017, 8, 8}, {12, 5, 31}}}
+             ],
+             [
+               "from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])\tby x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw\tfor <x@example.com>",
+               {"date", {{2017, 6, 20}, {9, 44, 58}}}
+             ],
+             ["from trusted client by mx4.sika.com", {"date", {{2017, 5, 30}, {15, 29, 15}}}],
+             ["from local-ip[x.x.x.x] by FTGS", {"date", {{2014, 12, 28}, {20, 4, 31}}}]
+           ]
+  end
+
+  test "parse date in date header" do
+    message =
+      parse_email("""
+      Date: Wed, 14 05 2015 12:34:17
+      """)
+
+    assert message.headers["date"] == {{2015, 5, 14}, {12, 34, 17}}
+  end
+
+  test "handle comment after semi-colon in received header value" do
+    message =
+      parse_email("""
+      Received: from smtp.notes.na.collabserv.com (192.155.248.91)
+      	by d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted;
+      	(version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)
+      	Thu, 8 Jun 2017 04:22:53 -0400
+      """)
+
+    assert message.headers["received"] == [
+             [
+               "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
+               {"date", {{2017, 6, 8}, {4, 22, 53}}}
+             ]
+           ]
+  end
+
+  test "parses quoted string filename with embedded semi-colon (RFC2822 §3.2.5)" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: image/gif;
+       charset="UTF-8";
+       name="&#9733;.gif"
+      Content-Transfer-Encoding: base64
+      Content-Disposition: inline;
+       filename="&#9733;.gif"
+      Content-Id: <5cf3f485fe9b1d93040fac887e133234.gif>
+      X-Attachment-Id: <5cf3f485fe9b1d93040fac887e133234.gif>
+
+      R0lGODlhOw==\r\n"
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    [_, part] = message.parts
+    assert ["inline", {"filename", "&#9733;.gif"}] = part.headers["content-disposition"]
+
+    assert ["image/gif", {"charset", "UTF-8"}, {"name", "&#9733;.gif"}] =
+             part.headers["content-type"]
+  end
+
+  test "content-type mixed with no body" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      """)
+
+    assert message.parts == []
+  end
+
+  test "content-type with implicit charset" do
+    message =
+      parse_email("""
+      Content-Type: text/html; us-ascii
+      """)
+
+    assert message.headers["content-type"] == ["text/html", "us-ascii"]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 

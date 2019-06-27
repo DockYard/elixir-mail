@@ -58,9 +58,17 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("0" <> date <> " " <> rest)
   end
 
-  # This caters for invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
+  # This caters for an invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
   def erl_from_timestamp(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
     erl_from_timestamp("#{date} 0#{hour}:#{rest}")
+  end
+
+  # This caters for an invalid date with dashes between the date/month/year parts
+  def erl_from_timestamp(
+        <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
+          rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year}#{rest}")
   end
 
   def erl_from_timestamp(
@@ -86,6 +94,13 @@ defmodule Mail.Parsers.RFC2822 do
     {{year, month, date}, {hour, minute, second}}
   end
 
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
   # This adds support for a now obsolete format
   # https://tools.ietf.org/html/rfc2822#section-4.3
   def erl_from_timestamp(
@@ -93,13 +108,61 @@ defmodule Mail.Parsers.RFC2822 do
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           timezone::binary-size(3), _rest::binary>>
       ) do
-    erl_from_timestamp(
-      date <>
-        " " <>
-        month <>
-        " " <> year <> " " <> hour <> ":" <> minute <> ":" <> second <> " (" <> timezone <> ")"
-    )
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
   end
+
+  # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
+  def erl_from_timestamp(
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(2)>>, " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          _tz::binary-size(3), " ", year::binary-size(4), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
+  # Fixes invalid value with milliseconds Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
+          _milliseconds::binary-size(3), rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
+  end
+
+  # Fixes invalid value: Tue May 30 15:29:15 2017
+  def erl_from_timestamp(
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(2)>>, " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          year::binary-size(4), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
+  # Fixes invalid value: Tue Aug 8 12:05:31 2017
+  def erl_from_timestamp(
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(1)>>, " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          year::binary-size(4), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
+  # Fixes invalid value: Wed, 14 10 2015 12:34:17
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", <<month_digits::binary-size(2)>>, " ", year::binary-size(4),
+          " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+          rest::binary>>
+      ) do
+    month_name = get_month_name(month_digits)
+    erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+  end
+
+  @months
+  |> Enum.with_index(1)
+  |> Enum.each(fn {month_name, number} ->
+    defp get_month_name(unquote(String.pad_leading(to_string(number), 2, "0"))),
+      do: unquote(month_name)
+  end)
 
   defp parse_headers(message, []), do: message
 
@@ -186,12 +249,49 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(<<char::utf8, rest::binary>>),
     do: <<char::utf8, parse_encoded_word(rest)::binary>>
 
-  defp parse_structured_header_value(value) do
-    case String.split(value, ~r/;\s*/) do
-      [value | []] -> value
-      [value | subtypes] -> [value | parse_header_subtypes(subtypes)]
-    end
+  defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
+
+  defp parse_structured_header_value("", value, [{key, nil} | sub_types], acc),
+    do: [value | Enum.reverse([{key, acc} | sub_types])]
+
+  defp parse_structured_header_value("", nil, [], acc),
+    do: acc
+
+  defp parse_structured_header_value("", value, sub_types, ""),
+    do: [value | Enum.reverse(sub_types)]
+
+  defp parse_structured_header_value("", value, [], acc),
+    do: [value, String.trim(acc)]
+
+  defp parse_structured_header_value("", value, sub_types, acc),
+    do: parse_structured_header_value("", value, sub_types, String.trim(acc))
+
+  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, acc) do
+    {string, rest} = parse_quoted_string(rest)
+    parse_structured_header_value(rest, value, sub_types, <<acc::binary, string::binary>>)
   end
+
+  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, acc),
+    do: parse_structured_header_value(rest, acc, sub_types, "")
+
+  defp parse_structured_header_value(<<";", rest::binary>>, value, [{key, nil} | sub_types], acc),
+    do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], "")
+
+  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, acc),
+    do: parse_structured_header_value(rest, value, [{key_to_atom(acc), nil} | sub_types], "")
+
+  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, acc),
+    do: parse_structured_header_value(rest, value, sub_types, <<acc::binary, char::utf8>>)
+
+  defp parse_quoted_string(string, acc \\ "")
+
+  defp parse_quoted_string(<<"\\", char::utf8, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
+
+  defp parse_quoted_string(<<"\"", rest::binary>>, acc), do: {acc, rest}
+
+  defp parse_quoted_string(<<char::utf8, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
 
   defp parse_recipient_value(value) do
     Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
@@ -203,13 +303,50 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_received_value(value) do
     case String.split(value, ";") do
+      [value, ""] ->
+        [value]
+
       [value, date] ->
+        {value, date} =
+          case extract_comment(remove_timezone_comment(date)) do
+            {date, nil} -> {value, date}
+            {date, comment} -> {"#{value} #{comment}", date}
+          end
+
         [value, {"date", erl_from_timestamp(remove_excess_whitespace(date))}]
 
       value ->
         value
     end
   end
+
+  defp remove_timezone_comment(date_string) do
+    string_size = date_string |> String.trim_trailing() |> byte_size()
+
+    if string_size > 6 do
+      case binary_part(date_string, string_size - 6, 6) do
+        <<" (", _::binary-size(3), ")">> -> binary_part(date_string, 0, string_size - 6)
+        _ -> date_string
+      end
+    else
+      date_string
+    end
+  end
+
+  defp extract_comment(string, state \\ :value, value \\ "", comment \\ nil)
+  defp extract_comment("", _, value, comment), do: {value, comment}
+
+  defp extract_comment(<<"(", rest::binary>>, :value, value, nil),
+    do: extract_comment(rest, :comment, value, "(")
+
+  defp extract_comment(<<")", rest::binary>>, :comment, value, comment),
+    do: extract_comment(rest, :value, value, comment <> ")")
+
+  defp extract_comment(<<char::utf8, rest::binary>>, :value, value, comment),
+    do: extract_comment(rest, :value, <<value::binary, char::utf8>>, comment)
+
+  defp extract_comment(<<char::utf8, rest::binary>>, :comment, value, comment),
+    do: extract_comment(rest, :comment, value, <<comment::binary, char::utf8>>)
 
   defp remove_excess_whitespace(<<>>), do: <<>>
 
@@ -222,29 +359,13 @@ defmodule Mail.Parsers.RFC2822 do
   defp remove_excess_whitespace(<<char::utf8, rest::binary>>),
     do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
 
-  defp parse_header_subtypes([]), do: []
-
-  defp parse_header_subtypes(["" | []]), do: []
-
-  defp parse_header_subtypes([subtype | tail]) do
-    [key, value] = String.split(subtype, "=", parts: 2)
-    key = key_to_atom(key)
-    [{key, normalize_subtype_value(key, value)} | parse_header_subtypes(tail)]
-  end
-
-  defp normalize_subtype_value("boundary", value),
-    do: get_boundary(value)
-
-  defp normalize_subtype_value(_key, value),
-    do: value
-
   defp parse_body(%Mail.Message{multipart: true} = message, lines) do
     content_type = message.headers["content-type"]
     boundary = Mail.Proplist.get(content_type, "boundary")
 
     parts =
-      boundary
-      |> extract_parts(lines)
+      lines
+      |> extract_parts(boundary)
       |> Enum.map(fn part ->
         parse(part)
       end)
@@ -266,35 +387,37 @@ defmodule Mail.Parsers.RFC2822 do
   defp join_body([""], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
   defp join_body([head | tail], acc), do: join_body(tail, [head | acc])
 
-  defp extract_parts(boundary, lines, acc \\ [], parts \\ nil)
+  defp extract_parts(lines, boundary, acc \\ [], parts \\ nil)
 
-  defp extract_parts(_boundary, [], _acc, parts),
-    do: Enum.reverse(parts)
+  defp extract_parts([], _boundary, _acc, parts),
+    do: Enum.reverse(List.wrap(parts))
 
-  defp extract_parts(boundary, ["--" <> boundary | tail], acc, nil),
-    do: extract_parts(boundary, tail, acc, [])
+  defp extract_parts(["--" <> boundary | tail], boundary, acc, nil),
+    do: extract_parts(tail, boundary, acc, [])
 
-  defp extract_parts(boundary, ["--" <> boundary | tail], acc, parts),
-    do: extract_parts(boundary, tail, [], [Enum.reverse(acc) | parts])
+  defp extract_parts(["--" <> boundary | tail], boundary, acc, parts),
+    do: extract_parts(tail, boundary, [], [Enum.reverse(acc) | parts])
 
-  defp extract_parts(boundary, [<<"--" <> rest>> = line | tail], acc, parts) do
+  defp extract_parts([<<"--" <> rest>> = line | tail], boundary, acc, parts) do
     if rest == boundary <> "--" do
-      extract_parts(boundary, [], [], [Enum.reverse(acc) | parts])
+      extract_parts([], boundary, [], [Enum.reverse(acc) | parts])
     else
-      extract_parts(boundary, tail, [line | acc], parts)
+      extract_parts(tail, boundary, [line | acc], parts)
     end
   end
 
-  defp extract_parts(boundary, [_line | tail], acc, nil),
-    do: extract_parts(boundary, tail, acc, nil)
+  defp extract_parts([_line | tail], boundary, acc, nil),
+    do: extract_parts(tail, boundary, acc, nil)
 
-  defp extract_parts(boundary, [head | tail], acc, parts),
-    do: extract_parts(boundary, tail, [head | acc], parts)
+  defp extract_parts([head | tail], boundary, acc, parts),
+    do: extract_parts(tail, boundary, [head | acc], parts)
 
-  defp key_to_atom(key),
-    do:
-      String.downcase(key)
-      |> String.replace("-", "_")
+  defp key_to_atom(key) do
+    key
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace("-", "_")
+  end
 
   defp multipart?(headers) do
     content_type = headers["content-type"]
@@ -311,7 +434,4 @@ defmodule Mail.Parsers.RFC2822 do
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
     Mail.Encoder.decode(body, transfer_encoding)
   end
-
-  defp get_boundary("\"" <> boundary), do: String.slice(boundary, 0..-2)
-  defp get_boundary(boundary), do: boundary
 end
