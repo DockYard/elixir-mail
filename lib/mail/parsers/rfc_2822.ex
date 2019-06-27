@@ -101,12 +101,34 @@ defmodule Mail.Parsers.RFC2822 do
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           timezone::binary-size(3), _rest::binary>>
       ) do
-    erl_from_timestamp(
-      date <>
-        " " <>
-        month <>
-        " " <> year <> " " <> hour <> ":" <> minute <> ":" <> second <> " (" <> timezone <> ")"
-    )
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
+  end
+
+  # Fixes invalid value with milliseconds Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
+          _milliseconds::binary-size(3), timezone::binary-size(5), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
+  end
+
+  # Fixes invalid value: Tue May 30 15:29:15 2017
+  def erl_from_timestamp(
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(2)>>, " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          year::binary-size(4), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
+  # Fixes invalid value: Tue Aug 8 12:05:31 2017
+  def erl_from_timestamp(
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(1)>>, " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          year::binary-size(4), _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
   end
 
   defp parse_headers(message, []), do: message

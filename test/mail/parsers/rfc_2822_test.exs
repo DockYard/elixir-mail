@@ -450,9 +450,25 @@ defmodule Mail.Parsers.RFC2822Test do
     message =
       parse_email("""
       Received: from local-ip[x.x.x.x] by FTGS; 28-Dec-2014 20:04:31 +0200
+      Received: from trusted client by mx4.sika.com; Tue May 30 15:29:15 2017
+      Received: from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])
+      	by x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw
+      	for <x@example.com>; Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
+      Received: from ip<x.x.x.> ([x.x.x.x])
+      	by zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org;
+      	Tue Aug  8 12:05:31 2017
       """)
 
     assert message.headers["received"] == [
+             [
+               "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
+               {"date", {{2017, 8, 8}, {12, 5, 31}}}
+             ],
+             [
+               "from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])\tby x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw\tfor <x@example.com>",
+               {"date", {{2017, 6, 20}, {9, 44, 58}}}
+             ],
+             ["from trusted client by mx4.sika.com", {"date", {{2017, 5, 30}, {15, 29, 15}}}],
              ["from local-ip[x.x.x.x] by FTGS", {"date", {{2014, 12, 28}, {20, 4, 31}}}]
            ]
   end
