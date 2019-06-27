@@ -251,6 +251,12 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_structured_header_value("", value, sub_types, ""),
     do: [value | Enum.reverse(sub_types)]
 
+  defp parse_structured_header_value("", value, [], acc),
+    do: [value, String.trim(acc)]
+
+  defp parse_structured_header_value("", value, sub_types, acc),
+    do: parse_structured_header_value("", value, sub_types, String.trim(acc))
+
   defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, acc) do
     {string, rest} = parse_quoted_string(rest)
     parse_structured_header_value(rest, value, sub_types, <<acc::binary, string::binary>>)
