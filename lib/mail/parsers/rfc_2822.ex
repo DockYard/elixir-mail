@@ -58,9 +58,17 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("0" <> date <> " " <> rest)
   end
 
-  # This caters for invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
+  # This caters for an invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
   def erl_from_timestamp(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
     erl_from_timestamp("#{date} 0#{hour}:#{rest}")
+  end
+
+  # This caters for an invalid date with dashes between the date/month/year parts
+  def erl_from_timestamp(
+        <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
+          rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year}#{rest}")
   end
 
   def erl_from_timestamp(

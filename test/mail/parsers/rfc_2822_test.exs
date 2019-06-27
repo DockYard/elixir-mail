@@ -446,6 +446,17 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
   end
 
+  test "parse invalid date in Received header" do
+    message =
+      parse_email("""
+      Received: from local-ip[x.x.x.x] by FTGS; 28-Dec-2014 20:04:31 +0200
+      """)
+
+    assert message.headers["received"] == [
+             ["from local-ip[x.x.x.x] by FTGS", {"date", {{2014, 12, 28}, {20, 4, 31}}}]
+           ]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
