@@ -457,6 +457,41 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
   end
 
+  test "parses quoted string filename with embedded semi-colon (RFC2822 §3.2.5)" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: image/gif;
+       charset="UTF-8";
+       name="&#9733;.gif"
+      Content-Transfer-Encoding: base64
+      Content-Disposition: inline;
+       filename="&#9733;.gif"
+      Content-Id: <5cf3f485fe9b1d93040fac887e133234.gif>
+      X-Attachment-Id: <5cf3f485fe9b1d93040fac887e133234.gif>
+
+      R0lGODlhOw==\r\n"
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    [_, part] = message.parts
+    assert ["inline", {"filename", "&#9733;.gif"}] = part.headers["content-disposition"]
+
+    assert ["image/gif", {"charset", "UTF-8"}, {"name", "&#9733;.gif"}] =
+             part.headers["content-type"]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 

@@ -194,12 +194,43 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(<<char::utf8, rest::binary>>),
     do: <<char::utf8, parse_encoded_word(rest)::binary>>
 
-  defp parse_structured_header_value(value) do
-    case String.split(value, ~r/;\s*/) do
-      [value | []] -> value
-      [value | subtypes] -> [value | parse_header_subtypes(subtypes)]
-    end
+  defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
+
+  defp parse_structured_header_value("", value, [{key, nil} | sub_types], acc),
+    do: [value | Enum.reverse([{key, acc} | sub_types])]
+
+  defp parse_structured_header_value("", nil, [], acc),
+    do: acc
+
+  defp parse_structured_header_value("", value, sub_types, ""),
+    do: [value | Enum.reverse(sub_types)]
+
+  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, acc) do
+    {string, rest} = parse_quoted_string(rest)
+    parse_structured_header_value(rest, value, sub_types, <<acc::binary, string::binary>>)
   end
+
+  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, acc),
+    do: parse_structured_header_value(rest, acc, sub_types, "")
+
+  defp parse_structured_header_value(<<";", rest::binary>>, value, [{key, nil} | sub_types], acc),
+    do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], "")
+
+  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, acc),
+    do: parse_structured_header_value(rest, value, [{key_to_atom(acc), nil} | sub_types], "")
+
+  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, acc),
+    do: parse_structured_header_value(rest, value, sub_types, <<acc::binary, char::utf8>>)
+
+  defp parse_quoted_string(string, acc \\ "")
+
+  defp parse_quoted_string(<<"\\", char::utf8, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
+
+  defp parse_quoted_string(<<"\"", rest::binary>>, acc), do: {acc, rest}
+
+  defp parse_quoted_string(<<char::utf8, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
 
   defp parse_recipient_value(value) do
     Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
@@ -229,22 +260,6 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp remove_excess_whitespace(<<char::utf8, rest::binary>>),
     do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
-
-  defp parse_header_subtypes([]), do: []
-
-  defp parse_header_subtypes(["" | []]), do: []
-
-  defp parse_header_subtypes([subtype | tail]) do
-    [key, value] = String.split(subtype, "=", parts: 2)
-    key = key_to_atom(key)
-    [{key, normalize_subtype_value(key, value)} | parse_header_subtypes(tail)]
-  end
-
-  defp normalize_subtype_value("boundary", value),
-    do: get_boundary(value)
-
-  defp normalize_subtype_value(_key, value),
-    do: value
 
   defp parse_body(%Mail.Message{multipart: true} = message, lines) do
     content_type = message.headers["content-type"]
@@ -299,10 +314,12 @@ defmodule Mail.Parsers.RFC2822 do
   defp extract_parts(boundary, [head | tail], acc, parts),
     do: extract_parts(boundary, tail, [head | acc], parts)
 
-  defp key_to_atom(key),
-    do:
-      String.downcase(key)
-      |> String.replace("-", "_")
+  defp key_to_atom(key) do
+    key
+    |> String.trim()
+    |> String.downcase()
+    |> String.replace("-", "_")
+  end
 
   defp multipart?(headers) do
     content_type = headers["content-type"]
@@ -319,7 +336,4 @@ defmodule Mail.Parsers.RFC2822 do
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
     Mail.Encoder.decode(body, transfer_encoding)
   end
-
-  defp get_boundary("\"" <> boundary), do: String.slice(boundary, 0..-2)
-  defp get_boundary(boundary), do: boundary
 end
