@@ -475,6 +475,15 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
   end
 
+  test "parse date in date header" do
+    message =
+      parse_email("""
+      Date: Wed, 14 05 2015 12:34:17
+      """)
+
+    assert message.headers["date"] == {{2015, 5, 14}, {12, 34, 17}}
+  end
+
   test "handle comment after semi-colon in received header value" do
     message =
       parse_email("""

@@ -94,6 +94,13 @@ defmodule Mail.Parsers.RFC2822 do
     {{year, month, date}, {hour, minute, second}}
   end
 
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
   # This adds support for a now obsolete format
   # https://tools.ietf.org/html/rfc2822#section-4.3
   def erl_from_timestamp(
@@ -108,9 +115,9 @@ defmodule Mail.Parsers.RFC2822 do
   def erl_from_timestamp(
         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
-          _milliseconds::binary-size(3), timezone::binary-size(5), _rest::binary>>
+          _milliseconds::binary-size(3), rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
   end
 
   # Fixes invalid value: Tue May 30 15:29:15 2017
@@ -130,6 +137,23 @@ defmodule Mail.Parsers.RFC2822 do
       ) do
     erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
   end
+
+  # Fixes invalid value: Wed, 14 10 2015 12:34:17
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", <<month_digits::binary-size(2)>>, " ", year::binary-size(4),
+          " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+          rest::binary>>
+      ) do
+    month_name = get_month_name(month_digits)
+    erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+  end
+
+  @months
+  |> Enum.with_index(1)
+  |> Enum.each(fn {month_name, number} ->
+    defp get_month_name(unquote(String.pad_leading(to_string(number), 2, "0"))),
+      do: unquote(month_name)
+  end)
 
   defp parse_headers(message, []), do: message
 
