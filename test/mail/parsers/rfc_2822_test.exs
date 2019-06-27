@@ -457,9 +457,11 @@ defmodule Mail.Parsers.RFC2822Test do
       Received: from ip<x.x.x.> ([x.x.x.x])
       	by zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org;
       	Tue Aug  8 12:05:31 2017
+      Received: from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs);
       """)
 
     assert message.headers["received"] == [
+             ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
              [
                "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
                {"date", {{2017, 8, 8}, {12, 5, 31}}}

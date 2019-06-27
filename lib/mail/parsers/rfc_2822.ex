@@ -264,6 +264,9 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_received_value(value) do
     case String.split(value, ";") do
+      [value, ""] ->
+        [value]
+
       [value, date] ->
         {value, date} =
           case extract_comment(remove_timezone_comment(date)) do
@@ -281,9 +284,13 @@ defmodule Mail.Parsers.RFC2822 do
   defp remove_timezone_comment(date_string) do
     string_size = date_string |> String.trim_trailing() |> byte_size()
 
-    case binary_part(date_string, string_size - 6, 6) do
-      <<" (", _::binary-size(3), ")">> -> binary_part(date_string, 0, string_size - 6)
-      _ -> date_string
+    if string_size > 6 do
+      case binary_part(date_string, string_size - 6, 6) do
+        <<" (", _::binary-size(3), ")">> -> binary_part(date_string, 0, string_size - 6)
+        _ -> date_string
+      end
+    else
+      date_string
     end
   end
 
