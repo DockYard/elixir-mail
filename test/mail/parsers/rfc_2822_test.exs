@@ -527,6 +527,20 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-type"]
   end
 
+  test "content-type mixed with no body" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      """)
+
+    assert message.parts == []
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 

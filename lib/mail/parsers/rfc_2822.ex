@@ -325,8 +325,8 @@ defmodule Mail.Parsers.RFC2822 do
     boundary = Mail.Proplist.get(content_type, "boundary")
 
     parts =
-      boundary
-      |> extract_parts(lines)
+      lines
+      |> extract_parts(boundary)
       |> Enum.map(fn part ->
         parse(part)
       end)
@@ -348,30 +348,30 @@ defmodule Mail.Parsers.RFC2822 do
   defp join_body([""], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
   defp join_body([head | tail], acc), do: join_body(tail, [head | acc])
 
-  defp extract_parts(boundary, lines, acc \\ [], parts \\ nil)
+  defp extract_parts(lines, boundary, acc \\ [], parts \\ nil)
 
-  defp extract_parts(_boundary, [], _acc, parts),
-    do: Enum.reverse(parts)
+  defp extract_parts([], _boundary, _acc, parts),
+    do: Enum.reverse(List.wrap(parts))
 
-  defp extract_parts(boundary, ["--" <> boundary | tail], acc, nil),
-    do: extract_parts(boundary, tail, acc, [])
+  defp extract_parts(["--" <> boundary | tail], boundary, acc, nil),
+    do: extract_parts(tail, boundary, acc, [])
 
-  defp extract_parts(boundary, ["--" <> boundary | tail], acc, parts),
-    do: extract_parts(boundary, tail, [], [Enum.reverse(acc) | parts])
+  defp extract_parts(["--" <> boundary | tail], boundary, acc, parts),
+    do: extract_parts(tail, boundary, [], [Enum.reverse(acc) | parts])
 
-  defp extract_parts(boundary, [<<"--" <> rest>> = line | tail], acc, parts) do
+  defp extract_parts([<<"--" <> rest>> = line | tail], boundary, acc, parts) do
     if rest == boundary <> "--" do
-      extract_parts(boundary, [], [], [Enum.reverse(acc) | parts])
+      extract_parts([], boundary, [], [Enum.reverse(acc) | parts])
     else
-      extract_parts(boundary, tail, [line | acc], parts)
+      extract_parts(tail, boundary, [line | acc], parts)
     end
   end
 
-  defp extract_parts(boundary, [_line | tail], acc, nil),
-    do: extract_parts(boundary, tail, acc, nil)
+  defp extract_parts([_line | tail], boundary, acc, nil),
+    do: extract_parts(tail, boundary, acc, nil)
 
-  defp extract_parts(boundary, [head | tail], acc, parts),
-    do: extract_parts(boundary, tail, [head | acc], parts)
+  defp extract_parts([head | tail], boundary, acc, parts),
+    do: extract_parts(tail, boundary, [head | acc], parts)
 
   defp key_to_atom(key) do
     key
