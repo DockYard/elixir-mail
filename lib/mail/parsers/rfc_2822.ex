@@ -265,12 +265,42 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_received_value(value) do
     case String.split(value, ";") do
       [value, date] ->
+        {value, date} =
+          case extract_comment(remove_timezone_comment(date)) do
+            {date, nil} -> {value, date}
+            {date, comment} -> {"#{value} #{comment}", date}
+          end
+
         [value, {"date", erl_from_timestamp(remove_excess_whitespace(date))}]
 
       value ->
         value
     end
   end
+
+  defp remove_timezone_comment(date_string) do
+    string_size = date_string |> String.trim_trailing() |> byte_size()
+
+    case binary_part(date_string, string_size - 6, 6) do
+      <<" (", _::binary-size(3), ")">> -> binary_part(date_string, 0, string_size - 6)
+      _ -> date_string
+    end
+  end
+
+  defp extract_comment(string, state \\ :value, value \\ "", comment \\ nil)
+  defp extract_comment("", _, value, comment), do: {value, comment}
+
+  defp extract_comment(<<"(", rest::binary>>, :value, value, nil),
+    do: extract_comment(rest, :comment, value, "(")
+
+  defp extract_comment(<<")", rest::binary>>, :comment, value, comment),
+    do: extract_comment(rest, :value, value, comment <> ")")
+
+  defp extract_comment(<<char::utf8, rest::binary>>, :value, value, comment),
+    do: extract_comment(rest, :value, <<value::binary, char::utf8>>, comment)
+
+  defp extract_comment(<<char::utf8, rest::binary>>, :comment, value, comment),
+    do: extract_comment(rest, :comment, value, <<comment::binary, char::utf8>>)
 
   defp remove_excess_whitespace(<<>>), do: <<>>
 

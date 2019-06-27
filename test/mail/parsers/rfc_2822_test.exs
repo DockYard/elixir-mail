@@ -473,6 +473,23 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
   end
 
+  test "handle comment after semi-colon in received header value" do
+    message =
+      parse_email("""
+      Received: from smtp.notes.na.collabserv.com (192.155.248.91)
+      	by d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted;
+      	(version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)
+      	Thu, 8 Jun 2017 04:22:53 -0400
+      """)
+
+    assert message.headers["received"] == [
+             [
+               "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
+               {"date", {{2017, 6, 8}, {4, 22, 53}}}
+             ]
+           ]
+  end
+
   test "parses quoted string filename with embedded semi-colon (RFC2822 §3.2.5)" do
     message =
       parse_email("""
