@@ -279,13 +279,33 @@ defmodule Mail.Message do
   @doc """
   Is the part an attachment or not
 
+  Checks:
+  * content-disposition presence (inline, attachment)
+  * filename presence
+
   Returns `Boolean`
   """
   def is_attachment?(message) do
-    message
-    |> get_header(:content_disposition)
-    |> List.wrap()
-    |> Enum.any?(&Enum.member?(["attachment", "inline"], &1))
+    header =
+      message
+      |> get_header(:content_disposition)
+      |> List.wrap()
+
+    has_filename =
+      header
+      |> Enum.filter(fn part ->
+        case part do
+          {k, _} -> Regex.match?(~r/^filename/, k)
+          _ -> false
+        end
+      end)
+      |> Enum.any?
+
+    has_disposition =
+      header
+      |> Enum.any?(&Enum.member?(["attachment", "inline"], &1))
+
+    has_disposition && has_filename
   end
 
   @doc """
