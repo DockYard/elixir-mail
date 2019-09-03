@@ -74,7 +74,7 @@ defmodule Pdf.Document do
       Map.put_new_lazy(images, image_path, fn ->
         image = Image.new(image_path)
         object = ObjectCollection.create_object(objects, image)
-        name = n("I#{Map.size(images) + 1}")
+        name = n("I#{Kernel.map_size(images) + 1}")
         %{name: name, object: object, image: image}
       end)
 
@@ -84,7 +84,7 @@ defmodule Pdf.Document do
   def add_font(document, name) do
     unless document.fonts[name] do
       font_module = Font.lookup(name)
-      id = Map.size(document.fonts) + 1
+      id = Kernel.map_size(document.fonts) + 1
       # I don't need to do this at this point, it can be done when exporting, like the pages
       font_object =
         ObjectCollection.create_object(document.objects, Font.to_dictionary(font_module, id))
@@ -109,7 +109,7 @@ defmodule Pdf.Document do
     proc_set = [n("PDF"), n("Text")]
 
     proc_set =
-      if Map.size(document.images) > 0,
+      if Kernel.map_size(document.images) > 0,
         do: [n("ImageB"), n("ImageC"), n("ImageI") | proc_set],
         else: proc_set
 
@@ -120,7 +120,7 @@ defmodule Pdf.Document do
       })
 
     resources =
-      if Map.size(document.images) do
+      if Kernel.map_size(document.images) do
         Dictionary.put(resources, "XObject", xobject_dictionary(document.images))
       else
         resources
