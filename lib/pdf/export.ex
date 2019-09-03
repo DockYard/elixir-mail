@@ -15,6 +15,10 @@ defimpl Pdf.Export, for: Integer do
   def to_iolist(number), do: Pdf.Export.to_iolist(Integer.to_string(number))
 end
 
+defimpl Pdf.Export, for: Float do
+  def to_iolist(number), do: Pdf.Export.to_iolist(Float.to_string(number))
+end
+
 defimpl Pdf.Export, for: Date do
   def to_iolist(date) do
     [

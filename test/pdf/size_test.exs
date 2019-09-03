@@ -17,6 +17,14 @@ defmodule Pdf.SizeTest do
     end
   end
 
+  describe "size_of/1 for Float" do
+    test "it returns the number of digits in the number" do
+      assert Size.size_of(13.3) == 4
+      assert Size.size_of(420.0) == 5
+      assert Size.size_of(999_999.01) == 9
+    end
+  end
+
   describe "size_of/1 for Date" do
     test "it returns the length of the encoded date" do
       assert Size.size_of(~D"2018-05-22") == 12

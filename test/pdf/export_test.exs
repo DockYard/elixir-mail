@@ -16,6 +16,13 @@ defmodule Pdf.ExportTest do
     end
   end
 
+  describe "to_iolist/1 for Float" do
+    test "it returns the number as a binary" do
+      assert Export.to_iolist(13.2) == "13.2"
+      assert Export.to_iolist(420.720) == "420.72"
+    end
+  end
+
   describe "to_iolist/1 for Date" do
     test "it returns the date correctly encoded with a positive timezone offset" do
       assert Export.to_iolist(~D"2018-05-22") |> IO.iodata_to_binary() == "(D:20180522)"
