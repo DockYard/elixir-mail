@@ -26,6 +26,11 @@ defmodule Pdf do
     {:reply, self(), state}
   end
 
+  defcall export(_from, %State{document: document} = state) do
+    Document.to_iolist(document)
+    {:reply, Document.to_iolist(document), state}
+  end
+
   defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
     document = Document.set_font(document, font_name, font_size)
     {:reply, self(), %{state | document: document}}
