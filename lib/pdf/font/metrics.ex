@@ -42,6 +42,13 @@ defmodule Pdf.Font.Metrics do
   def process_line(<<"C -1 ;", _reset::binary>>, metrics), do: metrics
 
   def process_line(
+        <<"C ", number::binary-size(1), " ;", _rest::binary>> = line,
+        %{first_char: nil} = metrics
+      ) do
+    process_line(line, %{metrics | first_char: String.to_integer(number)})
+  end
+
+  def process_line(
         <<"C ", number::binary-size(2), " ;", _rest::binary>> = line,
         %{first_char: nil} = metrics
       ) do
@@ -53,6 +60,27 @@ defmodule Pdf.Font.Metrics do
         %{first_char: nil} = metrics
       ) do
     process_line(line, %{metrics | first_char: String.to_integer(number)})
+  end
+
+  def process_line(
+        <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(2), " ; ", _rest::binary>>,
+        %{widths: widths} = metrics
+      ) do
+    %{metrics | widths: [String.to_integer(width) | widths]}
+  end
+
+  def process_line(
+        <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(3), " ; ", _rest::binary>>,
+        %{widths: widths} = metrics
+      ) do
+    %{metrics | widths: [String.to_integer(width) | widths]}
+  end
+
+  def process_line(
+        <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(4), " ; ", _rest::binary>>,
+        %{widths: widths} = metrics
+      ) do
+    %{metrics | widths: [String.to_integer(width) | widths]}
   end
 
   def process_line(
