@@ -120,7 +120,7 @@ defmodule Pdf.Document do
       })
 
     resources =
-      if Kernel.map_size(document.images) do
+      if Kernel.map_size(document.images) > 0 do
         Dictionary.put(resources, "XObject", xobject_dictionary(document.images))
       else
         resources
@@ -128,7 +128,7 @@ defmodule Pdf.Document do
 
     page_collection =
       Dictionary.new(%{
-        "Type" => n("Page"),
+        "Type" => n("Pages"),
         "Count" => length(pages),
         "MediaBox" => Array.new(Paper.size(default_page_size(document))),
         "Resources" => resources
@@ -141,7 +141,7 @@ defmodule Pdf.Document do
     catalogue =
       ObjectCollection.create_object(
         document.objects,
-        Dictionary.new(%{"Type" => n("Catalogue"), "Pages" => master_page})
+        Dictionary.new(%{"Type" => n("Catalog"), "Pages" => master_page})
       )
 
     objects = ObjectCollection.all(document.objects)
