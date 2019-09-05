@@ -35,6 +35,11 @@ defmodule Pdf do
     {:reply, self(), %{state | document: document}}
   end
 
+  defcall add_font(path, _from, %State{document: document} = state) do
+    document = Document.add_external_font(document, path)
+    {:reply, self(), %{state | document: document}}
+  end
+
   defcall text_at({x, y}, text, _from, %State{document: document} = state) do
     document = Document.text_at(document, {x, y}, text)
     {:reply, self(), %{state | document: document}}

@@ -2,7 +2,18 @@ defmodule Pdf.Document do
   defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: [], images: %{}
   import Pdf.Utils
 
-  alias Pdf.{Dictionary, Font, RefTable, Trailer, Array, ObjectCollection, Page, Paper, Image}
+  alias Pdf.{
+    Dictionary,
+    Font,
+    RefTable,
+    Trailer,
+    Array,
+    ObjectCollection,
+    Page,
+    Paper,
+    Image,
+    ExternalFont
+  }
 
   @header <<"%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306, 10>>
   @header_size byte_size(@header)
@@ -91,6 +102,37 @@ defmodule Pdf.Document do
 
       fonts =
         Map.put(document.fonts, name, %{name: n("F#{id}"), font: font_module, object: font_object})
+
+      %{document | fonts: fonts}
+    else
+      document
+    end
+  end
+
+  def add_external_font(document, path) do
+    font = ExternalFont.load(path)
+    name = font.metrics.name
+
+    unless document.fonts[name] do
+      id = Kernel.map_size(document.fonts) + 1
+      font_object = ObjectCollection.create_object(document.objects, nil)
+
+      descriptor_id = descriptor_object = ObjectCollection.create_object(document.objects, nil)
+
+      font_file = ObjectCollection.create_object(document.objects, font)
+
+      font_dict = ExternalFont.font_dictionary(font, id, descriptor_id)
+      font_descriptor_dict = ExternalFont.font_descriptor_dictionary(font, font_file)
+
+      ObjectCollection.update_object(document.objects, descriptor_object, font_descriptor_dict)
+      ObjectCollection.update_object(document.objects, font_object, font_dict)
+
+      fonts =
+        Map.put(document.fonts, name, %{
+          name: n("F#{id}"),
+          font: font,
+          object: font_object
+        })
 
       %{document | fonts: fonts}
     else

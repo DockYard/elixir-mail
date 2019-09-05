@@ -4,7 +4,6 @@ defmodule Pdf.ObjectTest do
   alias Pdf.Object
   alias Pdf.Dictionary
   alias Pdf.Utils
-  alias Pdf.Array
 
   test "new/1" do
     object = Object.new(1)

@@ -13,6 +13,8 @@ defmodule Pdf.Font.Metrics do
             descender: nil,
             cap_height: nil,
             x_height: nil,
+            fixed_pitch: false,
+            bbox: nil,
             widths: []
 
   def process_line(<<"FontName ", data::binary>>, metrics), do: %{metrics | name: data}
@@ -38,6 +40,19 @@ defmodule Pdf.Font.Metrics do
 
   def process_line(<<"Descender ", data::binary>>, metrics),
     do: %{metrics | descender: String.to_integer(data)}
+
+  def process_line("IsFixedPitch true", metrics),
+    do: %{metrics | fixed_pitch: true}
+
+  def process_line(<<"FontBBox ", data::binary>>, metrics) do
+    bbox =
+      data
+      |> String.split(" ", trim: true)
+      |> Enum.map(fn f -> Float.parse(f) |> elem(0) end)
+      |> Enum.map(fn f -> :erlang.float_to_binary(f, decimals: 1) end)
+
+    %{metrics | bbox: bbox}
+  end
 
   def process_line(<<"C -1 ;", _reset::binary>>, metrics), do: metrics
 
