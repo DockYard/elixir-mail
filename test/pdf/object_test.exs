@@ -51,7 +51,6 @@ defmodule Pdf.ObjectTest do
       |> Dictionary.put("Title", Utils.n("Test Document"))
       |> Dictionary.put("Title", Utils.n("Test Document"))
       |> Dictionary.put("Title", Utils.n("Test Document"))
-      |> IO.inspect()
 
     object = Object.new(1, dict)
 
