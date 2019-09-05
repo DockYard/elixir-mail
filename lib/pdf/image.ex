@@ -64,7 +64,7 @@ defmodule Pdf.Image do
   end
 
   def size(%__MODULE__{size: size, dictionary: dictionary}) do
-    size_of(dictionary) + size
+    size_of(dictionary) + size + byte_size(@stream_start <> @stream_end)
   end
 
   def to_iolist(%__MODULE__{path: path, dictionary: dictionary}) do

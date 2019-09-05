@@ -19,7 +19,7 @@ defmodule Pdf.Stream do
 
   def size(stream) do
     dictionary = Dictionary.new() |> Dictionary.put("Length", stream.size)
-    Dictionary.size(dictionary) + stream.size
+    Dictionary.size(dictionary) + stream.size + byte_size(@stream_start <> @stream_end)
   end
 
   def to_iolist(stream) do
