@@ -27,8 +27,7 @@ defmodule Pdf do
   end
 
   defcall export(_from, %State{document: document} = state) do
-    Document.to_iolist(document)
-    {:reply, Document.to_iolist(document), state}
+    {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), state}
   end
 
   defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
