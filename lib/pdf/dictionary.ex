@@ -2,8 +2,6 @@ defmodule Pdf.Dictionary do
   import Pdf.Size
   import Pdf.Utils
 
-  alias Pdf.Array
-
   @dict_start "<<\n"
   @dict_start_length byte_size(@dict_start)
   @dict_end ">>"
@@ -60,10 +58,12 @@ defmodule Pdf.Dictionary do
   defp decrement_internal_size(dictionary, key, value),
     do: decrement_internal_size(dictionary, key, %{size: 0}) - size_of(value)
 
-  defp calculate_size([{_key, %Array{} = array} | tail], acc),
-    do: calculate_size(tail, size_of(array) + acc)
-
-  defp calculate_size([_entry | tail], acc), do: calculate_size(tail, acc)
+  def size(dict) do
+    dict
+    |> to_iolist()
+    |> :binary.list_to_bin()
+    |> byte_size()
+  end
 
   def to_iolist(dictionary) do
     [@dict_start, entries_to_iolist(dictionary.entries), @dict_end]

@@ -25,8 +25,15 @@ defmodule Pdf.DictionaryTest do
 
   test "size/1" do
     dictionary = Dictionary.put(Dictionary.new(), "Name", "Value")
+    assert Dictionary.size(dictionary) == 19
     dictionary2 = Dictionary.put(Dictionary.new(), "Name", dictionary)
     assert Dictionary.size(dictionary2) == 31
+
+    dictionary3 = dictionary |> Dictionary.put("Name", "Value")
+    assert Dictionary.size(dictionary) == Dictionary.size(dictionary3)
+
+    dictionary4 = dictionary |> Dictionary.put("Name", "New Value")
+    assert Dictionary.size(dictionary4) == 23
   end
 
   test "to_iolist/1" do
