@@ -9,7 +9,6 @@ defmodule Pdf.Font do
     Path.join(__DIR__, "../../fonts/*.afm")
     |> Path.wildcard()
     |> Enum.map(fn afm_file ->
-      # IO.puts afm_file
       metrics =
         afm_file
         |> File.stream!()
@@ -18,7 +17,7 @@ defmodule Pdf.Font do
         end)
 
       widths = Enum.reverse(metrics.widths)
-      last_char = metrics.first_char + length(metrics.widths)
+      last_char = metrics.first_char + length(metrics.widths) - 1
       %{metrics | widths: widths, last_char: last_char}
     end)
 
