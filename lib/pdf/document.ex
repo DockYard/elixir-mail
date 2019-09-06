@@ -2,7 +2,18 @@ defmodule Pdf.Document do
   defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: [], images: %{}
   import Pdf.Utils
 
-  alias Pdf.{Dictionary, Font, RefTable, Trailer, Array, ObjectCollection, Page, Paper, Image}
+  alias Pdf.{
+    Dictionary,
+    Font,
+    RefTable,
+    Trailer,
+    Array,
+    ObjectCollection,
+    Page,
+    Paper,
+    Image,
+    ExternalFont
+  }
 
   @header <<"%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306, 10>>
   @header_size byte_size(@header)
@@ -74,7 +85,7 @@ defmodule Pdf.Document do
       Map.put_new_lazy(images, image_path, fn ->
         image = Image.new(image_path)
         object = ObjectCollection.create_object(objects, image)
-        name = n("I#{Map.size(images) + 1}")
+        name = n("I#{Kernel.map_size(images) + 1}")
         %{name: name, object: object, image: image}
       end)
 
@@ -84,13 +95,44 @@ defmodule Pdf.Document do
   def add_font(document, name) do
     unless document.fonts[name] do
       font_module = Font.lookup(name)
-      id = Map.size(document.fonts) + 1
+      id = Kernel.map_size(document.fonts) + 1
       # I don't need to do this at this point, it can be done when exporting, like the pages
       font_object =
         ObjectCollection.create_object(document.objects, Font.to_dictionary(font_module, id))
 
       fonts =
         Map.put(document.fonts, name, %{name: n("F#{id}"), font: font_module, object: font_object})
+
+      %{document | fonts: fonts}
+    else
+      document
+    end
+  end
+
+  def add_external_font(document, path) do
+    font = ExternalFont.load(path)
+    name = font.metrics.name
+
+    unless document.fonts[name] do
+      id = Kernel.map_size(document.fonts) + 1
+      font_object = ObjectCollection.create_object(document.objects, nil)
+
+      descriptor_id = descriptor_object = ObjectCollection.create_object(document.objects, nil)
+
+      font_file = ObjectCollection.create_object(document.objects, font)
+
+      font_dict = ExternalFont.font_dictionary(font, id, descriptor_id)
+      font_descriptor_dict = ExternalFont.font_descriptor_dictionary(font, font_file)
+
+      ObjectCollection.update_object(document.objects, descriptor_object, font_descriptor_dict)
+      ObjectCollection.update_object(document.objects, font_object, font_dict)
+
+      fonts =
+        Map.put(document.fonts, name, %{
+          name: n("F#{id}"),
+          font: font,
+          object: font_object
+        })
 
       %{document | fonts: fonts}
     else
@@ -109,7 +151,7 @@ defmodule Pdf.Document do
     proc_set = [n("PDF"), n("Text")]
 
     proc_set =
-      if Map.size(document.images) > 0,
+      if Kernel.map_size(document.images) > 0,
         do: [n("ImageB"), n("ImageC"), n("ImageI") | proc_set],
         else: proc_set
 
@@ -120,7 +162,7 @@ defmodule Pdf.Document do
       })
 
     resources =
-      if Map.size(document.images) do
+      if Kernel.map_size(document.images) > 0 do
         Dictionary.put(resources, "XObject", xobject_dictionary(document.images))
       else
         resources
@@ -128,7 +170,7 @@ defmodule Pdf.Document do
 
     page_collection =
       Dictionary.new(%{
-        "Type" => n("Page"),
+        "Type" => n("Pages"),
         "Count" => length(pages),
         "MediaBox" => Array.new(Paper.size(default_page_size(document))),
         "Resources" => resources
@@ -141,7 +183,7 @@ defmodule Pdf.Document do
     catalogue =
       ObjectCollection.create_object(
         document.objects,
-        Dictionary.new(%{"Type" => n("Catalogue"), "Pages" => master_page})
+        Dictionary.new(%{"Type" => n("Catalog"), "Pages" => master_page})
       )
 
     objects = ObjectCollection.all(document.objects)

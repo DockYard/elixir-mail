@@ -2,8 +2,6 @@ defmodule Pdf.Dictionary do
   import Pdf.Size
   import Pdf.Utils
 
-  alias Pdf.Array
-
   @dict_start "<<\n"
   @dict_start_length byte_size(@dict_start)
   @dict_end ">>"
@@ -29,9 +27,23 @@ defmodule Pdf.Dictionary do
 
   def put(dictionary, key, value) do
     key = n(key)
-    entries = Map.put(dictionary.entries, key, value)
-    size = increment_internal_size(dictionary, key, value)
-    %{dictionary | entries: entries, size: size}
+
+    case Map.fetch(dictionary.entries, key) do
+      :error ->
+        entries = Map.put(dictionary.entries, key, value)
+        size = increment_internal_size(dictionary, key, value)
+        %{dictionary | entries: entries, size: size}
+
+      {:ok, ^value} ->
+        dictionary
+
+      {:ok, old_value} ->
+        entries = Map.put(dictionary.entries, key, value)
+        size = decrement_internal_size(dictionary, key, old_value)
+        size = increment_internal_size(%{dictionary | size: size}, key, value)
+
+        %{dictionary | entries: entries, size: size}
+    end
   end
 
   defp increment_internal_size(%__MODULE__{size: size}, key, %{size: _size}),
@@ -40,19 +52,18 @@ defmodule Pdf.Dictionary do
   defp increment_internal_size(dictionary, key, value),
     do: increment_internal_size(dictionary, key, %{size: 0}) + size_of(value)
 
-  def size(%__MODULE__{size: size, entries: entries}) do
-    calculate_size(Map.to_list(entries), size)
+  defp decrement_internal_size(%__MODULE__{size: size}, key, %{size: _size}),
+    do: size - size_of(key) - @value_separator_length - @entry_separator_length
+
+  defp decrement_internal_size(dictionary, key, value),
+    do: decrement_internal_size(dictionary, key, %{size: 0}) - size_of(value)
+
+  def size(dict) do
+    dict
+    |> to_iolist()
+    |> :binary.list_to_bin()
+    |> byte_size()
   end
-
-  defp calculate_size([], acc), do: acc
-
-  defp calculate_size([{_key, %__MODULE__{} = dictionary} | tail], acc),
-    do: calculate_size(tail, size_of(dictionary) + acc)
-
-  defp calculate_size([{_key, %Array{} = array} | tail], acc),
-    do: calculate_size(tail, size_of(array) + acc)
-
-  defp calculate_size([_entry | tail], acc), do: calculate_size(tail, acc)
 
   def to_iolist(dictionary) do
     [@dict_start, entries_to_iolist(dictionary.entries), @dict_end]

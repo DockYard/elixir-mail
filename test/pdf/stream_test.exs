@@ -28,5 +28,7 @@ defmodule Pdf.StreamTest do
              ],
              "endstream"
            ]
+
+    assert Pdf.Size.size_of(stream) == byte_size(iolist |> Enum.join())
   end
 end

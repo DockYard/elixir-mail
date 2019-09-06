@@ -10,6 +10,10 @@ defimpl Pdf.Size, for: Integer do
   def size_of(number), do: Pdf.Size.size_of(Integer.to_string(number))
 end
 
+defimpl Pdf.Size, for: Float do
+  def size_of(number), do: Pdf.Size.size_of(Float.to_string(number))
+end
+
 defimpl Pdf.Size, for: Date do
   def size_of(_date), do: 12
 end

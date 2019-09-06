@@ -26,8 +26,17 @@ defmodule Pdf do
     {:reply, self(), state}
   end
 
+  defcall export(_from, %State{document: document} = state) do
+    {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), state}
+  end
+
   defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
     document = Document.set_font(document, font_name, font_size)
+    {:reply, self(), %{state | document: document}}
+  end
+
+  defcall add_font(path, _from, %State{document: document} = state) do
+    document = Document.add_external_font(document, path)
     {:reply, self(), %{state | document: document}}
   end
 
