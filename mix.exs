@@ -39,11 +39,11 @@ defmodule Pdf.Mixfile do
   defp deps do
     [
       # Code style
-      {:credo, "~> 0.9.0", only: [:dev, :test]},
+      {:credo, "~> 1.0", only: [:dev, :test]},
 
       # Docs
-      {:ex_doc, "~> 0.18.0", only: [:dev, :docs]},
-      {:earmark, "~> 1.2.0", only: [:dev, :docs]}
+      {:ex_doc, "~> 0.0", only: [:dev, :docs]},
+      {:earmark, "~> 1.0", only: [:dev, :docs]}
     ]
   end
 
