@@ -170,7 +170,7 @@ defmodule Mail do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
         true ->
-          ["attachment", {"filename", filename}] =
+          ["attachment" | [{"filename", filename} | _]] =
             Mail.Message.get_header(message, :content_disposition)
 
           {:cont, List.insert_at(acc, -1, {filename, message.body})}
