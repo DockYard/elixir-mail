@@ -371,6 +371,24 @@ defmodule MailTest do
     assert attachments == expected
   end
 
+  test "get_attachments handles content disposition header with extra properties" do
+    {filename, data} = file = {"README.md", File.read!("README.md")}
+
+    mail =
+      Mail.build()
+      |> Mail.Message.put_body(data)
+      |> Mail.Message.put_header(:content_disposition, [
+        "attachment",
+        {"filename", filename},
+        {"size", "xxx"},
+        {"creation_date", "xxx"}
+      ])
+      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+
+    [attachment | _] = Mail.get_attachments(mail)
+    assert attachment == file
+  end
+
   test "renders with the given renderer" do
     result =
       Mail.build()
