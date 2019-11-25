@@ -460,10 +460,18 @@ defmodule Mail.Parsers.RFC2822Test do
       Received: from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs);
       Received: from x.x.x.x
       	by Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>; Fri Apr 15 17:22:55 CAT 2016
+      Received: from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite; Mon, 25 Nov 2019\u0020\r\n\t13:00:46 +0200
       """)
 
     assert message.headers["received"] == [
-      ["from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>", {"date", {{2016, 4, 15}, {17, 22, 55}}}],
+             [
+               "from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite",
+               {"date", {{2019, 11, 25}, {13, 0, 46}}}
+             ],
+             [
+               "from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>",
+               {"date", {{2016, 4, 15}, {17, 22, 55}}}
+             ],
              ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
              [
                "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
