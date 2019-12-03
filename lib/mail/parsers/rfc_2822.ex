@@ -157,6 +157,32 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
+  @doc """
+  Retrieves the "name" and "address" parts from an email message recipient
+  (To, CC, etc.). The following is an example of recipient value:
+
+      Full Name <fullname@company.tld>, another@company.tld
+
+  In this example, `Full Name` is the "name" part and `fullname@company.tld` is
+  the "address" part. `another@company.tld` does not have a "name" part, only
+  an "address" part.
+
+  The return value is a mixed list of tuples and strings, which should be
+  interpreted in the following way:
+  - When the element is just a string, it represents the "address" part only
+  - When the element is a tuple, the format is `{name, address}`. Both "name"
+    and "address" are strings
+  """
+  @spec parse_recipient_value(value :: String.t()) ::
+          [{String.t(), String.t()} | String.t()]
+  def parse_recipient_value(value) do
+    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
+    |> Enum.map(fn
+      [_, "", address] -> address
+      [_, name, address] -> {name, address}
+    end)
+  end
+
   @months
   |> Enum.with_index(1)
   |> Enum.each(fn {month_name, number} ->
@@ -292,14 +318,6 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_quoted_string(<<char::utf8, rest::binary>>, acc),
     do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
-
-  defp parse_recipient_value(value) do
-    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
-    |> Enum.map(fn
-      [_, "", address] -> address
-      [_, name, address] -> {name, address}
-    end)
-  end
 
   defp parse_received_value(value) do
     case String.split(value, ";") do
