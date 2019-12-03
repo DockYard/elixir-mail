@@ -123,6 +123,29 @@ defmodule Mail.Parsers.RFC2822Test do
     assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
   end
 
+  test "parse_recipient_value retrieves a list of name and addresses" do
+    recipient = "The Dude <dude@example.com>, batman@example.com"
+
+    retrieved_recipients = [
+      {"The Dude", "dude@example.com"},
+      "batman@example.com"
+    ]
+
+    assert parse_recipient(recipient) == retrieved_recipients
+  end
+
+  test "parse_recipient_value retrieves an empty list when recipient is empty" do
+    assert parse_recipient("") == []
+  end
+
+  test "parse_recipient_value retrieves an empty list when no \"address\" found" do
+    assert parse_recipient("NoEmail") == []
+  end
+
+  test "parse_recipient_value retrieves a list when only one \"address\" found" do
+    assert parse_recipient("dude@example.com") == ["dude@example.com"]
+  end
+
   test "parses a nested multipart message with encoded part" do
     message =
       parse_email("""
@@ -572,6 +595,9 @@ defmodule Mail.Parsers.RFC2822Test do
 
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
+
+  defp parse_recipient(recipient),
+    do: Mail.Parsers.RFC2822.parse_recipient_value(recipient)
 
   def convert_crlf(text),
     do: text |> String.replace("\n", "\r\n")
