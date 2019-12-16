@@ -202,6 +202,9 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("cc", value),
     do: parse_recipient_value(value)
 
+  defp parse_header_value("bcc", value),
+    do: parse_recipient_value(value)
+
   defp parse_header_value("from", value),
     do:
       parse_recipient_value(value)
