@@ -254,13 +254,13 @@ defmodule Mail.Message do
       CustomMimeAdapter.type("md")
       "text/markdown"
   """
-  def build_attachment(path_or_file_tuple)
+  def build_attachment(path_or_file_tuple, additional_values \\ [])
 
-  def build_attachment(path) when is_binary(path),
-    do: put_attachment(%Mail.Message{}, path)
+  def build_attachment(path, additional_values) when is_binary(path),
+    do: put_attachment(%Mail.Message{}, path, additional_values)
 
-  def build_attachment(file) when is_tuple(file),
-    do: put_attachment(%Mail.Message{}, file)
+  def build_attachment(file, additional_values) when is_tuple(file),
+    do: put_attachment(%Mail.Message{}, file, additional_values)
 
   @doc """
   Adds a new attachment part to the provided message
@@ -272,23 +272,28 @@ defmodule Mail.Message do
 
       Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents})
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
-  """
-  def put_attachment(message, path_or_file_tuple)
 
-  def put_attachment(%Mail.Message{} = message, path) when is_binary(path) do
+      Mail.Message.put_attachment(%Mail.Message{}, "README.md", filename: "renamed_filename", content_transfer_encoding: :quoted_printable)
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "renamed_filename"], content_transfer_encoding: :quoted_printable}}
+  """
+  def put_attachment(message, path_or_file_tuple, additional_values \\ [])
+
+  def put_attachment(%Mail.Message{} = message, path, additional_values) when is_binary(path) do
     {:ok, data} = File.read(path)
-    basename = Path.basename(path)
-    put_attachment(message, {basename, data})
+    {basename, additional_values} = Keyword.pop(additional_values, :filename, Path.basename(path))
+
+    put_attachment(message, {basename, data}, additional_values)
   end
 
-  def put_attachment(%Mail.Message{} = message, {filename, data}) do
+  def put_attachment(%Mail.Message{} = message, {filename, data}, additional_values) do
     filename = Path.basename(filename)
+    encoding = Keyword.get(additional_values, :content_transfer_encoding, :base64)
 
     message
     |> put_body(data)
     |> put_content_type(mimetype(filename))
     |> put_header(:content_disposition, ["attachment", {"filename", filename}])
-    |> put_header(:content_transfer_encoding, :base64)
+    |> put_header(:content_transfer_encoding, encoding)
   end
 
   @doc """

@@ -132,6 +132,16 @@ defmodule Mail.MessageTest do
     assert message.body == "<h1>Some HTML</h1>"
   end
 
+  test "build_attachment with additional_values" do
+    message = Mail.Message.build_attachment("README.md", content_transfer_encoding: :quoted_printable, filename: "renamed_README.md")
+
+    assert Mail.Message.get_header(message, :content_disposition) == [
+             "attachment",
+             {"filename", "renamed_README.md"}
+           ]
+    assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
+  end
+
   test "build_attachment when given a path" do
     part = Mail.Message.build_attachment("README.md")
     {:ok, file_content} = File.read("README.md")
