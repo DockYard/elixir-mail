@@ -44,6 +44,9 @@ defmodule Mail.Message do
   def match_content_type?(message, type) when is_binary(type),
     do: match_content_type?(message, ~r/#{type}/)
 
+  def match_body_text(%{headers: %{"content-disposition" => ["attachment" | _]}}), do: false
+  def match_body_text(message), do: Mail.Message.match_content_type?(message, "text/plain")
+
   @doc """
   Add a new header key/value pair
 
@@ -270,7 +273,8 @@ defmodule Mail.Message do
   def put_attachment(%Mail.Message{} = message, {filename, data}) do
     filename = Path.basename(filename)
 
-    put_body(message, data)
+    message
+    |> put_body(data)
     |> put_content_type(mimetype(filename))
     |> put_header(:content_disposition, ["attachment", {"filename", filename}])
     |> put_header(:content_transfer_encoding, :base64)
