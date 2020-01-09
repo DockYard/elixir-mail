@@ -28,6 +28,11 @@ defmodule Mail.MessageTest do
     assert Mail.Message.get_header(message, :test) == "test content"
   end
 
+  test "put_header with additional values" do
+    message = Mail.Message.put_header(%Mail.Message{}, :test, "test content", charset: "UTF-8", format: :flowed)
+    assert Mail.Message.get_header(message, :test) == ["test content", {"charset", "UTF-8"}, {"format", "flowed"}]
+  end
+
   test "get_header" do
     message = %Mail.Message{headers: %{"foo" => "bar"}}
     assert Mail.Message.get_header(message, :foo) == "bar"

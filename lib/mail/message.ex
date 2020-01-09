@@ -50,16 +50,20 @@ defmodule Mail.Message do
   @doc """
   Add a new header key/value pair
 
-      Mail.Message.put_header(%Mail.Message{}, :content_type, "text/plain")
+      Mail.Message.put_header(%Mail.Message{}, :content_type, "text/plain", charset: "UTF-8")
 
   The individual headers will be in the `headers` field on the
   `%Mail.Message{}` struct
   """
-  def put_header(message, key, content) when not is_binary(key),
-    do: put_header(message, to_string(key), content)
+  def put_header(message, key, content, additional_values \\ [])
+  def put_header(message, key, content, additional_values) when not is_binary(key),
+    do: put_header(message, to_string(key), content, additional_values)
 
-  def put_header(message, key, content),
+  def put_header(message, key, content, []),
     do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
+
+  def put_header(message, key, content, additional_values),
+    do: %{message | headers: Map.put(message.headers, fix_header(key), put_additional_values(content, additional_values))}
 
   def get_header(message, key) when not is_binary(key),
     do: get_header(message, to_string(key))
