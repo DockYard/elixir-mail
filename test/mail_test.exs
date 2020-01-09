@@ -293,6 +293,18 @@ defmodule MailTest do
     assert part.body == file_content
   end
 
+  test "BUG: put_text/1 should not replace attachment" do
+    mail =
+      Mail.build_multipart()
+      |> Mail.put_attachment({"Attachment.txt", "I am the first attachment"})
+      |> Mail.put_attachment({"Attachment2.txt", "I am the second attachment"})
+      |> Mail.put_text("I am the message body")
+
+    assert length(mail.parts) == 3
+    [_, _, part] = mail.parts
+    assert part.body == "I am the message body"
+  end
+
   test "put_attachment (from memory) with a multipart" do
     {:ok, file_content} = File.read("README.md")
 

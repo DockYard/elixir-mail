@@ -37,7 +37,7 @@ defmodule Mail do
   """
   def put_text(%Mail.Message{multipart: true} = message, body) do
     message =
-      case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/plain")) do
+      case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
         %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
         _ -> message
       end
@@ -116,7 +116,7 @@ defmodule Mail do
 
       Mail.put_attachment(%Mail.Message{}, "README.md")
       Mail.put_attachment(%Mail.Message{}, {"README.md", data})
-      
+
   Each call will add a new attachment part.
   """
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
