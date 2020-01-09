@@ -28,7 +28,7 @@ defmodule Mail.MessageTest do
     assert Mail.Message.get_header(message, :test) == "test content"
   end
 
-  test "put_header with additional values" do
+  test "put_header with options" do
     message = Mail.Message.put_header(%Mail.Message{}, :test, "test content", charset: "UTF-8", format: :flowed)
     assert Mail.Message.get_header(message, :test) == ["test content", {"charset", "UTF-8"}, {"format", "flowed"}]
   end
@@ -118,7 +118,7 @@ defmodule Mail.MessageTest do
     assert message.body == "Some text"
   end
 
-  test "build_text with additional values" do
+  test "build_text with options" do
     message = Mail.Message.build_text("Some text", charset: "UTF-8", format: :flowed, content_transfer_encoding: :base64)
     assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}, {"format", "flowed"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :base64
@@ -132,7 +132,7 @@ defmodule Mail.MessageTest do
     assert message.body == "<h1>Some HTML</h1>"
   end
 
-  test "build_attachment with additional_values" do
+  test "build_attachment with opts" do
     message = Mail.Message.build_attachment("README.md", content_transfer_encoding: :quoted_printable, filename: "renamed_README.md")
 
     assert Mail.Message.get_header(message, :content_disposition) == [

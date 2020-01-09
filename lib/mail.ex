@@ -35,21 +35,21 @@ defmodule Mail do
   If a text part already exists this function will replace that existing
   part with the new part.
   """
-  def put_text(message, body, additional_values \\ [])
-  def put_text(%Mail.Message{multipart: true} = message, body, additional_values) do
+  def put_text(message, body, opts \\ [])
+  def put_text(%Mail.Message{multipart: true} = message, body, opts) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
         %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
         _ -> message
       end
 
-    Mail.Message.put_part(message, Mail.Message.build_text(body, additional_values))
+    Mail.Message.put_part(message, Mail.Message.build_text(body, opts))
   end
 
-  def put_text(%Mail.Message{} = message, body, additional_values) do
+  def put_text(%Mail.Message{} = message, body, opts) do
     Mail.Message.put_body(message, body)
     |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
-    |> Mail.Message.put_content_type("text/plain", additional_values)
+    |> Mail.Message.put_content_type("text/plain", opts)
   end
 
   @doc """
@@ -120,19 +120,19 @@ defmodule Mail do
 
   Each call will add a new attachment part.
   """
-  def put_attachment(message, path, additional_values \\ [])
+  def put_attachment(message, path, opts \\ [])
 
-  def put_attachment(%Mail.Message{multipart: true} = message, path, additional_values) when is_binary(path),
-    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path, additional_values))
+  def put_attachment(%Mail.Message{multipart: true} = message, path, opts) when is_binary(path),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path, opts))
 
-  def put_attachment(%Mail.Message{multipart: true} = message, {filename, data}, additional_values),
-    do: Mail.Message.put_part(message, Mail.Message.build_attachment({filename, data}, additional_values))
+  def put_attachment(%Mail.Message{multipart: true} = message, {filename, data}, opts),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment({filename, data}, opts))
 
-  def put_attachment(%Mail.Message{} = message, path, additional_values) when is_binary(path),
-    do: Mail.Message.put_attachment(message, path, additional_values)
+  def put_attachment(%Mail.Message{} = message, path, opts) when is_binary(path),
+    do: Mail.Message.put_attachment(message, path, opts)
 
-  def put_attachment(%Mail.Message{} = message, {filename, data}, additional_values),
-    do: Mail.Message.put_attachment(message, {filename, data}, additional_values)
+  def put_attachment(%Mail.Message{} = message, {filename, data}, opts),
+    do: Mail.Message.put_attachment(message, {filename, data}, opts)
 
   @doc """
   Determines the message has any attachment parts

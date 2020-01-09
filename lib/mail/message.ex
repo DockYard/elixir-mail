@@ -55,15 +55,15 @@ defmodule Mail.Message do
   The individual headers will be in the `headers` field on the
   `%Mail.Message{}` struct
   """
-  def put_header(message, key, content, additional_values \\ [])
-  def put_header(message, key, content, additional_values) when not is_binary(key),
-    do: put_header(message, to_string(key), content, additional_values)
+  def put_header(message, key, content, opts \\ [])
+  def put_header(message, key, content, opts) when not is_binary(key),
+    do: put_header(message, to_string(key), content, opts)
 
   def put_header(message, key, content, []),
     do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
 
-  def put_header(message, key, content, additional_values),
-    do: %{message | headers: Map.put(message.headers, fix_header(key), put_additional_values(content, additional_values))}
+  def put_header(message, key, content, opts),
+    do: %{message | headers: Map.put(message.headers, fix_header(key), put_opts(content, opts))}
 
   def get_header(message, key) when not is_binary(key),
     do: get_header(message, to_string(key))
@@ -109,8 +109,8 @@ defmodule Mail.Message do
       Mail.Message.put_content_type(%Mail.Message{}, "text/plain")
       %Mail.Message{headers: %{content_type: ["text/plain"]}}
   """
-  def put_content_type(message, content_type, additional_values \\ []),
-    do: put_header(message, :content_type, content_type, additional_values)
+  def put_content_type(message, content_type, opts \\ []),
+    do: put_header(message, :content_type, content_type, opts)
 
   @doc """
   Gets the `content_type` from the header
@@ -191,15 +191,13 @@ defmodule Mail.Message do
       Mail.Message.build_text("Some text")
       %Mail.Message{body: "Some text", headers: %{content_type: "text/plain", content_transfer_encoding: :quoted_printable}}
 
-  You can add additional values to the content_type or set the content_transfer_encoding
-
       Mail.Message.build_text("Some text", content_transfer_encoding: :base64, charset: "UTF-8")
       %Mail.Message{body: "Some text", headers: %{content_type: ["text/plain", {"charset", "UTF-8"}], content_transfer_encoding: :base64}}
   """
-  def build_text(body, additional_values \\ []) do
-    {encoding, additional_values} = Keyword.pop(additional_values, :content_transfer_encoding, :quoted_printable)
+  def build_text(body, opts \\ []) do
+    {encoding, opts} = Keyword.pop(opts, :content_transfer_encoding, :quoted_printable)
 
-    put_content_type(%Mail.Message{}, put_additional_values("text/plain", additional_values))
+    put_content_type(%Mail.Message{}, put_opts("text/plain", opts))
     |> put_header(:content_transfer_encoding, encoding)
     |> put_body(body)
   end
@@ -254,13 +252,13 @@ defmodule Mail.Message do
       CustomMimeAdapter.type("md")
       "text/markdown"
   """
-  def build_attachment(path_or_file_tuple, additional_values \\ [])
+  def build_attachment(path_or_file_tuple, opts \\ [])
 
-  def build_attachment(path, additional_values) when is_binary(path),
-    do: put_attachment(%Mail.Message{}, path, additional_values)
+  def build_attachment(path, opts) when is_binary(path),
+    do: put_attachment(%Mail.Message{}, path, opts)
 
-  def build_attachment(file, additional_values) when is_tuple(file),
-    do: put_attachment(%Mail.Message{}, file, additional_values)
+  def build_attachment(file, opts) when is_tuple(file),
+    do: put_attachment(%Mail.Message{}, file, opts)
 
   @doc """
   Adds a new attachment part to the provided message
@@ -276,18 +274,18 @@ defmodule Mail.Message do
       Mail.Message.put_attachment(%Mail.Message{}, "README.md", filename: "renamed_filename", content_transfer_encoding: :quoted_printable)
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "renamed_filename"], content_transfer_encoding: :quoted_printable}}
   """
-  def put_attachment(message, path_or_file_tuple, additional_values \\ [])
+  def put_attachment(message, path_or_file_tuple, opts \\ [])
 
-  def put_attachment(%Mail.Message{} = message, path, additional_values) when is_binary(path) do
+  def put_attachment(%Mail.Message{} = message, path, opts) when is_binary(path) do
     {:ok, data} = File.read(path)
-    {basename, additional_values} = Keyword.pop(additional_values, :filename, Path.basename(path))
+    {basename, opts} = Keyword.pop(opts, :filename, Path.basename(path))
 
-    put_attachment(message, {basename, data}, additional_values)
+    put_attachment(message, {basename, data}, opts)
   end
 
-  def put_attachment(%Mail.Message{} = message, {filename, data}, additional_values) do
+  def put_attachment(%Mail.Message{} = message, {filename, data}, opts) do
     filename = Path.basename(filename)
-    encoding = Keyword.get(additional_values, :content_transfer_encoding, :base64)
+    encoding = Keyword.get(opts, :content_transfer_encoding, :base64)
 
     message
     |> put_body(data)
@@ -351,9 +349,9 @@ defmodule Mail.Message do
     mimetype_fn.(extension)
   end
 
-  defp put_additional_values(header, []), do: header
+  defp put_opts(header, []), do: header
 
-  defp put_additional_values(header, list) do
+  defp put_opts(header, list) do
     [header | Enum.map(list, fn {k, v} -> {to_string(k), to_string(v)} end)]
   end
 end
