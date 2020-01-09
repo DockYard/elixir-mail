@@ -109,8 +109,8 @@ defmodule Mail.Message do
       Mail.Message.put_content_type(%Mail.Message{}, "text/plain")
       %Mail.Message{headers: %{content_type: ["text/plain"]}}
   """
-  def put_content_type(message, content_type),
-    do: put_header(message, :content_type, content_type)
+  def put_content_type(message, content_type, additional_values \\ []),
+    do: put_header(message, :content_type, content_type, additional_values)
 
   @doc """
   Gets the `content_type` from the header
@@ -189,13 +189,20 @@ defmodule Mail.Message do
   Build a new text message
 
       Mail.Message.build_text("Some text")
-      %Mail.Message{body: "Some text", headers: %{content_type: "text/plain"}}
+      %Mail.Message{body: "Some text", headers: %{content_type: "text/plain", content_transfer_encoding: :quoted_printable}}
+
+  You can add additional values to the content_type or set the content_transfer_encoding
+
+      Mail.Message.build_text("Some text", content_transfer_encoding: :base64, charset: "UTF-8")
+      %Mail.Message{body: "Some text", headers: %{content_type: ["text/plain", {"charset", "UTF-8"}], content_transfer_encoding: :base64}}
   """
-  def build_text(body),
-    do:
-      put_content_type(%Mail.Message{}, "text/plain")
-      |> put_header(:content_transfer_encoding, :quoted_printable)
-      |> put_body(body)
+  def build_text(body, additional_values \\ []) do
+    {encoding, additional_values} = Keyword.pop(additional_values, :content_transfer_encoding, :quoted_printable)
+
+    put_content_type(%Mail.Message{}, put_additional_values("text/plain", additional_values))
+    |> put_header(:content_transfer_encoding, encoding)
+    |> put_body(body)
+  end
 
   @doc """
   Build a new HTML message
@@ -337,5 +344,11 @@ defmodule Mail.Message do
       |> List.last()
 
     mimetype_fn.(extension)
+  end
+
+  defp put_additional_values(header, []), do: header
+
+  defp put_additional_values(header, list) do
+    [header | Enum.map(list, fn {k, v} -> {to_string(k), to_string(v)} end)]
   end
 end

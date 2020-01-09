@@ -118,6 +118,13 @@ defmodule Mail.MessageTest do
     assert message.body == "Some text"
   end
 
+  test "build_text with additional values" do
+    message = Mail.Message.build_text("Some text", charset: "UTF-8", format: :flowed, content_transfer_encoding: :base64)
+    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}, {"format", "flowed"}]
+    assert Mail.Message.get_header(message, :content_transfer_encoding) == :base64
+    assert message.body == "Some text"
+  end
+
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
     assert Mail.Message.get_content_type(message) == ["text/html"]

@@ -35,20 +35,21 @@ defmodule Mail do
   If a text part already exists this function will replace that existing
   part with the new part.
   """
-  def put_text(%Mail.Message{multipart: true} = message, body) do
+  def put_text(message, body, additional_values \\ [])
+  def put_text(%Mail.Message{multipart: true} = message, body, additional_values) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
         %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
         _ -> message
       end
 
-    Mail.Message.put_part(message, Mail.Message.build_text(body))
+    Mail.Message.put_part(message, Mail.Message.build_text(body, additional_values))
   end
 
-  def put_text(%Mail.Message{} = message, body) do
+  def put_text(%Mail.Message{} = message, body, additional_values) do
     Mail.Message.put_body(message, body)
     |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
-    |> Mail.Message.put_content_type("text/plain")
+    |> Mail.Message.put_content_type("text/plain", additional_values)
   end
 
   @doc """
