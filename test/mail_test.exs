@@ -185,6 +185,25 @@ defmodule MailTest do
     assert is_nil(Mail.get_text(mail))
   end
 
+  test "get_text with multipart and multiple values" do
+    text = "I am the body!"
+    mail = 
+      Mail.Message.put_part(
+        Mail.build_multipart(),
+        Mail.Message.put_content_type(%Mail.Message{}, "text/plain; charset=UTF-8; format=flowed")
+        |> Mail.Message.put_header(:content_transfer_encoding, :"8bit")
+        |> Mail.Message.put_body(text)
+      )
+
+    parsed_mail = 
+      mail
+      |> Mail.render()
+      |> Mail.Parsers.RFC2822.parse()
+
+    assert Mail.get_text(mail).body == text
+    assert Mail.get_text(parsed_mail).body == text
+  end
+
   test "put_html with a singlepart" do
     mail = Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
 

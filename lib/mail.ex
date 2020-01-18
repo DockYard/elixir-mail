@@ -61,12 +61,14 @@ defmodule Mail do
   """
   def get_text(%Mail.Message{multipart: true} = message) do
     Enum.find(message.parts, fn
-      %Mail.Message{headers: %{"content-type" => "text/plain"}} = message -> message
+      %Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message -> message
+      %Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message -> message
       _ -> nil
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain"}} = message), do: message
+  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message), do: message
+  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message), do: message
   def get_text(%Mail.Message{}), do: nil
 
   @doc """
