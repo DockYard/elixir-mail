@@ -113,7 +113,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
   def erl_from_timestamp(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(2)>>, " ",
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           _tz::binary-size(3), " ", year::binary-size(4), _rest::binary>>
       ) do
@@ -131,7 +131,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Tue May 30 15:29:15 2017
   def erl_from_timestamp(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(2)>>, " ",
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           year::binary-size(4), _rest::binary>>
       ) do
@@ -140,7 +140,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Tue Aug 8 12:05:31 2017
   def erl_from_timestamp(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", <<date::binary-size(1)>>, " ",
+        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(1), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           year::binary-size(4), _rest::binary>>
       ) do
@@ -149,7 +149,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Wed, 14 10 2015 12:34:17
   def erl_from_timestamp(
-        <<date::binary-size(2), " ", <<month_digits::binary-size(2)>>, " ", year::binary-size(4),
+        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4),
           " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
           rest::binary>>
       ) do
