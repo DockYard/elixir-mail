@@ -176,7 +176,7 @@ defmodule Mail.Parsers.RFC2822 do
   @spec parse_recipient_value(value :: String.t()) ::
           [{String.t(), String.t()} | String.t()]
   def parse_recipient_value(value) do
-    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^\s]+@[^\s>]+)>?,?/, value)
+    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^<\s]+@[^\s>,]+)>?,?/, value)
     |> Enum.map(fn
       [_, "", address] -> address
       [_, name, address] -> {name, address}

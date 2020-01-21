@@ -124,11 +124,12 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient = "The Dude <dude@example.com>, batman@example.com"
+    recipient = "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>"
 
     retrieved_recipients = [
       {"The Dude", "dude@example.com"},
-      "batman@example.com"
+      "batman@example.com",
+      {"super", "compact@recipi.ent"}
     ]
 
     assert parse_recipient(recipient) == retrieved_recipients
