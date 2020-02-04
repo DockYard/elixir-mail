@@ -7,7 +7,7 @@ defmodule Mail.Message do
   @type t ::
           %__MODULE__{
             headers: map,
-            body: binary,
+            body: binary | nil,
             parts: [t],
             multipart: boolean
           }
