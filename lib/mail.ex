@@ -13,15 +13,35 @@ defmodule Mail do
 
   """
 
+  @type attachment :: {filename, content}
+
+  @type body :: binary
+
+  @type content :: binary
+
+  @type filename :: binary
+
+  @type from :: binary
+
+  @type message :: Mail.Message.t()
+
+  @type recipient :: binary | {binary, binary}
+
+  @type reply_to :: binary
+
+  @type subject :: binary
+
   @doc """
   Build a single-part mail
   """
+  @spec build :: message
   def build(),
     do: %Mail.Message{}
 
   @doc """
   Build a multi-part mail
   """
+  @spec build_multipart :: message
   def build_multipart,
     do: %Mail.Message{multipart: true}
 
@@ -35,6 +55,7 @@ defmodule Mail do
   If a text part already exists this function will replace that existing
   part with the new part.
   """
+  @spec put_text(message, body) :: message
   def put_text(%Mail.Message{multipart: true} = message, body) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
@@ -59,6 +80,7 @@ defmodule Mail do
   If multipart with part having `content-type` "text/plain" will return that part
   If multipart without part having `content-type` "text/plain" will return `nil`
   """
+  @spec get_text(message) :: body | nil
   def get_text(%Mail.Message{multipart: true} = message) do
     Enum.find(message.parts, fn
       %Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message -> message
@@ -79,6 +101,7 @@ defmodule Mail do
   If a text part already exists this function will replace that existing
   part with the new part.
   """
+  @spec put_html(message, body) :: message
   def put_html(%Mail.Message{multipart: true} = message, body) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
@@ -103,6 +126,7 @@ defmodule Mail do
   If multipart with part having `content-type` "text/html" will return that part
   If multipart without part having `content-type` "text/html" will return `nil`
   """
+  @spec get_html(message) :: body | nil
   def get_html(%Mail.Message{multipart: true} = message) do
     Enum.find(message.parts, fn
       %Mail.Message{headers: %{"content-type" => "text/html"}} = message -> message
@@ -121,6 +145,7 @@ defmodule Mail do
 
   Each call will add a new attachment part.
   """
+  @spec put_attachment(message, attachment | binary) :: message
   def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
     do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
 
@@ -138,6 +163,7 @@ defmodule Mail do
 
   Returns a `Boolean`
   """
+  @spec has_attachments?(message) :: boolean
   def has_attachments?(%Mail.Message{} = message) do
     walk_parts([message], {:cont, false}, fn message, _acc ->
       case Mail.Message.is_attachment?(message) do
@@ -153,6 +179,7 @@ defmodule Mail do
 
   Returns a `Boolean`
   """
+  @spec has_text_parts?(message) :: boolean
   def has_text_parts?(%Mail.Message{} = message) do
     walk_parts([message], {:cont, false}, fn message, _acc ->
       case Mail.Message.is_text_part?(message) do
@@ -168,6 +195,7 @@ defmodule Mail do
 
   Each member in the list is `{filename, content}`
   """
+  @spec get_attachments(message) :: list(attachment)
   def get_attachments(%Mail.Message{} = message) do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
@@ -199,12 +227,14 @@ defmodule Mail do
       Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
       %Mail.Message{headers: %{subject: "Welcome to DockYard!"}}
   """
+  @spec put_subject(message, subject) :: message
   def put_subject(message, subject),
     do: Mail.Message.put_header(message, "subject", subject)
 
   @doc ~S"""
   Retrieve the `subject` header
   """
+  @spec get_subject(message) :: subject | nil
   def get_subject(message),
     do: Mail.Message.get_header(message, "subject")
 
@@ -232,6 +262,7 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
+  @spec put_to(message, recipient | list(recipient)) :: message
   def put_to(message, recipients)
 
   def put_to(message, recipients) when is_list(recipients) do
@@ -245,6 +276,7 @@ defmodule Mail do
   @doc ~S"""
   Retrieves the list of recipients from the `to` header
   """
+  @spec get_to(message) :: list(recipient) | nil
   def get_to(message),
     do: Mail.Message.get_header(message, "to")
 
@@ -272,6 +304,7 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
+  @spec put_cc(message, recipient | list(recipient)) :: message
   def put_cc(message, recipients)
 
   def put_cc(message, recipients) when is_list(recipients) do
@@ -285,6 +318,7 @@ defmodule Mail do
   @doc ~S"""
   Retrieves the recipients from the `cc` header
   """
+  @spec get_cc(message) :: list(recipient) | nil
   def get_cc(message),
     do: Mail.Message.get_header(message, "cc")
 
@@ -312,6 +346,7 @@ defmodule Mail do
   * `"Test User <user@example.com>"`
   * `{"Test User", "user@example.com"}`
   """
+  @spec put_bcc(message, recipient | list(recipient)) :: message
   def put_bcc(message, recipients)
 
   def put_bcc(message, recipients) when is_list(recipients) do
@@ -325,6 +360,7 @@ defmodule Mail do
   @doc ~S"""
   Retrieves the recipients from the `bcc` header
   """
+  @spec get_bcc(message) :: list(recipient) | nil
   def get_bcc(message),
     do: Mail.Message.get_header(message, "bcc")
 
@@ -334,12 +370,14 @@ defmodule Mail do
       Mail.put_from(%Mail.Message{}, "user@example.com")
       %Mail.Message{headers: %{from: "user@example.com"}}
   """
+  @spec put_from(message, from) :: message
   def put_from(message, sender),
     do: Mail.Message.put_header(message, "from", sender)
 
   @doc ~S"""
   Retrieves the `from` header
   """
+  @spec get_from(message) :: from | nil
   def get_from(message),
     do: Mail.Message.get_header(message, "from")
 
@@ -349,12 +387,14 @@ defmodule Mail do
       Mail.put_reply_to(%Mail.Message{}, "user@example.com")
       %Mail.Message{headers: %{reply_to: "user@example.com"}}
   """
+  @spec put_reply_to(message, reply_to) :: message
   def put_reply_to(message, reply_address),
     do: Mail.Message.put_header(message, "reply-to", reply_address)
 
   @doc ~S"""
   Retrieves the `reply-to` header
   """
+  @spec get_reply_to(message) :: reply_to | nil
   def get_reply_to(message),
     do: Mail.Message.get_header(message, "reply-to")
 
@@ -364,6 +404,7 @@ defmodule Mail do
   Will collect all recipients from `to`, `cc`, and `bcc`
   and returns a unique list of recipients.
   """
+  @spec all_recipients(message) :: list(recipient)
   def all_recipients(message) do
     (List.wrap(Mail.get_to(message)) ++
        List.wrap(Mail.get_cc(message)) ++ List.wrap(Mail.get_bcc(message)))
@@ -378,6 +419,7 @@ defmodule Mail do
 
   By default the `renderer` will be `Mail.Renderers.RFC2822`
   """
+  @spec render(message, module) :: binary
   def render(message, renderer \\ Mail.Renderers.RFC2822) do
     renderer.render(message)
   end
