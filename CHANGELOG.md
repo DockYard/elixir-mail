@@ -1,6 +1,6 @@
 # Versions
 
-## 0.2.2
+## 0.2.1
 
 * Fix quoted-printable encoding https://github.com/DockYard/elixir-mail/pull/83
 * Optimized quoted-printable encoder to reduce memory usage https://github.com/DockYard/elixir-mail/pull/87
