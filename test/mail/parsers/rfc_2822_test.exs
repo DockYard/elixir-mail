@@ -23,6 +23,22 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
+  test "parses a singlepart message with no body" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Reply-To: otherme@example.com
+      Subject: Test Email
+      """)
+
+    assert message.headers["to"] == ["user@example.com"]
+    assert message.headers["from"] == "me@example.com"
+    assert message.headers["reply-to"] == "otherme@example.com"
+    assert message.headers["subject"] == "Test Email"
+    assert message.body == nil
+  end
+
   test "parses a multipart message" do
     message =
       parse_email("""
