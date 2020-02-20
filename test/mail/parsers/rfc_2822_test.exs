@@ -89,18 +89,25 @@ defmodule Mail.Parsers.RFC2822Test do
       Content-Type: text/html
 
       <h1>This is some HTML</h1>
+
+      --foobar
+      x-my-header: no body!
+
       --foobar--
       """)
 
     assert message.body == nil
 
-    [text_part, html_part] = message.parts
+    [text_part, html_part, headers_only_part] = message.parts
 
     assert text_part.headers["content-type"] == "text/plain"
     assert text_part.body == "This is some text"
 
     assert html_part.headers["content-type"] == "text/html"
     assert html_part.body == "<h1>This is some HTML</h1>"
+
+    assert headers_only_part.headers["x-my-header"] == "no body!"
+    assert headers_only_part.body == nil
   end
 
   test "erl_from_timestamp\1" do
