@@ -606,6 +606,7 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.parts == []
+    assert message.body == nil
   end
 
   test "content-type with implicit charset" do
