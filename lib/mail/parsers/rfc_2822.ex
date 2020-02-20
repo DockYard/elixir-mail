@@ -391,6 +391,10 @@ defmodule Mail.Parsers.RFC2822 do
     Map.put(message, :parts, parts)
   end
 
+  defp parse_body(%Mail.Message{} = message, []) do
+    message
+  end
+
   defp parse_body(%Mail.Message{} = message, lines) do
     decoded =
       lines
