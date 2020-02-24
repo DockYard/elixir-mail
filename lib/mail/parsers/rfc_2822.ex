@@ -18,7 +18,7 @@ defmodule Mail.Parsers.RFC2822 do
     [headers, lines] = extract_headers(lines)
 
     %Mail.Message{}
-    |> parse_headers(headers) |> IO.inspect()
+    |> parse_headers(headers)
     |> mark_multipart
     |> parse_body(lines)
   end
@@ -191,7 +191,7 @@ defmodule Mail.Parsers.RFC2822 do
   end)
 
   defp parse_headers(%Mail.Message{headers: existing_headers} = message, []) do
-    headers = Map.put_new(existing_headers, "content-type", ["text/plain", "us-ascii"])
+    headers = Map.put_new(existing_headers, "content-type", ["text/plain", {"charset", "us-ascii"}])
     %{message | headers: headers}
   end
 

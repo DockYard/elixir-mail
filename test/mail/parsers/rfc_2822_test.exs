@@ -626,7 +626,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Subject: Test
       """)
 
-    assert message.headers["content-type"] == ["text/plain", "us-ascii"]
+    assert message.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
   end
 
   defp parse_email(email),
