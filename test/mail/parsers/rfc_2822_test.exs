@@ -618,7 +618,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", "us-ascii"]
   end
 
-  test "implicit content-type and charset" do
+  test "default text/plain & us-ascii when no content-type header is given" do
     message =
       parse_email("""
       To: user@example.com
