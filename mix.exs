@@ -12,7 +12,8 @@ defmodule Mail.Mixfile do
       description: description(),
       package: package(),
       docs: [main: "Mail"],
-      deps: deps()
+      deps: deps(),
+      dialyzer: dialyzer()
     ]
   end
 
@@ -53,8 +54,15 @@ defmodule Mail.Mixfile do
   # Type "mix help deps" for more examples and options
   defp deps do
     [
+      {:dialyxir, "~> 1.0.0-rc", only: :dev, runtime: false},
       {:earmark, "~> 1.3", only: :dev},
       {:ex_doc, "~> 0.19", only: :dev}
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_add_apps: [:ex_unit]
     ]
   end
 end

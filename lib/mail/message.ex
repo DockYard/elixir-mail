@@ -4,6 +4,22 @@ defmodule Mail.Message do
             parts: [],
             multipart: false
 
+  @type body :: binary | nil
+
+  @type headers :: map
+
+  @type multipart :: boolean
+
+  @type parts :: list(t)
+
+  @type t ::
+          %__MODULE__{
+            body: body,
+            headers: headers,
+            multipart: multipart,
+            parts: parts
+          }
+
   @doc """
   Add new part
 
