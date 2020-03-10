@@ -23,7 +23,8 @@ defmodule Pdf.Font.Metrics do
             fixed_pitch: false,
             bbox: nil,
             widths: [],
-            glyphs: %{}
+            glyphs: %{},
+            kern_pairs: []
 
   def widths(metrics, encoding \\ Pdf.Encoding.WinAnsi) do
     Enum.map(encoding.characters(), fn char_code ->
@@ -32,15 +33,6 @@ defmodule Pdf.Font.Metrics do
         %{width: width} -> width
       end
     end)
-  end
-
-  defp print_char(width, char_code) do
-    try do
-      IO.inspect(width, label: <<char_code::utf8>>)
-    rescue
-      ArgumentError ->
-        nil
-    end
   end
 
   def process_line(<<"FontName ", data::binary>>, metrics), do: %{metrics | name: data}
@@ -85,82 +77,23 @@ defmodule Pdf.Font.Metrics do
     %{metrics | glyphs: Map.put(glyphs, glyph.char_code, glyph)}
   end
 
-  # def process_line(
-  #       <<"C ", number::binary-size(2), " ;", _rest::binary>> = line,
-  #       %{first_char: nil} = metrics
-  #     ) do
-  #   process_line(line, %{metrics | first_char: String.to_integer(number)})
-  # end
+  def process_line(<<"KPX ", data::binary>>, %{kern_pairs: kern_pairs} = metrics) do
+    case String.split(data) do
+      [first, second, amount] ->
+        first_char_code = Pdf.Encoding.WinAnsi.from_name(first)
+        second_char_code = Pdf.Encoding.WinAnsi.from_name(second)
 
-  # def process_line(
-  #       <<"C ", number::binary-size(3), " ;", _rest::binary>> = line,
-  #       %{first_char: nil} = metrics
-  #     ) do
-  #   process_line(line, %{metrics | first_char: String.to_integer(number)})
-  # end
+        if first_char_code && second_char_code do
+          {amount, _} = Integer.parse(amount)
+          %{metrics | kern_pairs: [{first_char_code, second_char_code, amount} | kern_pairs]}
+        else
+          metrics
+        end
 
-  # def process_line(
-  #       <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(2), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(3), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(1), " ; WX ", width::binary-size(4), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(2), " ; WX ", width::binary-size(2), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(2), " ; WX ", width::binary-size(3), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(2), " ; WX ", width::binary-size(4), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(3), " ; WX ", width::binary-size(2), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(3), " ; WX ", width::binary-size(3), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
-
-  # def process_line(
-  #       <<"C ", _number::binary-size(3), " ; WX ", width::binary-size(4), " ; ", _rest::binary>>,
-  #       %{widths: widths} = metrics
-  #     ) do
-  #   %{metrics | widths: [String.to_integer(width) | widths]}
-  # end
+      _ ->
+        metrics
+    end
+  end
 
   def process_line(_line, metrics), do: metrics
 

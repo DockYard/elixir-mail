@@ -10,12 +10,11 @@ defmodule Pdf.Font do
     Path.join(__DIR__, "../../fonts/*.afm")
     |> Path.wildcard()
     |> Enum.map(fn afm_file ->
-      metrics =
-        afm_file
-        |> File.stream!()
-        |> Enum.reduce(%Metrics{}, fn line, metrics ->
-          Metrics.process_line(String.replace_suffix(line, "\n", ""), metrics)
-        end)
+      afm_file
+      |> File.stream!()
+      |> Enum.reduce(%Metrics{}, fn line, metrics ->
+        Metrics.process_line(String.replace_suffix(line, "\n", ""), metrics)
+      end)
     end)
 
   font_metrics
@@ -90,6 +89,22 @@ defmodule Pdf.Font do
         width = text_width(string)
         width * font_size / 1000
       end
+
+      def kern_text([]), do: []
+
+      metrics.kern_pairs
+      |> Enum.each(fn {first, second, amount} ->
+        def kern_text([unquote(first), unquote(second) | tail]) do
+          [<<unquote(first)>>, unquote(-amount) | kern_text([unquote(second) | tail])]
+        end
+      end)
+
+      def kern_text([first, second | tail]) do
+        [<<head::binary>> | tail] = kern_text([second | tail])
+        [<<first, head::binary>> | tail]
+      end
+
+      def kern_text([char]), do: [<<char>>]
     end
   end)
 

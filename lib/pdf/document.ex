@@ -72,12 +72,12 @@ defmodule Pdf.Document do
     %{document | current: page}
   end
 
-  def text_at(%__MODULE__{current: page} = document, {x, y}, text) do
-    %{document | current: Page.text_at(page, {x, y}, text)}
+  def text_at(%__MODULE__{current: page} = document, {x, y}, text, opts \\ []) do
+    %{document | current: Page.text_at(page, {x, y}, text, opts)}
   end
 
-  def text_lines(%__MODULE__{current: page} = document, {x, y}, lines) do
-    %{document | current: Page.text_lines(page, {x, y}, lines)}
+  def text_lines(%__MODULE__{current: page} = document, {x, y}, lines, opts \\ []) do
+    %{document | current: Page.text_lines(page, {x, y}, lines, opts)}
   end
 
   def add_image(%__MODULE__{current: page} = document, {x, y}, image_path) do
@@ -98,7 +98,7 @@ defmodule Pdf.Document do
     %{document | images: images}
   end
 
-  def add_font(document, name) do
+  defp add_font(document, name) do
     unless document.fonts[name] do
       font_module = Font.lookup(name)
       id = Kernel.map_size(document.fonts) + 1

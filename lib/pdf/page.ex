@@ -1,5 +1,5 @@
 defmodule Pdf.Page do
-  defstruct size: :a4, stream: nil
+  defstruct size: :a4, stream: nil, current_font: nil
 
   import Pdf.Utils
   alias Pdf.{Image, Stream}
@@ -14,32 +14,50 @@ defmodule Pdf.Page do
 
   def set_font(page, document, font_name, font_size) do
     font = document.fonts[font_name]
+    page = %{page | current_font: font}
     push(page, [font.name, font_size, "Tf"])
   end
 
-  def text_at(page, {x, y}, text) do
+  def text_at(%{current_font: %{font: font}} = page, {x, y}, text, opts \\ []) do
     page
     |> push("BT")
     |> push([x, y, "Td"])
-    |> push([s(normalize_text(text)), "Tj"])
+    |> push(kerned_text(font, normalize_text(text), Keyword.get(opts, :kerning, false)))
     |> push("ET")
   end
 
-  def text_lines(page, {x, y}, lines) do
+  defp kerned_text(_font, text, false) do
+    [s(text), "Tj"]
+  end
+
+  defp kerned_text(font, text, true) do
+    text =
+      text
+      |> font.kern_text()
+      |> Enum.map(fn
+        str when is_binary(str) -> s(str)
+        num -> num
+      end)
+
+    [Pdf.Array.new(text), "TJ"]
+  end
+
+  def text_lines(page, {x, y}, lines, opts \\ []) do
     page
     |> push("BT")
     |> push([x, y, "Td"])
     |> push([14, "TL"])
-    |> draw_lines(lines)
+    |> draw_lines(lines, opts)
     |> push("ET")
   end
 
-  def draw_lines(page, [line]) do
-    push(page, [s(normalize_text(line)), "Tj"])
+  def draw_lines(%{current_font: %{font: font}} = page, [line], opts) do
+    push(page, kerned_text(font, normalize_text(line), Keyword.get(opts, :kerning, false)))
   end
 
-  def draw_lines(page, [line | tail]) do
-    draw_lines(push(page, [s(normalize_text(line)), "Tj", "T*"]), tail)
+  def draw_lines(%{current_font: %{font: font}} = page, [line | tail], opts) do
+    text = kerned_text(font, normalize_text(line), Keyword.get(opts, :kerning, false))
+    draw_lines(push(page, text ++ ["T*"]), tail, opts)
   end
 
   def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do

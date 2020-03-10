@@ -26,6 +26,15 @@ defmodule PdfTest do
       "Second line ä",
       "Third line ö"
     ])
+    |> Pdf.text_lines(
+      {300, 300},
+      [
+        "Kerned First line å",
+        "Kerned Second line ä",
+        "Kerned Third line ö"
+      ],
+      kerning: true
+    )
     |> Pdf.add_image({25, 50}, fixture("rgb.jpg"))
     |> Pdf.add_image({175, 50}, fixture("cmyk.jpg"))
     |> Pdf.add_image({325, 50}, fixture("grayscale.jpg"))
@@ -38,6 +47,8 @@ defmodule PdfTest do
     |> Pdf.text_at({200, 200}, "Normalize unicode characters:\u0065\u0301åäö")
     |> Pdf.set_font("Helvetica", 10)
     |> all_win_ansi_chars({10, 180})
+    |> Pdf.text_at({50, 720}, "A string without kerning: VA\u0065\u0301åäö")
+    |> Pdf.text_at({50, 710}, "A string with kerning: VA\u0065\u0301åäö", kerning: true)
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 
