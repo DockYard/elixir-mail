@@ -3,6 +3,7 @@ defmodule Pdf.Font do
 
   import Pdf.Utils
   alias Pdf.Font.Metrics
+  alias Pdf.Encoding.WinAnsi
   alias Pdf.{Array, Dictionary}
 
   font_metrics =
@@ -15,10 +16,6 @@ defmodule Pdf.Font do
         |> Enum.reduce(%Metrics{}, fn line, metrics ->
           Metrics.process_line(String.replace_suffix(line, "\n", ""), metrics)
         end)
-
-      widths = Enum.reverse(metrics.widths)
-      last_char = metrics.first_char + length(metrics.widths) - 1
-      %{metrics | widths: widths, last_char: last_char}
     end)
 
   font_metrics
@@ -54,7 +51,7 @@ defmodule Pdf.Font do
       @doc """
       Returns the character widths of characters beginning from `first_char/0`
       """
-      def widths, do: unquote(metrics.widths)
+      def widths, do: unquote(Metrics.widths(metrics))
 
       @doc """
       Returns the width of the specific character
@@ -64,13 +61,17 @@ defmodule Pdf.Font do
           iex> #{inspect(__MODULE__)}.width("A")
           123
       """
-      def width(utf8_char)
+      def width(char_code)
 
-      metrics.widths
-      |> Enum.with_index(metrics.first_char)
-      |> Enum.each(fn {width, char_code} ->
-        # def width(unquote(char_code)), do: unquote(width)
-        def width(<<unquote(char_code)::utf8>>), do: unquote(width)
+      WinAnsi.characters()
+      |> Enum.each(fn char_code ->
+        case metrics.glyphs[char_code] do
+          nil ->
+            def width(unquote(char_code)), do: 0
+
+          %{width: width} ->
+            def width(unquote(char_code)), do: unquote(width)
+        end
       end)
 
       @doc ~S"""
@@ -78,7 +79,7 @@ defmodule Pdf.Font do
       """
       def text_width(string) do
         string
-        |> String.codepoints()
+        |> String.to_charlist()
         |> Enum.reduce(0, &(&2 + width(&1)))
       end
 
@@ -114,9 +115,9 @@ defmodule Pdf.Font do
     |> Dictionary.put("Subtype", n("Type1"))
     |> Dictionary.put("Name", n("F#{id}"))
     |> Dictionary.put("BaseFont", n(font.name))
-    |> Dictionary.put("FirstChar", font.first_char)
+    |> Dictionary.put("FirstChar", 32)
     |> Dictionary.put("LastChar", font.last_char)
-    |> Dictionary.put("Widths", Array.new(Enum.map(font.widths, &to_string/1)))
-    |> Dictionary.put("Encoding", n("MacRomanEncoding"))
+    |> Dictionary.put("Widths", Array.new(Enum.drop(font.widths, 32)))
+    |> Dictionary.put("Encoding", n("WinAnsiEncoding"))
   end
 end

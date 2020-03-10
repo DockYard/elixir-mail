@@ -26,10 +26,11 @@ defmodule Pdf.ExternalFont do
     part2 = (:binary.match(font_file, "00000000") |> elem(0)) - part1
     part3 = byte_size(font_file) - part1 - part2
 
-    last_char = font_metrics.first_char + length(font_metrics.widths) - 1
+    widths = Metrics.widths(font_metrics)
+    last_char = font_metrics.first_char + length(widths) - 1
 
     %__MODULE__{
-      metrics: %{font_metrics | last_char: last_char, widths: Enum.reverse(font_metrics.widths)},
+      metrics: %{font_metrics | last_char: last_char, widths: widths},
       font_file: font_file,
       dictionary: font_file_dictionary(part1, part2, part3)
     }

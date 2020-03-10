@@ -21,7 +21,7 @@ defmodule Pdf.Page do
     page
     |> push("BT")
     |> push([x, y, "Td"])
-    |> push([s(text), "Tj"])
+    |> push([s(normalize_text(text)), "Tj"])
     |> push("ET")
   end
 
@@ -35,11 +35,11 @@ defmodule Pdf.Page do
   end
 
   def draw_lines(page, [line]) do
-    push(page, [s(line), "Tj"])
+    push(page, [s(normalize_text(line)), "Tj"])
   end
 
   def draw_lines(page, [line | tail]) do
-    draw_lines(push(page, [s(line), "Tj", "T*"]), tail)
+    draw_lines(push(page, [s(normalize_text(line)), "Tj", "T*"]), tail)
   end
 
   def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do
@@ -48,6 +48,13 @@ defmodule Pdf.Page do
     |> push([width, 0, 0, height, x, y, "cm"])
     |> push([image_name, "Do"])
     |> push("Q")
+  end
+
+  defp normalize_text(text) when is_binary(text) do
+    text
+    |> :unicode.characters_to_nfc_binary()
+    |> Pdf.Encoding.WinAnsi.encode()
+    |> String.to_charlist()
   end
 
   defimpl Pdf.Size do
