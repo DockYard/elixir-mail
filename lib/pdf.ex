@@ -85,6 +85,21 @@ defmodule Pdf do
   """
   defcall(set_title(title, _from, state), do: set_info(:title, title, state))
 
+  @doc """
+  Set multiple keys in the PDF information setion.
+
+  Valid keys
+    - `:title`
+    - `:producer`
+    - `:creator`
+    - `:created`
+    - `:modified`
+    - `:keywords`
+    - `:author`
+    - `:subject`
+  """
+  @type info_list :: keyword
+  @spec set_info(pid, info_list) :: pid
   defcall set_info(info_list, _from, %State{document: document} = state) do
     document = Document.put_info(document, info_list)
     {:reply, self(), %{state | document: document}}

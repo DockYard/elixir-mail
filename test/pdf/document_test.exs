@@ -23,6 +23,13 @@ defmodule Pdf.DocumentTest do
                "Title" => "Test Title"
              }
     end
+
+    test "it handles an invalid key" do
+      assert_raise ArgumentError, fn ->
+        Document.new()
+        |> Document.put_info(title: "Test Title", producers: "Test Producer")
+      end
+    end
   end
 
   defp get_info(document) do

@@ -48,7 +48,13 @@ defmodule Pdf.Document do
     info =
       info_list
       |> Enum.reduce(info, fn {key, value}, info ->
-        Dictionary.put(info, @info_map[key], value)
+        case @info_map[key] do
+          nil ->
+            raise ArgumentError, "Invalid info key #{inspect(key)}"
+
+          info_key ->
+            Dictionary.put(info, info_key, value)
+        end
       end)
 
     ObjectCollection.update_object(document.objects, document.info, info)
