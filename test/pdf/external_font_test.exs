@@ -8,12 +8,8 @@ defmodule Pdf.ExternalFontTest do
   @font "Verdana-Bold"
 
   setup do
-    font = ExternalFont.load("test/fonts/#{@font}.afm")
+    %ExternalFont{} = font = ExternalFont.load("test/fonts/#{@font}.afm")
     %{font: font}
-  end
-
-  test "loading a font", %{font: font} do
-    assert %ExternalFont{} = font
   end
 
   test "font metrics", %{font: font} do
