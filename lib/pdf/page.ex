@@ -70,9 +70,18 @@ defmodule Pdf.Page do
 
   defp normalize_text(text) when is_binary(text) do
     text
-    |> :unicode.characters_to_nfc_binary()
+    |> normalize_unicode_characters
     |> Pdf.Encoding.WinAnsi.encode()
     |> String.to_charlist()
+  end
+
+  # Only available from OTP 20.0
+  if Kernel.function_exported?(:unicode, :characters_to_nfc_binary, 1) do
+    defp normalize_unicode_characters(text) do
+      :unicode.characters_to_nfc_binary(text)
+    end
+  else
+    defp normalize_unicode_characters(text), do: text
   end
 
   defimpl Pdf.Size do

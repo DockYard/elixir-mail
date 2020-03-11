@@ -44,15 +44,29 @@ defmodule PdfTest do
     |> Pdf.set_font("Helvetica", 28)
     |> Pdf.text_at({200, 230}, "Back to Helvetica")
     |> Pdf.set_font("Helvetica", 16)
-    |> Pdf.text_at({200, 200}, "Normalize unicode characters:\u0065\u0301åäö")
+    |> test_normalize_unicode()
     |> Pdf.set_font("Helvetica", 10)
     |> all_win_ansi_chars({10, 180})
-    |> Pdf.text_at({50, 720}, "A string without kerning: VA\u0065\u0301åäö")
-    |> Pdf.text_at({50, 710}, "A string with kerning: VA\u0065\u0301åäö", kerning: true)
+    |> Pdf.text_at({50, 720}, "A string without kerning: VA")
+    |> Pdf.text_at({50, 710}, "A string with kerning: VA", kerning: true)
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 
     if @open, do: System.cmd("open", ["-g", file_path])
+  end
+
+  if Kernel.function_exported?(:unicode, :characters_to_nfc_binary, 1) do
+    defp test_normalize_unicode(pdf) do
+      Pdf.text_at(
+        pdf,
+        {200, 200},
+        "Normalize unicode characters:a\u0300e\u0301i\u0302o\u0303u\u0308"
+      )
+    end
+  else
+    defp test_normalize_unicode(pdf) do
+      Pdf.text_at(pdf, {200, 200}, "Normalize unicode characters: Only from OTP 20.0")
+    end
   end
 
   defp all_win_ansi_chars(pdf, offset) do
