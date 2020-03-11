@@ -22,24 +22,8 @@ defmodule Pdf.Page do
     page
     |> push("BT")
     |> push([x, y, "Td"])
-    |> push(kerned_text(font, normalize_text(text), Keyword.get(opts, :kerning, false)))
+    |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
     |> push("ET")
-  end
-
-  defp kerned_text(_font, text, false) do
-    [s(text), "Tj"]
-  end
-
-  defp kerned_text(font, text, true) do
-    text =
-      text
-      |> font.kern_text()
-      |> Enum.map(fn
-        str when is_binary(str) -> s(str)
-        num -> num
-      end)
-
-    [Pdf.Array.new(text), "TJ"]
   end
 
   def text_lines(page, {x, y}, lines, opts \\ []) do
@@ -51,15 +35,6 @@ defmodule Pdf.Page do
     |> push("ET")
   end
 
-  def draw_lines(%{current_font: %{font: font}} = page, [line], opts) do
-    push(page, kerned_text(font, normalize_text(line), Keyword.get(opts, :kerning, false)))
-  end
-
-  def draw_lines(%{current_font: %{font: font}} = page, [line | tail], opts) do
-    text = kerned_text(font, normalize_text(line), Keyword.get(opts, :kerning, false))
-    draw_lines(push(page, text ++ ["T*"]), tail, opts)
-  end
-
   def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do
     page
     |> push("q")
@@ -68,9 +43,35 @@ defmodule Pdf.Page do
     |> push("Q")
   end
 
+  defp kerned_text(_font, text, false) do
+    [s(normalize_text(text)), "Tj"]
+  end
+
+  defp kerned_text(font, text, true) do
+    text =
+      text
+      |> normalize_text()
+      |> font.kern_text()
+      |> Enum.map(fn
+        str when is_binary(str) -> s(str)
+        num -> num
+      end)
+
+    [Pdf.Array.new(text), "TJ"]
+  end
+
+  defp draw_lines(%{current_font: %{font: font}} = page, [line], opts) do
+    push(page, kerned_text(font, line, Keyword.get(opts, :kerning, false)))
+  end
+
+  defp draw_lines(%{current_font: %{font: font}} = page, [line | tail], opts) do
+    text = kerned_text(font, line, Keyword.get(opts, :kerning, false))
+    draw_lines(push(page, text ++ ["T*"]), tail, opts)
+  end
+
   defp normalize_text(text) when is_binary(text) do
     text
-    |> normalize_unicode_characters
+    |> normalize_unicode_characters()
     |> Pdf.Encoding.WinAnsi.encode()
     |> String.to_charlist()
   end
