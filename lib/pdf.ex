@@ -106,6 +106,16 @@ defmodule Pdf do
     {:reply, self(), %{state | document: document}}
   end
 
+  defcall text_wrap({x, y}, {w, h}, text, _from, %State{document: document} = state) do
+    document = Document.text_wrap(document, {x, y}, {w, h}, text)
+    {:reply, self(), %{state | document: document}}
+  end
+
+  defcall text_wrap({x, y}, {w, h}, text, opts, _from, %State{document: document} = state) do
+    document = Document.text_wrap(document, {x, y}, {w, h}, text, opts)
+    {:reply, self(), %{state | document: document}}
+  end
+
   defcall text_lines({x, y}, [_ | _] = lines, opts, _from, %State{document: document} = state) do
     document = Document.text_lines(document, {x, y}, lines, opts)
     {:reply, self(), %{state | document: document}}

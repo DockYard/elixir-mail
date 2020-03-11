@@ -27,8 +27,8 @@ defmodule Pdf.Font.Metrics do
             kern_pairs: []
 
   def widths(metrics, encoding \\ Pdf.Encoding.WinAnsi) do
-    Enum.map(encoding.characters(), fn char_code ->
-      case metrics.glyphs[char_code] do
+    Enum.map(encoding.characters(), fn {_, _, name} ->
+      case metrics.glyphs[name] do
         nil -> 0
         %{width: width} -> width
       end
@@ -74,7 +74,7 @@ defmodule Pdf.Font.Metrics do
 
   def process_line(<<"C ", _rest::binary>> = line, %{glyphs: glyphs} = metrics) do
     glyph = parse_glyph(line)
-    %{metrics | glyphs: Map.put(glyphs, glyph.char_code, glyph)}
+    %{metrics | glyphs: Map.put(glyphs, glyph.name, glyph)}
   end
 
   def process_line(<<"KPX ", data::binary>>, %{kern_pairs: kern_pairs} = metrics) do

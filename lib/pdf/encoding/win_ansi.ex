@@ -160,7 +160,7 @@ defmodule Pdf.Encoding.WinAnsi do
     {0x9D, nil, nil},
     {0x9E, 0x017E, :zcaron},
     {0x9F, 0x0178, :Ydieresis},
-    {0xA0, 0x00A0, :non_breaking_space},
+    {0xA0, 0x00A0, :space},
     {0xA1, 0x00A1, :exclamdown},
     {0xA2, 0x00A2, :cent},
     {0xA3, 0x00A3, :sterling},
@@ -173,7 +173,7 @@ defmodule Pdf.Encoding.WinAnsi do
     {0xAA, 0x00AA, :ordfeminine},
     {0xAB, 0x00AB, :guillemotleft},
     {0xAC, 0x00AC, :logicalnot},
-    {0xAD, 0x00AD, :soft_hyphen},
+    {0xAD, 0x00AD, :hyphen},
     {0xAE, 0x00AE, :registered},
     {0xAF, 0x00AF, :macron},
     {0xB0, 0x00B0, :degree},
@@ -255,7 +255,8 @@ defmodule Pdf.Encoding.WinAnsi do
     {0xFC, 0x00FC, :udieresis},
     {0xFD, 0x00FD, :yacute},
     {0xFE, 0x00FE, :thorn},
-    {0xFF, 0x00FF, :ydieresis}
+    {0xFF, 0x00FF, :ydieresis},
+    {0x200B, 0x200B, :zero_width_space}
   ]
 
   @char_info
@@ -270,7 +271,7 @@ defmodule Pdf.Encoding.WinAnsi do
   def from_name(_), do: nil
 
   def characters do
-    unquote(Enum.map(@char_info, &elem(&1, 0)))
+    Enum.map(@char_info, fn {c, u, name} -> {c, u, to_string(name)} end)
   end
 
   def encode(""), do: ""

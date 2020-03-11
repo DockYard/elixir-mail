@@ -62,6 +62,14 @@ defmodule PdfTest do
     |> Pdf.move_to({220, 550})
     |> Pdf.line_append({20, 650})
     |> Pdf.stroke()
+    |> Pdf.rectangle({250, 550}, {200, 100})
+    |> Pdf.set_stroke_color(:gray)
+    |> Pdf.stroke()
+    |> Pdf.text_wrap(
+      {250, 550},
+      {200, 100},
+      "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit."
+    )
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 

@@ -1,5 +1,5 @@
 defmodule Pdf.Page do
-  defstruct size: :a4, stream: nil, current_font: nil
+  defstruct size: :a4, stream: nil, current_font: nil, current_font_size: 0
 
   import Pdf.Utils
   alias Pdf.{Image, Stream, Text}
@@ -48,7 +48,7 @@ defmodule Pdf.Page do
 
   def set_font(page, document, font_name, font_size) do
     font = document.fonts[font_name]
-    page = %{page | current_font: font}
+    page = %{page | current_font: font, current_font_size: font_size}
     push(page, [font.name, font_size, "Tf"])
   end
 
@@ -58,6 +58,13 @@ defmodule Pdf.Page do
     |> push([x, y, "Td"])
     |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
     |> push("ET")
+  end
+
+  def text_wrap(%{current_font: %{font: font}} = page, {x, y}, {w, h}, text, opts \\ []) do
+    top_offset = font.ascender * page.current_font_size / 1000
+    text_chunks = Text.wrap(font, page.current_font_size, text, w, opts)
+
+    text_lines(page, {x, y + h - top_offset}, text_chunks, opts)
   end
 
   def text_lines(page, {x, y}, lines, opts \\ []) do

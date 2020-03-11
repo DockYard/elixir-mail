@@ -76,6 +76,7 @@ defmodule Pdf.Document do
     {:move_to, quote(do: [{x, y}])},
     {:line_append, quote(do: [{x, y}])},
     {:text_at, quote(do: [{x, y}, text, opts])},
+    {:text_wrap, quote(do: [{x, y}, {w, h}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
     {:stroke, []}
   ]
@@ -93,6 +94,8 @@ defmodule Pdf.Document do
   end
 
   def text_at(document, xy, text), do: text_at(document, xy, text, [])
+
+  def text_wrap(document, xy, wh, text), do: text_wrap(document, xy, wh, text, [])
 
   def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 

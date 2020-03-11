@@ -63,8 +63,8 @@ defmodule Pdf.Font do
       def width(char_code)
 
       WinAnsi.characters()
-      |> Enum.each(fn char_code ->
-        case metrics.glyphs[char_code] do
+      |> Enum.each(fn {char_code, _, name} ->
+        case metrics.glyphs[name] do
           nil ->
             def width(unquote(char_code)), do: 0
 
