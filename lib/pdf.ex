@@ -30,6 +30,62 @@ defmodule Pdf do
     {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), state}
   end
 
+  @type color_name :: atom
+  @type rgb :: {integer, integer, integer} | {float, float, float}
+  @type cmyk :: {float, float, float, float}
+  @spec set_fill_color(pid, color_name | rgb | cmyk) :: pid
+  defcall set_fill_color(color, _from, %State{document: document} = state) do
+    document = Document.set_fill_color(document, color)
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec set_stroke_color(pid, color_name | rgb | cmyk) :: pid
+  defcall set_stroke_color(color, _from, %State{document: document} = state) do
+    document = Document.set_stroke_color(document, color)
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec set_line_width(pid, integer) :: pid
+  defcall set_line_width(width, _from, %State{document: document} = state) do
+    document = Document.set_line_width(document, width)
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @type x :: integer
+  @type y :: integer
+  @type width :: integer
+  @type height :: integer
+
+  @spec rectangle(pid, {x, y}, {width, height}) :: pid
+  defcall rectangle({x, y}, {w, h}, _from, %State{document: document} = state) do
+    document = Document.rectangle(document, {x, y}, {w, h})
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec line(pid, {x, y}, {x, y}) :: pid
+  defcall line({x, y}, {x2, y2}, _from, %State{document: document} = state) do
+    document = Document.line(document, {x, y}, {x2, y2})
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec move_to(pid, {x, y}) :: pid
+  defcall move_to({x, y}, _from, %State{document: document} = state) do
+    document = Document.move_to(document, {x, y})
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec line_append(pid, {x, y}) :: pid
+  defcall line_append({x, y}, _from, %State{document: document} = state) do
+    document = Document.line_append(document, {x, y})
+    {:reply, self(), %{state | document: document}}
+  end
+
+  @spec stroke(pid) :: pid
+  defcall stroke(_from, %State{document: document} = state) do
+    document = Document.stroke(document)
+    {:reply, self(), %{state | document: document}}
+  end
+
   defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
     document = Document.set_font(document, font_name, font_size)
     {:reply, self(), %{state | document: document}}

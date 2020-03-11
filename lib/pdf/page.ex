@@ -12,6 +12,40 @@ defmodule Pdf.Page do
 
   def push(page, command), do: %{page | stream: Stream.push(page.stream, command)}
 
+  def set_fill_color(page, color) do
+    push(page, color_command(color, fill_command(color)))
+  end
+
+  def set_stroke_color(page, color) do
+    push(page, color_command(color, stroke_command(color)))
+  end
+
+  def set_line_width(page, width) do
+    push(page, [width, "w"])
+  end
+
+  def rectangle(page, {x, y}, {w, h}) do
+    push(page, [x, y, w, h, "re"])
+  end
+
+  def line(page, {x, y}, {x2, y2}) do
+    page
+    |> move_to({x, y})
+    |> line_append({x2, y2})
+  end
+
+  def move_to(page, {x, y}) do
+    push(page, [x, y, "m"])
+  end
+
+  def line_append(page, {x, y}) do
+    push(page, [x, y, "l"])
+  end
+
+  def stroke(page) do
+    push(page, ["S"])
+  end
+
   def set_font(page, document, font_name, font_size) do
     font = document.fonts[font_name]
     page = %{page | current_font: font}
@@ -84,6 +118,36 @@ defmodule Pdf.Page do
   else
     defp normalize_unicode_characters(text), do: text
   end
+
+  defp color_command(color_name, command) when is_atom(color_name) do
+    color = Pdf.Color.color(color_name)
+    color_command(color, command)
+  end
+
+  defp color_command({r, g, b}, command) when is_integer(r) and is_integer(g) and is_integer(b) do
+    [r / 255.0, g / 255.0, b / 255.0, command]
+  end
+
+  defp color_command({r, g, b}, command) when is_float(r) and is_float(g) and is_float(b) do
+    [r, g, b, command]
+  end
+
+  defp color_command({r, g, b}, command) when is_float(r) and is_float(g) and is_float(b) do
+    [r, g, b, command]
+  end
+
+  defp color_command({c, m, y, k}, command)
+       when is_float(c) and is_float(m) and is_float(y) and is_float(k) do
+    [c, m, y, k, command]
+  end
+
+  defp fill_command(color_name) when is_atom(color_name), do: "rg"
+  defp fill_command({_r, _g, _b}), do: "rg"
+  defp fill_command({_c, _m, _y, _k}), do: "k"
+
+  defp stroke_command(color_name) when is_atom(color_name), do: "RG"
+  defp stroke_command({_r, _g, _b}), do: "RG"
+  defp stroke_command({_c, _m, _y, _k}), do: "K"
 
   defimpl Pdf.Size do
     def size_of(%Pdf.Page{} = page), do: Pdf.Size.size_of(page.stream)

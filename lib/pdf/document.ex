@@ -66,6 +66,46 @@ defmodule Pdf.Document do
     def put_info(document, unquote(key), value), do: put_info(document, [{unquote(key), value}])
   end)
 
+  def set_fill_color(%__MODULE__{current: page} = document, color) do
+    page = Page.set_fill_color(page, color)
+    %{document | current: page}
+  end
+
+  def set_stroke_color(%__MODULE__{current: page} = document, color) do
+    page = Page.set_stroke_color(page, color)
+    %{document | current: page}
+  end
+
+  def set_line_width(%__MODULE__{current: page} = document, width) do
+    page = Page.set_line_width(page, width)
+    %{document | current: page}
+  end
+
+  def rectangle(%__MODULE__{current: page} = document, {x, y}, {w, h}) do
+    page = Page.rectangle(page, {x, y}, {w, h})
+    %{document | current: page}
+  end
+
+  def line(%__MODULE__{current: page} = document, {x, y}, {x2, y2}) do
+    page = Page.line(page, {x, y}, {x2, y2})
+    %{document | current: page}
+  end
+
+  def move_to(%__MODULE__{current: page} = document, {x, y}) do
+    page = Page.move_to(page, {x, y})
+    %{document | current: page}
+  end
+
+  def line_append(%__MODULE__{current: page} = document, {x, y}) do
+    page = Page.line_append(page, {x, y})
+    %{document | current: page}
+  end
+
+  def stroke(%__MODULE__{current: page} = document) do
+    page = Page.stroke(page)
+    %{document | current: page}
+  end
+
   def set_font(%__MODULE__{current: page} = document, font_name, font_size) do
     document = add_font(document, font_name)
     page = Page.set_font(page, document, font_name, font_size)
