@@ -2,7 +2,7 @@ defmodule Pdf.Page do
   defstruct size: :a4, stream: nil, current_font: nil
 
   import Pdf.Utils
-  alias Pdf.{Image, Stream}
+  alias Pdf.{Image, Stream, Text}
 
   def new(opts \\ [size: :a4]), do: init(opts, %__MODULE__{stream: Stream.new()})
 
@@ -78,13 +78,13 @@ defmodule Pdf.Page do
   end
 
   defp kerned_text(_font, text, false) do
-    [s(normalize_text(text)), "Tj"]
+    [s(Text.normalize_string(text)), "Tj"]
   end
 
   defp kerned_text(font, text, true) do
     text =
       text
-      |> normalize_text()
+      |> Text.normalize_string()
       |> font.kern_text()
       |> Enum.map(fn
         str when is_binary(str) -> s(str)
@@ -101,22 +101,6 @@ defmodule Pdf.Page do
   defp draw_lines(%{current_font: %{font: font}} = page, [line | tail], opts) do
     text = kerned_text(font, line, Keyword.get(opts, :kerning, false))
     draw_lines(push(page, text ++ ["T*"]), tail, opts)
-  end
-
-  defp normalize_text(text) when is_binary(text) do
-    text
-    |> normalize_unicode_characters()
-    |> Pdf.Encoding.WinAnsi.encode()
-    |> String.to_charlist()
-  end
-
-  # Only available from OTP 20.0
-  if Kernel.function_exported?(:unicode, :characters_to_nfc_binary, 1) do
-    defp normalize_unicode_characters(text) do
-      :unicode.characters_to_nfc_binary(text)
-    end
-  else
-    defp normalize_unicode_characters(text), do: text
   end
 
   defp color_command(color_name, command) when is_atom(color_name) do

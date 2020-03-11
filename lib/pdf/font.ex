@@ -4,7 +4,7 @@ defmodule Pdf.Font do
   import Pdf.Utils
   alias Pdf.Font.Metrics
   alias Pdf.Encoding.WinAnsi
-  alias Pdf.{Array, Dictionary}
+  alias Pdf.{Array, Dictionary, Text}
 
   font_metrics =
     Path.join(__DIR__, "../../fonts/*.afm")
@@ -76,17 +76,37 @@ defmodule Pdf.Font do
       @doc ~S"""
       Returns the width of the string in font units (1/1000 of font scale factor)
       """
-      def text_width(string) do
-        string
-        |> String.to_charlist()
-        |> Enum.reduce(0, &(&2 + width(&1)))
+      def text_width(string), do: text_width(string, [])
+
+      def text_width(string, opts) when is_list(opts) do
+        normalized_string = Text.normalize_string(string)
+
+        string_width =
+          normalized_string
+          |> Enum.reduce(0, &(&2 + width(&1)))
+
+        kerning_adjustments =
+          if Keyword.get(opts, :kerning, false) do
+            normalized_string
+            |> kern_text()
+            |> Enum.reject(&is_binary/1)
+            |> Enum.reduce(0, &Kernel.+/2)
+          else
+            0
+          end
+
+        string_width - kerning_adjustments
       end
 
       @doc ~S"""
       Returns the width of a string in points (72 points = 1 inch)
       """
-      def text_width(string, font_size) do
-        width = text_width(string)
+      def text_width(string, font_size) when is_integer(font_size) do
+        text_width(string, font_size, [])
+      end
+
+      def text_width(string, font_size, opts) when is_integer(font_size) do
+        width = text_width(string, opts)
         width * font_size / 1000
       end
 
