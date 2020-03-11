@@ -66,45 +66,25 @@ defmodule Pdf.Document do
     def put_info(document, unquote(key), value), do: put_info(document, [{unquote(key), value}])
   end)
 
-  def set_fill_color(%__MODULE__{current: page} = document, color) do
-    page = Page.set_fill_color(page, color)
-    %{document | current: page}
-  end
-
-  def set_stroke_color(%__MODULE__{current: page} = document, color) do
-    page = Page.set_stroke_color(page, color)
-    %{document | current: page}
-  end
-
-  def set_line_width(%__MODULE__{current: page} = document, width) do
-    page = Page.set_line_width(page, width)
-    %{document | current: page}
-  end
-
-  def rectangle(%__MODULE__{current: page} = document, {x, y}, {w, h}) do
-    page = Page.rectangle(page, {x, y}, {w, h})
-    %{document | current: page}
-  end
-
-  def line(%__MODULE__{current: page} = document, {x, y}, {x2, y2}) do
-    page = Page.line(page, {x, y}, {x2, y2})
-    %{document | current: page}
-  end
-
-  def move_to(%__MODULE__{current: page} = document, {x, y}) do
-    page = Page.move_to(page, {x, y})
-    %{document | current: page}
-  end
-
-  def line_append(%__MODULE__{current: page} = document, {x, y}) do
-    page = Page.line_append(page, {x, y})
-    %{document | current: page}
-  end
-
-  def stroke(%__MODULE__{current: page} = document) do
-    page = Page.stroke(page)
-    %{document | current: page}
-  end
+  # Pass-through functions that update the current page
+  [
+    {:set_fill_color, quote(do: [color])},
+    {:set_stroke_color, quote(do: [color])},
+    {:set_line_width, quote(do: [width])},
+    {:rectangle, quote(do: [{x, y}, {w, h}])},
+    {:line, quote(do: [{x, y}, {x2, y2}])},
+    {:move_to, quote(do: [{x, y}])},
+    {:line_append, quote(do: [{x, y}])},
+    {:text_at, quote(do: [{x, y}, text, opts])},
+    {:text_lines, quote(do: [{x, y}, lines, opts])},
+    {:stroke, []}
+  ]
+  |> Enum.map(fn {func_name, args} ->
+    def unquote(func_name)(%__MODULE__{current: page} = document, unquote_splicing(args)) do
+      page = Page.unquote(func_name)(page, unquote_splicing(args))
+      %{document | current: page}
+    end
+  end)
 
   def set_font(%__MODULE__{current: page} = document, font_name, font_size) do
     document = add_font(document, font_name)
@@ -112,13 +92,9 @@ defmodule Pdf.Document do
     %{document | current: page}
   end
 
-  def text_at(%__MODULE__{current: page} = document, {x, y}, text, opts \\ []) do
-    %{document | current: Page.text_at(page, {x, y}, text, opts)}
-  end
+  def text_at(document, xy, text), do: text_at(document, xy, text, [])
 
-  def text_lines(%__MODULE__{current: page} = document, {x, y}, lines, opts \\ []) do
-    %{document | current: Page.text_lines(page, {x, y}, lines, opts)}
-  end
+  def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 
   def add_image(%__MODULE__{current: page} = document, {x, y}, image_path) do
     document = create_image(document, image_path)
