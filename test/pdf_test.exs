@@ -65,6 +65,7 @@ defmodule PdfTest do
     |> Pdf.rectangle({250, 550}, {200, 100})
     |> Pdf.set_stroke_color(:gray)
     |> Pdf.stroke()
+    |> Pdf.set_text_leading(14)
     |> Pdf.text_wrap(
       {250, 550},
       {200, 100},

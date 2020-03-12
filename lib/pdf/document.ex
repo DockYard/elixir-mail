@@ -75,6 +75,7 @@ defmodule Pdf.Document do
     {:line, quote(do: [{x, y}, {x2, y2}])},
     {:move_to, quote(do: [{x, y}])},
     {:line_append, quote(do: [{x, y}])},
+    {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
     {:text_wrap, quote(do: [{x, y}, {w, h}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},

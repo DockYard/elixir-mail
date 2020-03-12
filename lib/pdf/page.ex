@@ -1,5 +1,5 @@
 defmodule Pdf.Page do
-  defstruct size: :a4, stream: nil, current_font: nil, current_font_size: 0
+  defstruct size: :a4, stream: nil, current_font: nil, current_font_size: 0, leading: nil
 
   import Pdf.Utils
   alias Pdf.{Image, Stream, Text}
@@ -52,6 +52,10 @@ defmodule Pdf.Page do
     push(page, [font.name, font_size, "Tf"])
   end
 
+  def set_text_leading(page, leading) do
+    %{page | leading: leading}
+  end
+
   def text_at(%{current_font: %{font: font}} = page, {x, y}, text, opts \\ []) do
     page
     |> push("BT")
@@ -68,10 +72,12 @@ defmodule Pdf.Page do
   end
 
   def text_lines(page, {x, y}, lines, opts \\ []) do
+    leading = page.leading || page.current_font_size
+
     page
     |> push("BT")
     |> push([x, y, "Td"])
-    |> push([14, "TL"])
+    |> push([leading, "TL"])
     |> draw_lines(lines, opts)
     |> push("ET")
   end

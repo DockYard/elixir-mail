@@ -96,6 +96,11 @@ defmodule Pdf do
     {:reply, self(), %{state | document: document}}
   end
 
+  defcall set_text_leading(leading, _from, %State{document: document} = state) do
+    document = Document.set_text_leading(document, leading)
+    {:reply, self(), %{state | document: document}}
+  end
+
   defcall text_at({x, y}, text, _from, %State{document: document} = state) do
     document = Document.text_at(document, {x, y}, text)
     {:reply, self(), %{state | document: document}}
