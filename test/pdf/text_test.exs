@@ -94,13 +94,53 @@ defmodule Pdf.TextTest do
       assert Text.wrap(font, font_size, string, width) == ["foo bar-", "baz"]
     end
 
-    test "It wraps after " do
+    test "it does not break after a hyphen that follows white space and precedes a word" do
       font = Pdf.Font.Helvetica
       font_size = 10
-      string = "foo bar-baz"
-      width = font.text_width("foo bar-b", font_size)
+      string = "Hello -world"
 
-      assert Text.wrap(font, font_size, string, width) == ["foo bar-", "baz"]
+      width = font.text_width("Hello  ", font_size)
+      assert Text.wrap(font, font_size, string, width) == ["Hello", "-world"]
+    end
+
+    test "it does not break before a hyphen that follows a word" do
+      font = Pdf.Font.Helvetica
+      font_size = 10
+      string = "Hello world-"
+
+      width = font.text_width("Hello world", font_size)
+      assert Text.wrap(font, font_size, string, width) == ["Hello", "world-"]
+    end
+
+    test "it does not break after a hyphen that follows a soft hyphen and precedes a word" do
+      font = Pdf.Font.Helvetica
+      font_size = 10
+      string = "Hello\u00AD-"
+
+      width = font.text_width("Hello-", font_size)
+
+      assert Text.wrap(font, font_size, string, width) == ["Hello-"]
+
+      string = "Hello\u00AD-world"
+      assert Text.wrap(font, font_size, string, width) == ["Hello\u00AD", "-world"]
+    end
+
+    test "it wraps on a soft hyphen" do
+      font = Pdf.Font.Helvetica
+      font_size = 10
+      string = "Hello\u00ADworld"
+
+      width = font.text_width("Hello  ", font_size)
+      assert Text.wrap(font, font_size, string, width) == ["Hello\u00AD", "world"]
+    end
+
+    test "it removes unused soft-hyphens" do
+      font = Pdf.Font.Helvetica
+      font_size = 10
+      string = "Hello\u00ADworld"
+
+      width = font.text_width("Helloworld", font_size)
+      assert Text.wrap(font, font_size, string, width) == ["Helloworld"]
     end
   end
 end

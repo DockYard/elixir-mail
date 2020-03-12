@@ -1,7 +1,23 @@
 defmodule Pdf.Text do
   def wrap(font, font_size, string, width, opts \\ []) do
-    string
-    |> String.split(~r/[\t \n#{"\u200B"}-]/u, include_captures: true)
+    zero_width_space = "\u200B"
+    soft_hyphen = "\u00AD"
+    hyphen = "-"
+    whitespace = "\s\t#{zero_width_space}\n"
+    break_chars = " \t\n\v\r#{zero_width_space}#{soft_hyphen}#{hyphen}"
+
+    [
+      "([^#{break_chars}]+)(#{soft_hyphen})",
+      "([^#{break_chars}]+#{hyphen}+)",
+      "([^#{break_chars}]+)",
+      "([#{whitespace}])",
+      "(#{hyphen}+[^#{break_chars}]*)"
+    ]
+    |> Enum.join("|")
+    |> Regex.compile!("u")
+    |> Regex.scan(string, capture: :all_but_first)
+    |> Enum.flat_map(& &1)
+    |> Enum.reject(&(&1 == ""))
     |> Enum.map(&{&1, font.text_width(&1, font_size, opts)})
     |> wrap_chunks(width)
     |> Enum.map(fn chunks ->
@@ -39,6 +55,13 @@ defmodule Pdf.Text do
 
   defp wrap_chunks([{_string, width} = chunk | tail], wrap_width, acc_width, acc)
        when width + acc_width <= wrap_width do
+    wrap_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
+  end
+
+  defp wrap_chunks([{_string, width} = chunk | tail], wrap_width, acc_width, [
+         {"\u00AD", soft_hyphen_width} | acc
+       ])
+       when width + acc_width - soft_hyphen_width <= wrap_width do
     wrap_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
   end
 
