@@ -1,5 +1,5 @@
 defmodule Pdf.Stream do
-  defstruct size: 0, content: []
+  defstruct compress: false, size: 0, content: []
 
   import Pdf.Size
   import Pdf.Utils
@@ -8,6 +8,7 @@ defmodule Pdf.Stream do
   @stream_start "\nstream\n"
   @stream_end "endstream"
 
+  def new(compress: level), do: %__MODULE__{compress: level}
   def new, do: %__MODULE__{}
 
   def push(stream, {:command, _} = command) do
@@ -17,12 +18,7 @@ defmodule Pdf.Stream do
 
   def push(stream, command), do: push(stream, c(command))
 
-  def size(stream) do
-    dictionary = Dictionary.new() |> Dictionary.put("Length", stream.size)
-    Dictionary.size(dictionary) + stream.size + byte_size(@stream_start <> @stream_end)
-  end
-
-  def to_iolist(stream) do
+  def to_iolist(%{compress: false} = stream) do
     dictionary = Dictionary.new(%{"Length" => stream.size})
 
     Pdf.Export.to_iolist([
@@ -33,8 +29,32 @@ defmodule Pdf.Stream do
     ])
   end
 
-  defimpl Pdf.Size do
-    def size_of(%Pdf.Stream{} = stream), do: Pdf.Stream.size(stream)
+  def to_iolist(%{compress: level} = stream) do
+    compressed =
+      stream.content
+      |> Enum.reverse()
+      |> Pdf.Export.to_iolist()
+      # We would usually return a structure but now we need to export the structure so it can be compressed
+      |> Pdf.Export.to_iolist()
+      |> compress(level)
+
+    dictionary =
+      Dictionary.new(%{"Length" => byte_size(compressed), "Filter" => {:name, "FlateDecode"}})
+
+    Pdf.Export.to_iolist([
+      dictionary,
+      @stream_start,
+      compressed,
+      @stream_end
+    ])
+  end
+
+  defp compress(iodata, level) do
+    z = :zlib.open()
+    :zlib.deflateInit(z, level)
+    [compressed] = :zlib.deflate(z, iodata, :finish)
+    :zlib.deflateEnd(z)
+    compressed
   end
 
   defimpl Pdf.Export do

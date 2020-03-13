@@ -14,7 +14,7 @@ defmodule Pdf do
 
   def delete(pdf), do: GenServer.stop(pdf)
 
-  def init(_args), do: {:ok, Document.new()}
+  def init(opts), do: {:ok, Document.new(opts)}
 
   defcall write_to(path, _from, document) do
     File.write!(path, Document.to_iolist(document))

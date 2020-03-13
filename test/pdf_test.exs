@@ -6,7 +6,7 @@ defmodule PdfTest do
   test "new/1" do
     file_path = output("qtest.pdf")
 
-    {:ok, pdf} = Pdf.new(size: :a4)
+    {:ok, pdf} = Pdf.new(size: :a4, compress: false)
 
     pdf
     |> Pdf.set_info(
