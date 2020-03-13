@@ -39,7 +39,7 @@ defmodule Pdf.Stream do
       |> compress(level)
 
     dictionary =
-      Dictionary.new(%{"Length" => byte_size(compressed), "Filter" => {:name, "FlateDecode"}})
+      Dictionary.new(%{"Length" => byte_size(compressed), "Filter" => n("FlateDecode")})
 
     Pdf.Export.to_iolist([
       dictionary,
