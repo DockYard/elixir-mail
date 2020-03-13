@@ -4,6 +4,7 @@ defmodule Pdf.Page do
             fonts: nil,
             current_font: nil,
             current_font_size: 0,
+            fill_color: :black,
             leading: nil
 
   import Pdf.Utils
@@ -26,8 +27,10 @@ defmodule Pdf.Page do
 
   def push(page, command), do: %{page | stream: Stream.push(page.stream, command)}
 
+  def set_fill_color(%{fill_color: color} = page, color), do: page
+
   def set_fill_color(page, color) do
-    push(page, color_command(color, fill_command(color)))
+    push(%{page | fill_color: color}, color_command(color, fill_command(color)))
   end
 
   def set_stroke_color(page, color) do
@@ -60,21 +63,87 @@ defmodule Pdf.Page do
     push(page, ["S"])
   end
 
-  def set_font(%{fonts: fonts} = page, name, size, opts) do
+  def set_font(%{fonts: fonts} = page, name, size, opts \\ []) do
     font = Fonts.get_font(fonts, name, opts)
-    push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
+
+    if page.current_font == font && page.current_font_size == size do
+      page
+    else
+      push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
+    end
   end
 
   def set_text_leading(page, leading) do
     %{page | leading: leading}
   end
 
-  def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts \\ []) do
+  def text_at(page, xy, text, opts \\ [])
+
+  def text_at(page, {x, y}, attributed_text, opts) when is_list(attributed_text) do
+    attributed_text = annotate_attributed_text(attributed_text, page, opts)
+
+    page =
+      page
+      |> push("BT")
+      |> push([x, y, "Td"])
+
+    page =
+      attributed_text
+      |> Enum.reduce(page, fn {text, opts}, page ->
+        page
+        |> set_font(opts[:font].module.name, opts[:size], opts)
+        |> set_fill_color(opts[:color])
+        |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
+        |> push([opts[:width], 0, "TD"])
+      end)
+
+    # |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
+    page
+    |> push("ET")
+  end
+
+  def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
     page
     |> push("BT")
     |> push([x, y, "Td"])
     |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
     |> push("ET")
+  end
+
+  defp annotate_attributed_text(
+         attributed_text,
+         %{fonts: fonts, current_font: %{module: font}} = page,
+         overall_opts
+       ) do
+    attributed_text
+    |> Enum.map(fn
+      str when is_binary(str) -> {str, []}
+      {str} -> {str, []}
+      {str, opts} -> {str, opts}
+    end)
+    |> Enum.map(fn {text, opts} ->
+      font = Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
+      font_size = Keyword.get(opts, :size, page.current_font_size)
+      color = Keyword.get(opts, :color, page.fill_color)
+
+      height = font_size
+      ascender = font.module.ascender * font_size / 1000
+
+      width = font.module.text_width(text, font_size, opts)
+
+      {text,
+       Keyword.merge(
+         overall_opts,
+         Keyword.merge(opts,
+           ascender: ascender,
+           color: color,
+           font: font,
+           height: height,
+           size: font_size,
+           width: width
+         )
+       )}
+    end)
   end
 
   def text_wrap(%{current_font: %{module: font}} = page, {x, y}, {w, h}, text, opts \\ []) do

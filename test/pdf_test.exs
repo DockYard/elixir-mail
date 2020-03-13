@@ -65,11 +65,22 @@ defmodule PdfTest do
     |> Pdf.rectangle({250, 550}, {200, 100})
     |> Pdf.set_stroke_color(:gray)
     |> Pdf.stroke()
+    |> Pdf.set_fill_color(:black)
     |> Pdf.set_text_leading(14)
     |> Pdf.text_wrap(
       {250, 550},
       {200, 100},
       "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit."
+    )
+    |> Pdf.text_at(
+      {50, 500},
+      [
+        {"Lorem "},
+        {"ipsum dolor ", bold: true, size: 12},
+        {"sit amet", color: :red},
+        {", consectetur ", italic: true, size: 14},
+        {"adipiscing elit", bold: true, italic: true}
+      ]
     )
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
