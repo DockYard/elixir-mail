@@ -1,9 +1,4 @@
 defmodule Pdf do
-  defmodule State do
-    @moduledoc false
-    defstruct document: nil
-  end
-
   use GenServer
   import Pdf.Util.GenServerMacros
   alias Pdf.Document
@@ -19,36 +14,33 @@ defmodule Pdf do
 
   def delete(pdf), do: GenServer.stop(pdf)
 
-  def init(_args), do: {:ok, %State{document: Document.new()}}
+  def init(_args), do: {:ok, Document.new()}
 
-  defcall write_to(path, _from, %State{document: document} = state) do
+  defcall write_to(path, _from, document) do
     File.write!(path, Document.to_iolist(document))
-    {:reply, self(), state}
+    {:reply, self(), document}
   end
 
-  defcall export(_from, %State{document: document} = state) do
-    {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), state}
+  defcall export(_from, document) do
+    {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), document}
   end
 
   @type color_name :: atom
   @type rgb :: {integer, integer, integer} | {float, float, float}
   @type cmyk :: {float, float, float, float}
   @spec set_fill_color(pid, color_name | rgb | cmyk) :: pid
-  defcall set_fill_color(color, _from, %State{document: document} = state) do
-    document = Document.set_fill_color(document, color)
-    {:reply, self(), %{state | document: document}}
+  defcall set_fill_color(color, _from, document) do
+    {:reply, self(), Document.set_fill_color(document, color)}
   end
 
   @spec set_stroke_color(pid, color_name | rgb | cmyk) :: pid
-  defcall set_stroke_color(color, _from, %State{document: document} = state) do
-    document = Document.set_stroke_color(document, color)
-    {:reply, self(), %{state | document: document}}
+  defcall set_stroke_color(color, _from, document) do
+    {:reply, self(), Document.set_stroke_color(document, color)}
   end
 
   @spec set_line_width(pid, integer) :: pid
-  defcall set_line_width(width, _from, %State{document: document} = state) do
-    document = Document.set_line_width(document, width)
-    {:reply, self(), %{state | document: document}}
+  defcall set_line_width(width, _from, document) do
+    {:reply, self(), Document.set_line_width(document, width)}
   end
 
   @type x :: integer
@@ -57,84 +49,69 @@ defmodule Pdf do
   @type height :: integer
 
   @spec rectangle(pid, {x, y}, {width, height}) :: pid
-  defcall rectangle({x, y}, {w, h}, _from, %State{document: document} = state) do
-    document = Document.rectangle(document, {x, y}, {w, h})
-    {:reply, self(), %{state | document: document}}
+  defcall rectangle({x, y}, {w, h}, _from, document) do
+    {:reply, self(), Document.rectangle(document, {x, y}, {w, h})}
   end
 
   @spec line(pid, {x, y}, {x, y}) :: pid
-  defcall line({x, y}, {x2, y2}, _from, %State{document: document} = state) do
-    document = Document.line(document, {x, y}, {x2, y2})
-    {:reply, self(), %{state | document: document}}
+  defcall line({x, y}, {x2, y2}, _from, document) do
+    {:reply, self(), Document.line(document, {x, y}, {x2, y2})}
   end
 
   @spec move_to(pid, {x, y}) :: pid
-  defcall move_to({x, y}, _from, %State{document: document} = state) do
-    document = Document.move_to(document, {x, y})
-    {:reply, self(), %{state | document: document}}
+  defcall move_to({x, y}, _from, document) do
+    {:reply, self(), Document.move_to(document, {x, y})}
   end
 
   @spec line_append(pid, {x, y}) :: pid
-  defcall line_append({x, y}, _from, %State{document: document} = state) do
-    document = Document.line_append(document, {x, y})
-    {:reply, self(), %{state | document: document}}
+  defcall line_append({x, y}, _from, document) do
+    {:reply, self(), Document.line_append(document, {x, y})}
   end
 
   @spec stroke(pid) :: pid
-  defcall stroke(_from, %State{document: document} = state) do
-    document = Document.stroke(document)
-    {:reply, self(), %{state | document: document}}
+  defcall stroke(_from, document) do
+    {:reply, self(), Document.stroke(document)}
   end
 
-  defcall set_font(font_name, font_size, _from, %State{document: document} = state) do
-    document = Document.set_font(document, font_name, font_size)
-    {:reply, self(), %{state | document: document}}
+  defcall set_font(font_name, font_size, _from, document) do
+    {:reply, self(), Document.set_font(document, font_name, font_size)}
   end
 
-  defcall add_font(path, _from, %State{document: document} = state) do
-    document = Document.add_external_font(document, path)
-    {:reply, self(), %{state | document: document}}
+  defcall add_font(path, _from, document) do
+    {:reply, self(), Document.add_external_font(document, path)}
   end
 
-  defcall set_text_leading(leading, _from, %State{document: document} = state) do
-    document = Document.set_text_leading(document, leading)
-    {:reply, self(), %{state | document: document}}
+  defcall set_text_leading(leading, _from, document) do
+    {:reply, self(), Document.set_text_leading(document, leading)}
   end
 
-  defcall text_at({x, y}, text, _from, %State{document: document} = state) do
-    document = Document.text_at(document, {x, y}, text)
-    {:reply, self(), %{state | document: document}}
+  defcall text_at({x, y}, text, _from, document) do
+    {:reply, self(), Document.text_at(document, {x, y}, text)}
   end
 
-  defcall text_at({x, y}, text, opts, _from, %State{document: document} = state) do
-    document = Document.text_at(document, {x, y}, text, opts)
-    {:reply, self(), %{state | document: document}}
+  defcall text_at({x, y}, text, opts, _from, document) do
+    {:reply, self(), Document.text_at(document, {x, y}, text, opts)}
   end
 
-  defcall text_wrap({x, y}, {w, h}, text, _from, %State{document: document} = state) do
-    document = Document.text_wrap(document, {x, y}, {w, h}, text)
-    {:reply, self(), %{state | document: document}}
+  defcall text_wrap({x, y}, {w, h}, text, _from, document) do
+    {:reply, self(), Document.text_wrap(document, {x, y}, {w, h}, text)}
   end
 
-  defcall text_wrap({x, y}, {w, h}, text, opts, _from, %State{document: document} = state) do
-    document = Document.text_wrap(document, {x, y}, {w, h}, text, opts)
-    {:reply, self(), %{state | document: document}}
+  defcall text_wrap({x, y}, {w, h}, text, opts, _from, document) do
+    {:reply, self(), Document.text_wrap(document, {x, y}, {w, h}, text, opts)}
   end
 
-  defcall text_lines({x, y}, [_ | _] = lines, opts, _from, %State{document: document} = state) do
-    document = Document.text_lines(document, {x, y}, lines, opts)
-    {:reply, self(), %{state | document: document}}
+  defcall text_lines({x, y}, [_ | _] = lines, opts, _from, document) do
+    {:reply, self(), Document.text_lines(document, {x, y}, lines, opts)}
   end
 
-  defcall text_lines({x, y}, [_ | _] = lines, _from, %State{document: document} = state) do
-    document = Document.text_lines(document, {x, y}, lines)
-    {:reply, self(), %{state | document: document}}
+  defcall text_lines({x, y}, [_ | _] = lines, _from, document) do
+    {:reply, self(), Document.text_lines(document, {x, y}, lines)}
   end
 
-  defcall(
-    add_image({x, y}, image_path, _from, %State{document: document} = state),
-    do: {:reply, self(), %{state | document: Document.add_image(document, {x, y}, image_path)}}
-  )
+  defcall add_image({x, y}, image_path, _from, document) do
+    {:reply, self(), Document.add_image(document, {x, y}, image_path)}
+  end
 
   @doc """
   Sets the author in the PDF information section.
@@ -181,13 +158,11 @@ defmodule Pdf do
   """
   @type info_list :: keyword
   @spec set_info(pid, info_list) :: pid
-  defcall set_info(info_list, _from, %State{document: document} = state) do
-    document = Document.put_info(document, info_list)
-    {:reply, self(), %{state | document: document}}
+  defcall set_info(info_list, _from, document) do
+    {:reply, self(), Document.put_info(document, info_list)}
   end
 
-  defp set_info(key, value, %State{document: document} = state) do
-    document = Document.put_info(document, key, value)
-    {:reply, self(), %{state | document: document}}
+  defp set_info(key, value, document) do
+    {:reply, self(), Document.put_info(document, key, value)}
   end
 end
