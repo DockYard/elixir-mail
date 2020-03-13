@@ -1,12 +1,19 @@
 defmodule Pdf.Page do
-  defstruct size: :a4, stream: nil, current_font: nil, current_font_size: 0, leading: nil
+  defstruct size: :a4,
+            stream: nil,
+            fonts: nil,
+            current_font: nil,
+            current_font_size: 0,
+            leading: nil
 
   import Pdf.Utils
-  alias Pdf.{Image, Stream, Text}
+  alias Pdf.{Image, Fonts, Stream, Text}
 
   def new(opts \\ [size: :a4]), do: init(opts, %__MODULE__{stream: Stream.new()})
 
   defp init([], page), do: page
+  defp init([{:fonts, fonts} | tail], page), do: init(tail, %{page | fonts: fonts})
+
   defp init([{:size, size} | tail], page), do: init(tail, %{page | size: size})
 
   defp init([{:compress, true} | tail], page),
@@ -53,17 +60,16 @@ defmodule Pdf.Page do
     push(page, ["S"])
   end
 
-  def set_font(page, document, font_name, font_size) do
-    font = document.fonts[font_name]
-    page = %{page | current_font: font, current_font_size: font_size}
-    push(page, [font.name, font_size, "Tf"])
+  def set_font(%{fonts: fonts} = page, name, size, opts) do
+    font = Fonts.get_font(fonts, name, opts)
+    push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
   end
 
   def set_text_leading(page, leading) do
     %{page | leading: leading}
   end
 
-  def text_at(%{current_font: %{font: font}} = page, {x, y}, text, opts \\ []) do
+  def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts \\ []) do
     page
     |> push("BT")
     |> push([x, y, "Td"])
@@ -71,7 +77,7 @@ defmodule Pdf.Page do
     |> push("ET")
   end
 
-  def text_wrap(%{current_font: %{font: font}} = page, {x, y}, {w, h}, text, opts \\ []) do
+  def text_wrap(%{current_font: %{module: font}} = page, {x, y}, {w, h}, text, opts \\ []) do
     top_offset = font.ascender * page.current_font_size / 1000
     text_chunks = Text.wrap(font, page.current_font_size, text, w, opts)
 
@@ -114,11 +120,11 @@ defmodule Pdf.Page do
     [Pdf.Array.new(text), "TJ"]
   end
 
-  defp draw_lines(%{current_font: %{font: font}} = page, [line], opts) do
+  defp draw_lines(%{current_font: %{module: font}} = page, [line], opts) do
     push(page, kerned_text(font, line, Keyword.get(opts, :kerning, false)))
   end
 
-  defp draw_lines(%{current_font: %{font: font}} = page, [line | tail], opts) do
+  defp draw_lines(%{current_font: %{module: font}} = page, [line | tail], opts) do
     text = kerned_text(font, line, Keyword.get(opts, :kerning, false))
     draw_lines(push(page, text ++ ["T*"]), tail, opts)
   end

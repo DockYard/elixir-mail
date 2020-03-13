@@ -1,6 +1,7 @@
 defmodule Pdf.ExternalFont do
   @moduledoc false
-  defstruct font_file: nil,
+  defstruct name: nil,
+            font_file: nil,
             metrics: nil,
             dictionary: nil
 
@@ -30,6 +31,7 @@ defmodule Pdf.ExternalFont do
     last_char = font_metrics.first_char + length(widths) - 1
 
     %__MODULE__{
+      name: font_metrics.name,
       metrics: %{font_metrics | last_char: last_char, widths: widths},
       font_file: font_file,
       dictionary: font_file_dictionary(part1, part2, part3)
@@ -60,7 +62,7 @@ defmodule Pdf.ExternalFont do
     |> Dictionary.put("Ascent", font.metrics.ascender / 1)
     |> Dictionary.put("Descent", font.metrics.descender / 1)
     |> Dictionary.put("FontBBox", Array.new(font.metrics.bbox))
-    |> Dictionary.put("ItalicAngle", font.metrics.italic_angle |> elem(0))
+    |> Dictionary.put("ItalicAngle", font.metrics.italic_angle)
     |> Dictionary.put("FontFile", ff_id)
   end
 

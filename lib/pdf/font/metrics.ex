@@ -10,7 +10,7 @@ defmodule Pdf.Font.Metrics do
 
   defstruct name: nil,
             full_name: nil,
-            family: nil,
+            family_name: nil,
             weight: nil,
             italic_angle: nil,
             encoding: nil,
@@ -37,13 +37,17 @@ defmodule Pdf.Font.Metrics do
 
   def process_line(<<"FontName ", data::binary>>, metrics), do: %{metrics | name: data}
   def process_line(<<"FullName ", data::binary>>, metrics), do: %{metrics | full_name: data}
-  def process_line(<<"FamilyName ", data::binary>>, metrics), do: %{metrics | family: data}
+  def process_line(<<"FamilyName ", data::binary>>, metrics), do: %{metrics | family_name: data}
 
   def process_line(<<"Weight ", data::binary>>, metrics),
     do: %{metrics | weight: String.to_atom(String.downcase(data))}
 
-  def process_line(<<"ItalicAngle ", data::binary>>, metrics),
-    do: %{metrics | italic_angle: Float.parse(data)}
+  def process_line(<<"ItalicAngle ", data::binary>>, metrics) do
+    case Float.parse(data) do
+      {angle, ""} -> %{metrics | italic_angle: angle}
+      _ -> metrics
+    end
+  end
 
   def process_line(<<"EncodingScheme ", data::binary>>, metrics), do: %{metrics | encoding: data}
 

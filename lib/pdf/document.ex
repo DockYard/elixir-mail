@@ -1,18 +1,26 @@
 defmodule Pdf.Document do
-  defstruct objects: nil, info: nil, fonts: %{}, current: nil, pages: [], opts: [], images: %{}
+  defstruct objects: nil,
+            info: nil,
+            fonts: nil,
+            current: nil,
+            current_font: nil,
+            current_font_size: 0,
+            pages: [],
+            opts: [],
+            images: %{}
+
   import Pdf.Utils
 
   alias Pdf.{
     Dictionary,
-    Font,
+    Fonts,
     RefTable,
     Trailer,
     Array,
     ObjectCollection,
     Page,
     Paper,
-    Image,
-    ExternalFont
+    Image
   }
 
   @header <<"%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306, 10>>
@@ -20,6 +28,7 @@ defmodule Pdf.Document do
 
   def new(opts \\ []) do
     {:ok, collection} = ObjectCollection.start_link()
+    {:ok, fonts} = Fonts.start_link(collection)
 
     info =
       ObjectCollection.create_object(
@@ -27,8 +36,8 @@ defmodule Pdf.Document do
         Dictionary.new(%{"Creator" => "Elixir", "Producer" => "Elixir-PDF"})
       )
 
-    document = %__MODULE__{objects: collection, info: info, opts: opts}
-    add_page(document, Page.new(opts))
+    document = %__MODULE__{objects: collection, fonts: fonts, info: info, opts: opts}
+    add_page(document, Page.new(Keyword.merge(opts, fonts: fonts)))
   end
 
   @info_map %{
@@ -75,6 +84,7 @@ defmodule Pdf.Document do
     {:line, quote(do: [{x, y}, {x2, y2}])},
     {:move_to, quote(do: [{x, y}])},
     {:line_append, quote(do: [{x, y}])},
+    {:set_font, quote(do: [name, size, opts])},
     {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
     {:text_wrap, quote(do: [{x, y}, {w, h}, text, opts])},
@@ -87,12 +97,6 @@ defmodule Pdf.Document do
       %{document | current: page}
     end
   end)
-
-  def set_font(%__MODULE__{current: page} = document, font_name, font_size) do
-    document = add_font(document, font_name)
-    page = Page.set_font(page, document, font_name, font_size)
-    %{document | current: page}
-  end
 
   def text_at(document, xy, text), do: text_at(document, xy, text, [])
 
@@ -118,52 +122,9 @@ defmodule Pdf.Document do
     %{document | images: images}
   end
 
-  defp add_font(document, name) do
-    unless document.fonts[name] do
-      font_module = Font.lookup(name)
-      id = Kernel.map_size(document.fonts) + 1
-      # I don't need to do this at this point, it can be done when exporting, like the pages
-      font_object =
-        ObjectCollection.create_object(document.objects, Font.to_dictionary(font_module, id))
-
-      fonts =
-        Map.put(document.fonts, name, %{name: n("F#{id}"), font: font_module, object: font_object})
-
-      %{document | fonts: fonts}
-    else
-      document
-    end
-  end
-
-  def add_external_font(document, path) do
-    font = ExternalFont.load(path)
-    name = font.metrics.name
-
-    unless document.fonts[name] do
-      id = Kernel.map_size(document.fonts) + 1
-      font_object = ObjectCollection.create_object(document.objects, nil)
-
-      descriptor_id = descriptor_object = ObjectCollection.create_object(document.objects, nil)
-
-      font_file = ObjectCollection.create_object(document.objects, font)
-
-      font_dict = ExternalFont.font_dictionary(font, id, descriptor_id)
-      font_descriptor_dict = ExternalFont.font_descriptor_dictionary(font, font_file)
-
-      ObjectCollection.update_object(document.objects, descriptor_object, font_descriptor_dict)
-      ObjectCollection.update_object(document.objects, font_object, font_dict)
-
-      fonts =
-        Map.put(document.fonts, name, %{
-          name: n("F#{id}"),
-          font: font,
-          object: font_object
-        })
-
-      %{document | fonts: fonts}
-    else
-      document
-    end
+  def add_external_font(%{fonts: fonts} = document, path) do
+    Fonts.add_external_font(fonts, path)
+    document
   end
 
   def add_page(%__MODULE__{current: nil} = document, new_page),
@@ -249,6 +210,7 @@ defmodule Pdf.Document do
 
   defp font_dictionary(fonts) do
     fonts
+    |> Fonts.get_fonts()
     |> Enum.reduce(%{}, fn {_name, %{name: name, object: reference}}, map ->
       Map.put(map, name, reference)
     end)

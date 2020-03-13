@@ -43,7 +43,7 @@ defmodule PdfTest do
     |> Pdf.text_at({120.070, 762.653}, "External fonts work")
     |> Pdf.set_font("Helvetica", 28)
     |> Pdf.text_at({200, 230}, "Back to Helvetica")
-    |> Pdf.set_font("Helvetica", 16)
+    |> Pdf.set_font("Helvetica", size: 16, bold: true)
     |> test_normalize_unicode()
     |> Pdf.set_font("Helvetica", 10)
     |> all_win_ansi_chars({10, 180})

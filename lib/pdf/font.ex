@@ -27,7 +27,7 @@ defmodule Pdf.Font do
       @doc "The full name of the font"
       def full_name, do: unquote(metrics.full_name)
       @doc "The font family of the font"
-      def family, do: unquote(metrics.family)
+      def family_name, do: unquote(metrics.family_name)
       @doc "The font weight"
       def weight, do: unquote(metrics.weight)
       @doc "The font italic angle"
@@ -136,13 +136,29 @@ defmodule Pdf.Font do
   iex> Pdf.Font.lookup("Helvetica-BoldOblique")
   Pdf.Font.HelveticaBoldOblique
   """
-  def lookup(name)
+  def lookup(name, opts \\ [])
 
   font_metrics
   |> Enum.each(fn metrics ->
     font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
-    def lookup(unquote(metrics.name)), do: unquote(font_module)
+
+    if metrics.weight == :bold and metrics.italic_angle == 0 do
+      def lookup(unquote(metrics.family_name), bold: true), do: unquote(font_module)
+    end
+
+    if metrics.weight == :bold and metrics.italic_angle != 0 do
+      def lookup(unquote(metrics.family_name), bold: true, italic: true), do: unquote(font_module)
+      def lookup(unquote(metrics.family_name), italic: true, bold: true), do: unquote(font_module)
+    end
+
+    if metrics.weight != :bold and metrics.italic_angle != 0 do
+      def lookup(unquote(metrics.family_name), italic: true), do: unquote(font_module)
+    end
+
+    def lookup(unquote(metrics.name), _opts), do: unquote(font_module)
   end)
+
+  def lookup(_name, _opts), do: nil
 
   def to_dictionary(font, id) do
     Dictionary.new()

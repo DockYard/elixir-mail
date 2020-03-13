@@ -73,8 +73,17 @@ defmodule Pdf do
     {:reply, self(), Document.stroke(document)}
   end
 
-  defcall set_font(font_name, font_size, _from, document) do
-    {:reply, self(), Document.set_font(document, font_name, font_size)}
+  def set_font(pid, font_name, opts) when is_list(opts) do
+    font_size = Keyword.get(opts, :size, 16)
+    set_font(pid, font_name, font_size, Keyword.delete(opts, :size))
+  end
+
+  def set_font(pid, font_name, font_size) when is_integer(font_size) do
+    set_font(pid, font_name, font_size, [])
+  end
+
+  defcall set_font(font_name, font_size, opts, _from, document) do
+    {:reply, self(), Document.set_font(document, font_name, font_size, opts)}
   end
 
   defcall add_font(path, _from, document) do
