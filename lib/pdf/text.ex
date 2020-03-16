@@ -1,5 +1,5 @@
 defmodule Pdf.Text do
-  def wrap(font, font_size, string, width, opts \\ []) do
+  def chunk_text(string, font, font_size, opts \\ []) do
     zero_width_space = "\u200B"
     soft_hyphen = "\u00AD"
     hyphen = "-"
@@ -18,67 +18,60 @@ defmodule Pdf.Text do
     |> Regex.scan(string, capture: :all_but_first)
     |> Enum.flat_map(& &1)
     |> Enum.reject(&(&1 == ""))
-    |> Enum.map(&{&1, font.text_width(&1, font_size, opts)})
-    |> wrap_chunks(width)
+    |> Enum.map(&{&1, font.text_width(&1, font_size, opts), opts})
+  end
+
+  def wrap_chunks(chunks, width) do
+    fit_chunks(chunks, width)
+  end
+
+  defp fit_chunks(chunks, wrap_width, acc_width \\ 0, acc \\ [])
+
+  defp fit_chunks([{"\n", _, _} = chunk | tail], _wrap_width, _acc_width, acc) do
+    {Enum.reverse([chunk | remove_wrapped_whitespace(acc)]), remove_wrapped_whitespace(tail)}
+  end
+
+  defp fit_chunks([{_, width, _} = chunk | tail], wrap_width, acc_width, [
+         {"\u00AD", hyphen_width, _} | acc
+       ])
+       when width + acc_width - hyphen_width <= wrap_width do
+    fit_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
+  end
+
+  defp fit_chunks([{_, width, _} = chunk | tail], wrap_width, acc_width, acc)
+       when width + acc_width <= wrap_width do
+    fit_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
+  end
+
+  defp fit_chunks(chunks, _wrap_width, _acc_width, acc) do
+    {Enum.reverse(remove_wrapped_whitespace(acc)), remove_wrapped_whitespace(chunks)}
+  end
+
+  defp remove_wrapped_whitespace([{" ", _, _} | tail]), do: tail
+  defp remove_wrapped_whitespace([{"\u200B", _, _} | tail]), do: tail
+  defp remove_wrapped_whitespace(chunks), do: chunks
+
+  def wrap(string, width, font, font_size, opts \\ []) do
+    string
+    |> chunk_text(font, font_size, opts)
+    |> wrap_all_chunks(width)
     |> Enum.map(fn chunks ->
       chunks
+      |> Enum.reject(&(elem(&1, 1) == 0.00))
       |> Enum.map(&elem(&1, 0))
-      |> Enum.map(fn
-        "\u00A0" -> " "
-        str -> str
-      end)
       |> Enum.join()
     end)
   end
 
-  defp wrap_chunks(chunks, wrap_width, acc_width \\ 0, acc \\ [])
+  defp wrap_all_chunks(chunks, width, acc \\ [])
 
-  defp wrap_chunks([], _wrap_width, _acc_width, []), do: []
-  defp wrap_chunks([], _wrap_width, _acc_width, acc), do: [Enum.reverse(acc)]
+  defp wrap_all_chunks([], _width, acc), do: Enum.reverse(acc)
 
-  defp wrap_chunks([{"\n", _} | tail], wrap_width, _, acc) do
-    [Enum.reverse(acc) | wrap_chunks(tail, wrap_width)]
-  end
-
-  defp wrap_chunks([{" ", _} | tail], wrap_width, 0, []) do
-    wrap_chunks(tail, wrap_width)
-  end
-
-  defp wrap_chunks([{"\u200B", _} | tail], wrap_width, acc_width, acc) do
-    wrap_chunks(tail, wrap_width, acc_width, acc)
-  end
-
-  defp wrap_chunks([{_string, width} = chunk | tail], wrap_width, 0, [])
-       when width > wrap_width do
-    [[chunk] | wrap_chunks(tail, wrap_width)]
-  end
-
-  defp wrap_chunks([{_string, width} = chunk | tail], wrap_width, acc_width, acc)
-       when width + acc_width <= wrap_width do
-    wrap_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
-  end
-
-  defp wrap_chunks([{_string, width} = chunk | tail], wrap_width, acc_width, [
-         {"\u00AD", soft_hyphen_width} | acc
-       ])
-       when width + acc_width - soft_hyphen_width <= wrap_width do
-    wrap_chunks(tail, wrap_width, acc_width + width, [chunk | acc])
-  end
-
-  defp wrap_chunks(chunks, wrap_width, _acc_width, [{" ", _} | acc]) do
-    [Enum.reverse(acc) | wrap_chunks(chunks, wrap_width)]
-  end
-
-  defp wrap_chunks(chunks, wrap_width, _acc_width, [{"\t", _} | acc]) do
-    [Enum.reverse(acc) | wrap_chunks(chunks, wrap_width)]
-  end
-
-  defp wrap_chunks(chunks, wrap_width, _acc_width, [{"\u200B", _} | acc]) do
-    [Enum.reverse(acc) | wrap_chunks(chunks, wrap_width)]
-  end
-
-  defp wrap_chunks(chunks, wrap_width, _acc_width, acc) do
-    [Enum.reverse(acc) | wrap_chunks(chunks, wrap_width)]
+  defp wrap_all_chunks(chunks, width, acc) do
+    case wrap_chunks(chunks, width) do
+      {[], [chunk | tail]} -> wrap_all_chunks(tail, width, [[chunk] | acc])
+      {chunks, tail} -> wrap_all_chunks(tail, width, [chunks | acc])
+    end
   end
 
   def normalize_string(string) when is_binary(string) do

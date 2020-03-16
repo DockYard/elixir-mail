@@ -72,8 +72,10 @@ defmodule PdfTest do
       {200, 100},
       "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit."
     )
-    |> Pdf.text_at(
-      {50, 500},
+    |> Pdf.set_text_leading(10)
+    |> Pdf.text_wrap(
+      {50, 400},
+      {100, 100},
       [
         {"Lorem "},
         {"ipsum dolor ", bold: true, size: 12},

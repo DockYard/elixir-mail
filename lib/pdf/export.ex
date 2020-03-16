@@ -16,7 +16,8 @@ defimpl Pdf.Export, for: Integer do
 end
 
 defimpl Pdf.Export, for: Float do
-  def to_iolist(number), do: Pdf.Export.to_iolist(Float.to_string(number))
+  def to_iolist(number),
+    do: Pdf.Export.to_iolist(:erlang.float_to_binary(number, [:compact, decimals: 4]))
 end
 
 defimpl Pdf.Export, for: Date do

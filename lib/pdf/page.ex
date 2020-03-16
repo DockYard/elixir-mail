@@ -82,23 +82,10 @@ defmodule Pdf.Page do
   def text_at(page, {x, y}, attributed_text, opts) when is_list(attributed_text) do
     attributed_text = annotate_attributed_text(attributed_text, page, opts)
 
-    page =
-      page
-      |> push("BT")
-      |> push([x, y, "Td"])
-
-    page =
-      attributed_text
-      |> Enum.reduce(page, fn {text, opts}, page ->
-        page
-        |> set_font(opts[:font].module.name, opts[:size], opts)
-        |> set_fill_color(opts[:color])
-        |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
-        |> push([opts[:width], 0, "TD"])
-      end)
-
-    # |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
     page
+    |> push("BT")
+    |> push([x, y, "Td"])
+    |> print_attributed_line(attributed_text)
     |> push("ET")
   end
 
@@ -108,6 +95,28 @@ defmodule Pdf.Page do
     |> push([x, y, "Td"])
     |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
     |> push("ET")
+  end
+
+  defp print_attributed_line(page, attributed_text) do
+    attributed_text
+    |> merge_same_opts
+    |> Enum.reduce(page, fn {text, width, opts}, page ->
+      page
+      |> set_font(opts[:font].module.name, opts[:size], opts)
+      |> set_fill_color(opts[:color])
+      |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
+      |> push([width, 0, "Td"])
+    end)
+  end
+
+  defp merge_same_opts([]), do: []
+
+  defp merge_same_opts([{text, width, opts}, {text2, width2, opts} | tail]) do
+    merge_same_opts([{text <> text2, width + width2, opts} | tail])
+  end
+
+  defp merge_same_opts([chunk | tail]) do
+    [chunk | merge_same_opts(tail)]
   end
 
   defp annotate_attributed_text(
@@ -131,7 +140,7 @@ defmodule Pdf.Page do
 
       width = font.module.text_width(text, font_size, opts)
 
-      {text,
+      {text, width,
        Keyword.merge(
          overall_opts,
          Keyword.merge(opts,
@@ -139,18 +148,72 @@ defmodule Pdf.Page do
            color: color,
            font: font,
            height: height,
-           size: font_size,
-           width: width
+           size: font_size
          )
        )}
     end)
   end
 
-  def text_wrap(%{current_font: %{module: font}} = page, {x, y}, {w, h}, text, opts \\ []) do
+  def text_wrap(page, xy, wh, text, opts \\ [])
+
+  def text_wrap(%{current_font: %{module: font}} = page, {x, y}, {w, h}, text, opts)
+      when is_binary(text) do
     top_offset = font.ascender * page.current_font_size / 1000
-    text_chunks = Text.wrap(font, page.current_font_size, text, w, opts)
+    text_chunks = Text.wrap(text, w, font, page.current_font_size, opts)
 
     text_lines(page, {x, y + h - top_offset}, text_chunks, opts)
+  end
+
+  def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
+    attributed_text = annotate_attributed_text(attributed_text, page, opts)
+
+    chunks =
+      attributed_text
+      |> Enum.flat_map(fn {text, _width, text_opts} ->
+        text
+        |> Text.chunk_text(
+          Keyword.get(text_opts, :font).module,
+          Keyword.get(text_opts, :size),
+          Keyword.merge(opts, text_opts)
+        )
+      end)
+
+    page
+    |> push("BT")
+    |> print_attributed_chunks(chunks, x, y, w, h, opts)
+    |> push("ET")
+  end
+
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, line_num \\ 0)
+  defp print_attributed_chunks(page, [], _, _, _, _, _, _), do: page
+
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, line_num) do
+    {line, tail} =
+      case Text.wrap_chunks(chunks, width) do
+        {[], [line | tail]} ->
+          {[line], tail}
+
+        other ->
+          other
+      end
+
+    line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
+    line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
+    line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
+    y = if line_num == 0, do: y + height - line_height, else: y
+
+    page
+    |> push([x, y, "Td"])
+    |> print_attributed_line(line)
+    |> print_attributed_chunks(
+      tail,
+      -line_width,
+      -line_height,
+      width,
+      height - line_height,
+      opts,
+      line_num + 1
+    )
   end
 
   def text_lines(page, {x, y}, lines, opts \\ []) do
