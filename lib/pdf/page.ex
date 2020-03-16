@@ -156,12 +156,9 @@ defmodule Pdf.Page do
 
   def text_wrap(page, xy, wh, text, opts \\ [])
 
-  def text_wrap(%{current_font: %{module: font}} = page, {x, y}, {w, h}, text, opts)
+  def text_wrap(page, {x, y}, {w, h}, text, opts)
       when is_binary(text) do
-    top_offset = font.ascender * page.current_font_size / 1000
-    text_chunks = Text.wrap(text, w, font, page.current_font_size, opts)
-
-    text_lines(page, {x, y + h - top_offset}, text_chunks, opts)
+    text_wrap(page, {x, y}, {w, h}, [text], opts)
   end
 
   def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
@@ -200,15 +197,24 @@ defmodule Pdf.Page do
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
     line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
     line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
+
+    {x, x_offset} =
+      case Keyword.get(opts, :align, :left) do
+        :left -> {-line_width, x}
+        :center -> {-width + (width - line_width) / 2, x + (width - line_width) / 2}
+        :right -> {-width, x + (width - line_width)}
+      end
+
     y = if line_num == 0, do: y + height - line_height, else: y
+    y_offset = -line_height
 
     page
-    |> push([x, y, "Td"])
+    |> push([x_offset, y, "Td"])
     |> print_attributed_line(line)
     |> print_attributed_chunks(
       tail,
-      -line_width,
-      -line_height,
+      x,
+      y_offset,
       width,
       height - line_height,
       opts,

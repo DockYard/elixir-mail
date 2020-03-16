@@ -102,7 +102,49 @@ defmodule Pdf.PageTest do
   end
 
   describe "text_wrap/5" do
-    test "", %{page: page} do
+    test "with text", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
+
+      assert export(page) == """
+             /F1 10 Tf
+             BT
+             10 110 Td
+             (Hello world) Tj
+             49.45 0 Td
+             ET
+             """
+    end
+
+    test "with text, aligned: right", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
+
+      assert export(page) == """
+             /F1 10 Tf
+             BT
+             160.55 110 Td
+             (Hello world) Tj
+             49.45 0 Td
+             ET
+             """
+    end
+
+    test "with text, aligned: center", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :center)
+
+      assert export(page) == """
+             /F1 10 Tf
+             BT
+             85.275 110 Td
+             (Hello world) Tj
+             49.45 0 Td
+             ET
+             """
+    end
+
+    test "with attributed text", %{page: page} do
       page = Page.set_font(page, "Helvetica", 12)
 
       attributed_text = [

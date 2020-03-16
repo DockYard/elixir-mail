@@ -82,7 +82,8 @@ defmodule PdfTest do
         {"sit amet", color: :red},
         {", consectetur ", italic: true, size: 14},
         {"adipiscing elit", bold: true, italic: true}
-      ]
+      ],
+      align: :right
     )
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
