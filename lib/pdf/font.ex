@@ -3,8 +3,7 @@ defmodule Pdf.Font do
 
   import Pdf.Utils
   alias Pdf.Font.Metrics
-  alias Pdf.Encoding.WinAnsi
-  alias Pdf.{Array, Dictionary, Text}
+  alias Pdf.{Array, Dictionary}
 
   font_metrics =
     Path.join(__DIR__, "../../fonts/*.afm")
@@ -62,7 +61,7 @@ defmodule Pdf.Font do
       """
       def width(char_code)
 
-      WinAnsi.characters()
+      Pdf.Encoding.WinAnsi.characters()
       |> Enum.each(fn {char_code, _, name} ->
         case metrics.glyphs[name] do
           nil ->
@@ -79,7 +78,7 @@ defmodule Pdf.Font do
       def text_width(string), do: text_width(string, [])
 
       def text_width(string, opts) when is_list(opts) do
-        normalized_string = Text.normalize_string(string)
+        normalized_string = Pdf.Text.normalize_string(string)
 
         string_width =
           normalized_string
@@ -161,7 +160,7 @@ defmodule Pdf.Font do
       def lookup(unquote(metrics.family_name), italic: false, bold: false),
         do: unquote(font_module)
 
-      def lookup(unquote(metrics.family_name), italic: false, bold: false),
+      def lookup(unquote(metrics.family_name), bold: false, italic: false),
         do: unquote(font_module)
 
       def lookup(unquote(metrics.family_name), []),

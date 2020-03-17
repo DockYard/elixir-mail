@@ -58,7 +58,9 @@ defmodule Pdf.Mixfile do
       maintainers: ["Andrew Timberlake"],
       contributors: ["Andrew Timberlake"],
       licenses: ["MIT"],
-      links: %{"GitHub" => @github_url}
+      links: %{"GitHub" => @github_url},
+      # files: ~w(lib priv mix.exs README* readme* LICENSE* license* CHANGELOG* changelog* fonts)
+      files: ~w(lib mix.exs README* fonts)
     ]
   end
 end

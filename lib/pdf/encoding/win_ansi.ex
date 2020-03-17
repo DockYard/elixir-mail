@@ -260,6 +260,7 @@ defmodule Pdf.Encoding.WinAnsi do
   ]
 
   @char_info
+  |> Enum.uniq_by(&elem(&1, 2))
   |> Enum.each(fn
     {_, _, nil} ->
       nil
