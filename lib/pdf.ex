@@ -122,11 +122,11 @@ defmodule Pdf do
     {:reply, {self(), remaining}, document}
   end
 
-  defcall text_lines({x, y}, [_ | _] = lines, opts, _from, document) do
+  defcall text_lines({x, y}, lines, opts, _from, document) do
     {:reply, self(), Document.text_lines(document, {x, y}, lines, opts)}
   end
 
-  defcall text_lines({x, y}, [_ | _] = lines, _from, document) do
+  defcall text_lines({x, y}, lines, _from, document) do
     {:reply, self(), Document.text_lines(document, {x, y}, lines)}
   end
 

@@ -263,7 +263,11 @@ defmodule Pdf.Page do
     end)
   end
 
-  def text_lines(page, {x, y}, lines, opts \\ []) do
+  def text_lines(page, xy, lines, opts \\ [])
+
+  def text_lines(page, _xy, [], _opts), do: page
+
+  def text_lines(page, {x, y}, lines, opts) do
     leading = page.leading || page.current_font_size
 
     page
