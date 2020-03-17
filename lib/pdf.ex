@@ -124,6 +124,18 @@ defmodule Pdf do
     {:reply, self(), Document.add_image(document, {x, y}, image_path)}
   end
 
+  defcall size(_from, document) do
+    {:reply, Document.size(document), document}
+  end
+
+  defcall cursor(_from, document) do
+    {:reply, Document.cursor(document), document}
+  end
+
+  defcall move_down(amount, _from, document) do
+    {:reply, self(), Document.move_down(document, amount)}
+  end
+
   @doc """
   Sets the author in the PDF information section.
   """

@@ -88,7 +88,8 @@ defmodule Pdf.Document do
     {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
-    {:stroke, []}
+    {:stroke, []},
+    {:move_down, quote(do: [amount])}
   ]
   |> Enum.map(fn {func_name, args} ->
     def unquote(func_name)(%__MODULE__{current: page} = document, unquote_splicing(args)) do
@@ -136,6 +137,14 @@ defmodule Pdf.Document do
 
   def add_page(%__MODULE__{current: current_page, pages: pages} = document, new_page),
     do: add_page(%{document | current: nil, pages: [current_page | pages]}, new_page)
+
+  def size(%__MODULE__{current: current_page}) do
+    Page.size(current_page)
+  end
+
+  def cursor(%__MODULE__{current: current_page}) do
+    Page.cursor(current_page)
+  end
 
   def to_iolist(document) do
     pages = Enum.reverse([document.current | document.pages])

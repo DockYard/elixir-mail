@@ -5,7 +5,8 @@ defmodule Pdf.Page do
             current_font: nil,
             current_font_size: 0,
             fill_color: :black,
-            leading: nil
+            leading: nil,
+            cursor: 0
 
   import Pdf.Utils
   alias Pdf.{Image, Fonts, Stream, Text}
@@ -90,6 +91,7 @@ defmodule Pdf.Page do
     |> push([x, y, "Td"])
     |> print_attributed_line(attributed_text)
     |> push("ET")
+    |> set_cursor(y - line_height(page, attributed_text))
   end
 
   def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
@@ -168,7 +170,12 @@ defmodule Pdf.Page do
       end)
 
     page = push(page, "BT")
-    {page, remaining} = print_attributed_chunks(page, chunks, x, y + h, w, h, opts)
+
+    {page, remaining} =
+      page
+      |> set_cursor(0)
+      |> print_attributed_chunks(chunks, x, y + h, w, h, opts)
+
     page = push(page, "ET")
     {page, remaining}
   end
@@ -178,6 +185,11 @@ defmodule Pdf.Page do
     |> List.flatten()
     |> Enum.map(&elem(&1, 0))
     |> Enum.join()
+  end
+
+  defp line_height(page, attributed_text) do
+    line_height = attributed_text |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
+    Enum.max(Enum.filter([page.leading, line_height], & &1))
   end
 
   defp print_attributed_chunks(page, chunks, x, y, width, height, opts)
@@ -215,6 +227,7 @@ defmodule Pdf.Page do
       page
       |> push([x_offset, y_offset, "Td"])
       |> print_attributed_line(line)
+      |> move_cursor(y_offset)
       |> print_attributed_chunks(
         tail,
         x - x_offset,
@@ -254,6 +267,27 @@ defmodule Pdf.Page do
     |> push([width, 0, 0, height, x, y, "cm"])
     |> push([image_name, "Do"])
     |> push("Q")
+  end
+
+  def size(%{size: size}) do
+    [_bottom, _left, width, height] = Pdf.Paper.size(size)
+    %{width: width, height: height}
+  end
+
+  def set_cursor(page, y) do
+    %{page | cursor: y}
+  end
+
+  def move_cursor(%{cursor: cursor} = page, y) do
+    %{page | cursor: cursor + y}
+  end
+
+  def move_down(page, amount) do
+    move_cursor(page, -amount)
+  end
+
+  def cursor(%{cursor: cursor}) do
+    cursor
   end
 
   defp kerned_text(_font, text, false) do
