@@ -16,6 +16,11 @@ defmodule Pdf do
 
   def init(opts), do: {:ok, Document.new(opts)}
 
+  def points(x), do: x
+  def picas(x), do: x * 6
+  def inches(x), do: round(x * 72.21)
+  def cm(x), do: round(x * 72.21 / 2.54)
+
   defcall write_to(path, _from, document) do
     File.write!(path, Document.to_iolist(document))
     {:reply, self(), document}
