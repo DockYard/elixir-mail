@@ -1,5 +1,5 @@
 defmodule Pdf.Stream do
-  defstruct compress: false, size: 0, content: []
+  defstruct compress: 6, size: 0, content: []
 
   import Pdf.Size
   import Pdf.Utils

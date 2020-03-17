@@ -5,7 +5,7 @@ defmodule Pdf.StreamTest do
 
   test "push/2" do
     stream =
-      Stream.new()
+      Stream.new(compress: false)
       |> Stream.push("BT")
       |> Stream.push("100 100 Td")
       |> Stream.push("(Hello World) Tj")

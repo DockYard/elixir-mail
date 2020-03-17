@@ -17,6 +17,9 @@ defmodule Pdf.Page do
 
   defp init([{:size, size} | tail], page), do: init(tail, %{page | size: size})
 
+  defp init([{:compress, false} | tail], page),
+    do: init(tail, %{page | stream: Stream.new(compress: false)})
+
   defp init([{:compress, true} | tail], page),
     do: init(tail, %{page | stream: Stream.new(compress: 6)})
 

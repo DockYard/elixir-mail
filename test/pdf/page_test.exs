@@ -6,7 +6,7 @@ defmodule Pdf.PageTest do
   setup do
     {:ok, collection} = ObjectCollection.start_link()
     {:ok, fonts} = Fonts.start_link(collection)
-    page = Page.new(fonts: fonts)
+    page = Page.new(fonts: fonts, compress: false)
 
     # Preload fonts so the internal names are fixed (but don't save the resulting stream)
     page
