@@ -103,11 +103,13 @@ defmodule Pdf do
   end
 
   defcall text_wrap({x, y}, {w, h}, text, _from, document) do
-    {:reply, self(), Document.text_wrap(document, {x, y}, {w, h}, text)}
+    {document, remaining} = Document.text_wrap(document, {x, y}, {w, h}, text)
+    {:reply, {self(), remaining}, document}
   end
 
   defcall text_wrap({x, y}, {w, h}, text, opts, _from, document) do
-    {:reply, self(), Document.text_wrap(document, {x, y}, {w, h}, text, opts)}
+    {document, remaining} = Document.text_wrap(document, {x, y}, {w, h}, text, opts)
+    {:reply, {self(), remaining}, document}
   end
 
   defcall text_lines({x, y}, [_ | _] = lines, opts, _from, document) do

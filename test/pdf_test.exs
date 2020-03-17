@@ -70,8 +70,10 @@ defmodule PdfTest do
     |> Pdf.text_wrap(
       {250, 550},
       {200, 100},
-      "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit."
+      "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit.",
+      align: :center
     )
+    |> elem(0)
     |> Pdf.set_text_leading(10)
     |> Pdf.text_wrap(
       {50, 400},
@@ -85,6 +87,7 @@ defmodule PdfTest do
       ],
       align: :right
     )
+    |> elem(0)
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 

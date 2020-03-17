@@ -81,21 +81,16 @@ defmodule Pdf.PageTest do
              BT
              10 20 Td
              (Hello ) Tj
-             30.672 0 Td
              /F2 12 Tf
              1.0 0.0 0.0 rg
              (world: ) Tj
-             39.336 0 Td
              /F1 14 Tf
              0.0 0.0 0.0 rg
              (foo, ) Tj
-             27.244 0 Td
              /F3 12 Tf
              (bar, ) Tj
-             24.012 0 Td
              /F1 12 Tf
              (baz) Tj
-             19.344 0 Td
              ET
              """
     end
@@ -104,42 +99,62 @@ defmodule Pdf.PageTest do
   describe "text_wrap/5" do
     test "with text", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
-      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
+      assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
 
       assert export(page) == """
              /F1 10 Tf
              BT
              10 110 Td
              (Hello world) Tj
-             49.45 0 Td
              ET
              """
     end
 
     test "with text, aligned: right", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
-      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
+      assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
 
       assert export(page) == """
              /F1 10 Tf
              BT
              160.55 110 Td
              (Hello world) Tj
-             49.45 0 Td
              ET
              """
     end
 
     test "with text, aligned: center", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
-      page = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :center)
+
+      assert {page, ""} =
+               Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :center)
 
       assert export(page) == """
              /F1 10 Tf
              BT
              85.275 110 Td
              (Hello world) Tj
-             49.45 0 Td
+             ET
+             """
+    end
+
+    test "it returns the text that didn't fit", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+
+      assert {page,
+              "adipiscing elit. Suspendisse elementum enimmetus, quis posuere sem molestie interdum. Ut efficitur odio lectus, ut facilisis odio tempor quis."} =
+               Page.text_wrap(
+                 page,
+                 {10, 20},
+                 {200, 10},
+                 "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse elementum enim metus, quis posuere sem molestie interdum. Ut efficitur odio lectus, ut facilisis odio tempor quis."
+               )
+
+      assert export(page) == """
+             /F1 10 Tf
+             BT
+             10 20 Td
+             (Lorem ipsum dolor sit amet, consectetur) Tj
              ET
              """
     end
@@ -157,7 +172,7 @@ defmodule Pdf.PageTest do
         {"Curabitur tempor aliquam nulla, vitae cursus purus iaculis vitae.", size: 8}
       ]
 
-      page = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
+      assert {page, []} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
 
       assert export(page) == """
              /F1 12 Tf
@@ -165,37 +180,27 @@ defmodule Pdf.PageTest do
              10 108 Td
              /F1 10 Tf
              (Lorem ipsum dolor ) Tj
-             85.58 0 Td
              /F3 12 Tf
              (sit amet, ) Tj
-             48.684 0 Td
              /F1 12 Tf
              0.0 0.0 1.0 rg
              (consectetur) Tj
-             62.028 0 Td
-             -196.292 -12 Td
+             0 -12 Td
              (adipiscing elit. ) Tj
-             78.696 0 Td
              0.0 0.0 0.0 rg
              (Ut ut enim) Tj
-             54.684 0 Td
              /F4 10 Tf
              (commodo) Tj
-             47.78 0 Td
-             -181.16 -12 Td
+             0 -12 Td
              (diam ) Tj
-             26.12 0 Td
              /F1 12 Tf
              1.0 0.0 0.0 rg
              (lobortis efficitur. ) Tj
-             87.36 0 Td
              /F1 8 Tf
              0.0 0.0 0.0 rg
              (Curabitur tempor) Tj
-             60.016 0 Td
-             -173.496 -12 Td
+             0 -8 Td
              (aliquam nulla, vitae cursus purus iaculis vitae.) Tj
-             162.28 0 Td
              ET
              """
     end

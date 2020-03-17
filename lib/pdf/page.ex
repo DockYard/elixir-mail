@@ -97,18 +97,6 @@ defmodule Pdf.Page do
     |> push("ET")
   end
 
-  defp print_attributed_line(page, attributed_text) do
-    attributed_text
-    |> merge_same_opts
-    |> Enum.reduce(page, fn {text, width, opts}, page ->
-      page
-      |> set_font(opts[:font].module.name, opts[:size], opts)
-      |> set_fill_color(opts[:color])
-      |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
-      |> push([width, 0, "Td"])
-    end)
-  end
-
   defp merge_same_opts([]), do: []
 
   defp merge_same_opts([{text, width, opts}, {text2, width2, opts} | tail]) do
@@ -158,7 +146,8 @@ defmodule Pdf.Page do
 
   def text_wrap(page, {x, y}, {w, h}, text, opts)
       when is_binary(text) do
-    text_wrap(page, {x, y}, {w, h}, [text], opts)
+    {page, remaining} = text_wrap(page, {x, y}, {w, h}, [text], opts)
+    {page, chunks_to_text(remaining)}
   end
 
   def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
@@ -175,16 +164,24 @@ defmodule Pdf.Page do
         )
       end)
 
-    page
-    |> push("BT")
-    |> print_attributed_chunks(chunks, x, y, w, h, opts)
-    |> push("ET")
+    page = push(page, "BT")
+    {page, remaining} = print_attributed_chunks(page, chunks, x, y + h, w, h, opts)
+    page = push(page, "ET")
+    {page, remaining}
   end
 
-  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, line_num \\ 0)
-  defp print_attributed_chunks(page, [], _, _, _, _, _, _), do: page
+  defp chunks_to_text(chunks) do
+    chunks
+    |> List.flatten()
+    |> Enum.map(&elem(&1, 0))
+    |> Enum.join()
+  end
 
-  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, line_num) do
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts)
+
+  defp print_attributed_chunks(page, [], _, _, _, _, _), do: {page, []}
+
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts) do
     {line, tail} =
       case Text.wrap_chunks(chunks, width) do
         {[], [line | tail]} ->
@@ -195,31 +192,46 @@ defmodule Pdf.Page do
       end
 
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
+
     line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
     line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
 
-    {x, x_offset} =
-      case Keyword.get(opts, :align, :left) do
-        :left -> {-line_width, x}
-        :center -> {-width + (width - line_width) / 2, x + (width - line_width) / 2}
-        :right -> {-width, x + (width - line_width)}
-      end
+    if line_height > height do
+      # No available vertical space to print the line so return remaining lines
+      {page, [line | tail]}
+    else
+      x_offset =
+        case Keyword.get(opts, :align, :left) do
+          :left -> x
+          :center -> x + (width - line_width) / 2
+          :right -> x + (width - line_width)
+        end
 
-    y = if line_num == 0, do: y + height - line_height, else: y
-    y_offset = -line_height
+      y_offset = y - line_height
 
-    page
-    |> push([x_offset, y, "Td"])
-    |> print_attributed_line(line)
-    |> print_attributed_chunks(
-      tail,
-      x,
-      y_offset,
-      width,
-      height - line_height,
-      opts,
-      line_num + 1
-    )
+      page
+      |> push([x_offset, y_offset, "Td"])
+      |> print_attributed_line(line)
+      |> print_attributed_chunks(
+        tail,
+        x - x_offset,
+        y - y,
+        width,
+        height - line_height,
+        opts
+      )
+    end
+  end
+
+  defp print_attributed_line(page, attributed_text) do
+    attributed_text
+    |> merge_same_opts
+    |> Enum.reduce(page, fn {text, _width, opts}, page ->
+      page
+      |> set_font(opts[:font].module.name, opts[:size], opts)
+      |> set_fill_color(opts[:color])
+      |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
+    end)
   end
 
   def text_lines(page, {x, y}, lines, opts \\ []) do

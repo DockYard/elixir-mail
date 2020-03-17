@@ -87,7 +87,6 @@ defmodule Pdf.Document do
     {:set_font, quote(do: [name, size, opts])},
     {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
-    {:text_wrap, quote(do: [{x, y}, {w, h}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
     {:stroke, []}
   ]
@@ -101,6 +100,11 @@ defmodule Pdf.Document do
   def text_at(document, xy, text), do: text_at(document, xy, text, [])
 
   def text_wrap(document, xy, wh, text), do: text_wrap(document, xy, wh, text, [])
+
+  def text_wrap(%__MODULE__{current: page} = document, xy, wh, text, opts) do
+    {page, remaining} = Page.text_wrap(page, xy, wh, text, opts)
+    {%{document | current: page}, remaining}
+  end
 
   def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 
