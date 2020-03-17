@@ -109,10 +109,10 @@ defmodule Pdf.Document do
 
   def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 
-  def add_image(%__MODULE__{current: page} = document, {x, y}, image_path) do
+  def add_image(%__MODULE__{current: page} = document, {x, y}, image_path, opts \\ []) do
     document = create_image(document, image_path)
     image = document.images[image_path]
-    %{document | current: Page.add_image(page, {x, y}, image)}
+    %{document | current: Page.add_image(page, {x, y}, image, opts)}
   end
 
   defp create_image(%{objects: objects, images: images} = document, image_path) do

@@ -270,7 +270,13 @@ defmodule Pdf.Page do
     |> push("ET")
   end
 
-  def add_image(page, {x, y}, %{name: image_name, image: %Image{width: width, height: height}}) do
+  def add_image(page, {x, y}, image, opts \\ []) do
+    %{name: image_name, image: %Image{width: width, height: height}} = image
+    scaled_width = Keyword.get(opts, :width, width) / width
+    scaled_height = Keyword.get(opts, :height, height) / height
+    width = Keyword.get(opts, :width, width * scaled_height)
+    height = Keyword.get(opts, :height, height * scaled_width)
+
     page
     |> push("q")
     |> push([width, 0, 0, height, x, y, "cm"])

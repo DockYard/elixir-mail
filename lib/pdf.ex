@@ -120,8 +120,10 @@ defmodule Pdf do
     {:reply, self(), Document.text_lines(document, {x, y}, lines)}
   end
 
-  defcall add_image({x, y}, image_path, _from, document) do
-    {:reply, self(), Document.add_image(document, {x, y}, image_path)}
+  def add_image(pid, {x, y}, image_path), do: add_image(pid, {x, y}, image_path, [])
+
+  defcall add_image({x, y}, image_path, opts, _from, document) do
+    {:reply, self(), Document.add_image(document, {x, y}, image_path, opts)}
   end
 
   defcall size(_from, document) do

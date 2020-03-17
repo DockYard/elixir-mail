@@ -33,6 +33,57 @@ defmodule Pdf.PageTest do
     end
   end
 
+  describe "add_image/4" do
+    setup do
+      image = %{name: {:name, "I1"}, image: %Pdf.Image{width: 100, height: 50}}
+      {:ok, image: image}
+    end
+
+    test "it draws the image", %{page: page, image: image} do
+      page = Page.add_image(page, {20, 20}, image)
+
+      assert export(page) == """
+             q
+             100.0 0 0 50.0 20 20 cm
+             /I1 Do
+             Q
+             """
+    end
+
+    test "it draws a scaled image based on a supplied width", %{page: page, image: image} do
+      page = Page.add_image(page, {20, 20}, image, width: 200)
+
+      assert export(page) == """
+             q
+             200 0 0 100.0 20 20 cm
+             /I1 Do
+             Q
+             """
+    end
+
+    test "it draws a scaled image based on a supplied height", %{page: page, image: image} do
+      page = Page.add_image(page, {20, 20}, image, height: 200)
+
+      assert export(page) == """
+             q
+             400.0 0 0 200 20 20 cm
+             /I1 Do
+             Q
+             """
+    end
+
+    test "it draws a distorted image", %{page: page, image: image} do
+      page = Page.add_image(page, {20, 20}, image, width: 200, height: 50)
+
+      assert export(page) == """
+             q
+             200 0 0 50 20 20 cm
+             /I1 Do
+             Q
+             """
+    end
+  end
+
   describe "text operations" do
     test "automatically wrapping text commands within BT and ET", %{page: page} do
       page = Page.set_font(page, "Helvetica", 12)
