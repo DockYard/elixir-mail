@@ -124,7 +124,16 @@ defmodule Pdf.Page do
       {str, opts} -> {str, opts}
     end)
     |> Enum.map(fn {text, opts} ->
-      font = Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
+      # TODO: This overrides the default font with the non-bold version
+      opts = Keyword.merge(overall_opts, opts)
+
+      font =
+        if Enum.any?([:bold, :italic], &Keyword.has_key?(opts, &1)) do
+          Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
+        else
+          Fonts.get_font(fonts, font.name, [])
+        end
+
       font_size = Keyword.get(opts, :size, page.current_font_size)
       color = Keyword.get(opts, :color, page.fill_color)
 

@@ -52,13 +52,12 @@ endobj
 endobj
 5 0 obj
 <<
-/Length 8338
+/Length 8327
 >>
 stream
 /F1 16 Tf
 BT
-201.028 806 Td
-/F2 16 Tf
+192.588 806 Td
 (Lorem ipsum dolor sit amet) Tj
 ET
 /F2 12 Tf
@@ -163,8 +162,8 @@ xref
 0000001255 00000 n
 0000002295 00000 n
 0000002453 00000 n
-0000005923 00000 n
-0000005986 00000 n
+0000005913 00000 n
+0000005976 00000 n
 trailer
 <<
 /Info 1 0 R
@@ -172,5 +171,5 @@ trailer
 /Size 8
 >>
 startxref
-6035
+6025
 %%EOF

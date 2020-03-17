@@ -144,6 +144,12 @@ defmodule Pdf.Font do
 
     if metrics.weight == :bold and metrics.italic_angle == 0 do
       def lookup(unquote(metrics.family_name), bold: true), do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), bold: true, italic: false),
+        do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), italic: false, bold: true),
+        do: unquote(font_module)
     end
 
     if metrics.weight == :bold and metrics.italic_angle != 0 do
@@ -151,11 +157,28 @@ defmodule Pdf.Font do
       def lookup(unquote(metrics.family_name), italic: true, bold: true), do: unquote(font_module)
     end
 
-    if metrics.weight != :bold and metrics.italic_angle != 0 do
-      def lookup(unquote(metrics.family_name), italic: true), do: unquote(font_module)
+    if metrics.weight != :bold and metrics.italic_angle == 0 do
+      def lookup(unquote(metrics.family_name), italic: false, bold: false),
+        do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), italic: false, bold: false),
+        do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), []),
+        do: unquote(font_module)
     end
 
-    def lookup(unquote(metrics.name), _opts), do: unquote(font_module)
+    if metrics.weight != :bold and metrics.italic_angle != 0 do
+      def lookup(unquote(metrics.family_name), italic: true), do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), bold: false, italic: true),
+        do: unquote(font_module)
+
+      def lookup(unquote(metrics.family_name), italic: true, bold: false),
+        do: unquote(font_module)
+    end
+
+    # def lookup(unquote(metrics.name), []), do: unquote(font_module)
   end)
 
   def lookup(_name, _opts), do: nil
