@@ -89,6 +89,7 @@ defmodule Pdf.Document do
     {:text_at, quote(do: [{x, y}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
     {:stroke, []},
+    {:fill, []},
     {:move_down, quote(do: [amount])}
   ]
   |> Enum.map(fn {func_name, args} ->

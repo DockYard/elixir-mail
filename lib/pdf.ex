@@ -78,6 +78,11 @@ defmodule Pdf do
     {:reply, self(), Document.stroke(document)}
   end
 
+  @spec fill(pid) :: pid
+  defcall fill(_from, document) do
+    {:reply, self(), Document.fill(document)}
+  end
+
   def set_font(pid, font_name, opts) when is_list(opts) do
     font_size = Keyword.get(opts, :size, 16)
     set_font(pid, font_name, font_size, Keyword.delete(opts, :size))

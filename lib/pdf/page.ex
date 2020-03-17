@@ -67,6 +67,10 @@ defmodule Pdf.Page do
     push(page, ["S"])
   end
 
+  def fill(page) do
+    push(page, ["f"])
+  end
+
   def set_font(%{fonts: fonts} = page, name, size, opts \\ []) do
     font = Fonts.get_font(fonts, name, opts)
 
