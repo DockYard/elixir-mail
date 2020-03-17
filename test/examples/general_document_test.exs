@@ -41,17 +41,32 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     cursor = Pdf.cursor(pdf)
 
     text = """
-    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse elementum enim metus, quis posuere sem molestie interdum. Ut efficitur odio lectus, uty facilisis odio tempor quis. Ut ut risus quis tellus placerat tristique ut ultrices leo. Etiam ante lacus, pulvinar non aliquam luctus, efficitur vel velit. Aenean nec urna metus. Sed aliquam libero ligula, ac commodo turpis pulvinar sed. Aenean interdum elementum tempor. Cras tempus feugiat consequat. Mauris ut nulla et orci dapibus auctor a sit amet odio. Vivamus sit amet mi libero.
-
-    Fusce a neque sagittis, volutpat ligula sed, eleifend felis. Ut luctus metus justo, id porta dui dignissim vitae. Duis sit amet maximus justo, non finibus quam. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Nulla ultrices diam nec vulputate congue. Duis ornare pulvinar nulla. Sed at justo nec tortor efficitur dapibus ac non enim. Nam sed finibus odio, ac pretium mi. In mattis viverra cursus. Integer a risus sagittis tortor eleifend sollicitudin. Nullam fermentum maximus odio at laoreet. Maecenas malesuada sagittis aliquet.
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse elementum enim metus, quis posuere sem molestie interdum. Ut efficitur odio lectus, uty facilisis odio tempor quis. Ut ut risus quis tellus placerat tristique ut ultrices leo. Etiam ante lacus, pulvinar non aliquam luctus, efficitur vel velit. Aenean nec urna metus. Sed aliquam libero ligula, ac commodo turpis pulvinar sed. Aenean interdum elementum tempor. Cras tempus feugiat consequat. Mauris ut nulla et orci dapibus auctor a sit amet odio. Vivamus sit amet mi libero. Fusce a neque sagittis, volutpat ligula sed, eleifend felis. Ut luctus metus justo, id porta dui dignissim vitae. Duis sit amet maximus justo, non finibus quam. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Nulla ultrices diam nec vulputate congue. Duis ornare pulvinar nulla. Sed at justo nec tortor efficitur dapibus ac non enim. Nam sed finibus odio, ac pretium mi. In mattis viverra cursus. Integer a risus sagittis tortor eleifend sollicitudin. Nullam fermentum maximus odio at laoreet. Maecenas malesuada sagittis aliquet.
 
     Vivamus sodales eros eu auctor imperdiet. Praesent sit amet nibh sollicitudin, tincidunt est ac, auctor tortor. Nunc ipsum massa, pharetra id sem id, convallis malesuada orci. Donec consequat id metus a mollis. Fusce luctus nisi ipsum. Cras id magna hendrerit, facilisis lorem vitae, pellentesque diam. Morbi imperdiet suscipit turpis et pulvinar. Nam convallis sit amet nibh sit amet condimentum. Donec sit amet neque eget tortor ultrices dignissim. Mauris ac justo convallis, ultricies arcu a, auctor elit. Suspendisse facilisis vulputate pharetra. Sed in malesuada neque. Fusce sed sodales lectus.
     """
 
+    padding = 20
+    image_width = 100
+    image_height = 75
+    image_margin = 10
+
+    {pdf, remaining} =
+      pdf
+      |> Pdf.set_font("Helvetica", 12)
+      |> Pdf.add_image({padding, cursor - image_height}, fixture("rgb.jpg"))
+      |> Pdf.text_wrap(
+        {padding + image_width + image_margin, cursor - image_height - image_margin},
+        {width - padding * 2 - image_width - image_margin, image_height + image_margin},
+        text
+      )
+
+    cursor = Pdf.cursor(pdf)
+
     {pdf, ""} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_wrap({20, 20}, {width - 40, cursor - 20}, text)
+      |> Pdf.text_wrap({padding, padding}, {width - padding * 2, cursor - padding}, remaining)
 
     Pdf.move_down(pdf, 12)
   end
@@ -65,10 +80,12 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     Praesent eget lacinia arcu. Quisque vitae nisl consectetur, ullamcorper leo id, elementum erat. Quisque eget ullamcorper orci. Curabitur dignissim dui et posuere tempus. Ut sagittis sollicitudin hendrerit. Aenean mollis tincidunt tortor, a ultrices justo euismod accumsan. Cras tincidunt quis ante id luctus. Donec rhoncus sodales nisl sed sagittis. Curabitur convallis purus eu aliquet venenatis. Aliquam dignissim massa in consectetur facilisis. Fusce hendrerit ullamcorper dui non consectetur. Proin lobortis nulla quis elit varius, vitae egestas tortor lobortis. Ut id scelerisque ligula, tristique gravida sem. Sed vitae varius massa. Donec ac eros sapien.
     """
 
+    padding = 20
+
     {pdf, ""} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_wrap({20, 20}, {width - 40, cursor - 20}, text)
+      |> Pdf.text_wrap({padding, padding}, {width - padding * 2, cursor - padding}, text)
 
     Pdf.move_down(pdf, 12)
   end
