@@ -37,30 +37,54 @@ defmodule Pdf.TableTest do
 
     assert export(page) == """
            /F1 12 Tf
+           q
+           20 586 100.0 14 re
+           W n
            BT
            20 591.384 Td
            (Col 1,1) Tj
            ET
+           Q
+           q
+           120.0 586 100.0 14 re
+           W n
            BT
            120.0 591.384 Td
            (Col 1,2) Tj
            ET
+           Q
+           q
+           220.0 586 100.0 14 re
+           W n
            BT
            220.0 591.384 Td
            (Col 1,3) Tj
            ET
+           Q
+           q
+           20 572 100.0 14 re
+           W n
            BT
            20 577.384 Td
            (Col 2,1) Tj
            ET
+           Q
+           q
+           120.0 572 100.0 14 re
+           W n
            BT
            120.0 577.384 Td
            (Col 2,2) Tj
            ET
+           Q
+           q
+           220.0 572 100.0 14 re
+           W n
            BT
            220.0 577.384 Td
            (Col 2,3) Tj
            ET
+           Q
            """
   end
 end

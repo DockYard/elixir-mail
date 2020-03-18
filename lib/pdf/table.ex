@@ -190,6 +190,8 @@ defmodule Pdf.Table do
     {page, []} =
       page
       |> draw_background(lines, {x, y}, {width, row_height}, background(col_opts))
+      |> Page.save_state()
+      |> clip({x + pl, y + pb}, {width - pl - pr, row_height - pt - pb})
       |> Page.text_wrap(
         {x + pl, y + pb},
         {width - pl - pr, row_height - pt - pb},
@@ -198,6 +200,7 @@ defmodule Pdf.Table do
       )
 
     page
+    |> Page.restore_state()
     |> draw_border({x, y}, {width, row_height}, border(col_opts))
     |> print_row(y, row_height, tail)
   end
@@ -211,6 +214,12 @@ defmodule Pdf.Table do
     |> Page.set_fill_color(color)
     |> Page.fill()
     |> Page.restore_state()
+  end
+
+  defp clip(page, {x, y}, {w, h}) do
+    page
+    |> Page.rectangle({x, y}, {w, h})
+    |> Page.clip()
   end
 
   defp draw_border(page, {x, y}, {w, h}, {bt, br, bb, bl} = border) do
