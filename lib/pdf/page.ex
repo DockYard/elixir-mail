@@ -220,12 +220,13 @@ defmodule Pdf.Page do
 
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
 
+    max_ascender = line |> Enum.map(&Keyword.get(elem(&1, 2), :ascender)) |> Enum.max()
     line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
     line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
 
     if line_height > height do
       # No available vertical space to print the line so return remaining lines
-      {page, [line | tail]}
+      {move_cursor(page, max_ascender - line_height), [line | tail]}
     else
       x_offset =
         case Keyword.get(opts, :align, :left) do
@@ -234,16 +235,16 @@ defmodule Pdf.Page do
           :right -> x + (width - line_width)
         end
 
-      y_offset = y - line_height
+      y_offset = y - max_ascender
 
       page
       |> push([x_offset, y_offset, "Td"])
       |> print_attributed_line(line)
-      |> move_cursor(y_offset)
+      |> move_cursor(y - max_ascender)
       |> print_attributed_chunks(
         tail,
         x - x_offset,
-        y - y,
+        y - y - line_height + max_ascender,
         width,
         height - line_height,
         opts
