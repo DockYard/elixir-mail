@@ -60,4 +60,16 @@ defmodule Pdf.Case do
 
     Path.expand(Path.join(path, "../#{basename}-changed.#{ext}"))
   end
+
+  def export(%{stream: stream}) do
+    (stream
+     |> Pdf.Export.to_iolist()
+     |> Pdf.Export.to_iolist()
+     |> IO.chardata_to_string()
+     |> String.split("\n")
+     |> Enum.drop_while(&(&1 != "stream"))
+     |> Enum.drop(1)
+     |> Enum.take_while(&(&1 != "endstream"))
+     |> Enum.join("\n")) <> "\n"
+  end
 end

@@ -21,6 +21,18 @@ defmodule Pdf.Text do
     |> Enum.map(&{&1, font.text_width(&1, font_size, opts), opts})
   end
 
+  def chunk_attributed_text(attributed_text, opts) do
+    attributed_text
+    |> Enum.flat_map(fn {text, _width, text_opts} ->
+      chunk_text(
+        text,
+        Keyword.get(text_opts, :font).module,
+        Keyword.get(text_opts, :size),
+        Keyword.merge(opts, text_opts)
+      )
+    end)
+  end
+
   def wrap_chunks(chunks, width) do
     fit_chunks(chunks, width)
   end
@@ -63,14 +75,14 @@ defmodule Pdf.Text do
     end)
   end
 
-  defp wrap_all_chunks(chunks, width, acc \\ [])
+  def wrap_all_chunks(chunks, width)
 
-  defp wrap_all_chunks([], _width, acc), do: Enum.reverse(acc)
+  def wrap_all_chunks([], _width), do: []
 
-  defp wrap_all_chunks(chunks, width, acc) do
+  def wrap_all_chunks(chunks, width) do
     case wrap_chunks(chunks, width) do
-      {[], [chunk | tail]} -> wrap_all_chunks(tail, width, [[chunk] | acc])
-      {chunks, tail} -> wrap_all_chunks(tail, width, [chunks | acc])
+      {[], [chunk | tail]} -> [[chunk] | wrap_all_chunks(tail, width)]
+      {chunks, tail} -> [chunks | wrap_all_chunks(tail, width)]
     end
   end
 

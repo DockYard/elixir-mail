@@ -116,47 +116,55 @@ defmodule Pdf.Page do
     [chunk | merge_same_opts(tail)]
   end
 
-  defp annotate_attributed_text(
-         attributed_text,
-         %{fonts: fonts, current_font: %{module: font}} = page,
-         overall_opts
-       ) do
+  def annotate_attributed_text(text, page, opts) when is_binary(text) do
+    annotate_attributed_text([text], page, opts)
+  end
+
+  def annotate_attributed_text(
+        attributed_text,
+        %{fonts: fonts, current_font: %{module: font}} = page,
+        overall_opts
+      ) do
     attributed_text
     |> Enum.map(fn
       str when is_binary(str) -> {str, []}
       {str} -> {str, []}
       {str, opts} -> {str, opts}
+      annotated -> annotated
     end)
-    |> Enum.map(fn {text, opts} ->
-      # TODO: This overrides the default font with the non-bold version
-      opts = Keyword.merge(overall_opts, opts)
+    |> Enum.map(fn
+      {text, width, opts} ->
+        {text, width, opts}
 
-      font =
-        if Enum.any?([:bold, :italic], &Keyword.has_key?(opts, &1)) do
-          Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
-        else
-          Fonts.get_font(fonts, font.name, [])
-        end
+      {text, opts} ->
+        opts = Keyword.merge(overall_opts, opts)
 
-      font_size = Keyword.get(opts, :size, page.current_font_size)
-      color = Keyword.get(opts, :color, page.fill_color)
+        font =
+          if Enum.any?([:bold, :italic], &Keyword.has_key?(opts, &1)) do
+            Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
+          else
+            Fonts.get_font(fonts, font.name, [])
+          end
 
-      height = font_size
-      ascender = font.module.ascender * font_size / 1000
+        font_size = Keyword.get(opts, :size, page.current_font_size)
+        color = Keyword.get(opts, :color, page.fill_color)
 
-      width = font.module.text_width(text, font_size, opts)
+        height = font_size
+        ascender = font.module.ascender * font_size / 1000
 
-      {text, width,
-       Keyword.merge(
-         overall_opts,
-         Keyword.merge(opts,
-           ascender: ascender,
-           color: color,
-           font: font,
-           height: height,
-           size: font_size
-         )
-       )}
+        width = font.module.text_width(text, font_size, opts)
+
+        {text, width,
+         Keyword.merge(
+           overall_opts,
+           Keyword.merge(opts,
+             ascender: ascender,
+             color: color,
+             font: font,
+             height: height,
+             size: font_size
+           )
+         )}
     end)
   end
 
@@ -171,16 +179,7 @@ defmodule Pdf.Page do
   def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
     attributed_text = annotate_attributed_text(attributed_text, page, opts)
 
-    chunks =
-      attributed_text
-      |> Enum.flat_map(fn {text, _width, text_opts} ->
-        text
-        |> Text.chunk_text(
-          Keyword.get(text_opts, :font).module,
-          Keyword.get(text_opts, :size),
-          Keyword.merge(opts, text_opts)
-        )
-      end)
+    chunks = Text.chunk_attributed_text(attributed_text, opts)
 
     page = push(page, "BT")
 
