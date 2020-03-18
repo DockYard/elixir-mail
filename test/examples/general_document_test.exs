@@ -1,7 +1,7 @@
 defmodule Pdf.Examples.GeneralDocumentTest do
   use Pdf.Case, async: true
 
-  @open true
+  @open false
   test "generate document" do
     file_path = output("general_document.pdf")
 

@@ -48,6 +48,18 @@ defmodule Pdf do
     {:reply, self(), Document.set_line_width(document, width)}
   end
 
+  @type cap_style :: :butt | :round | :projecting_square | :sqaure | integer()
+  @spec set_line_cap(pid, cap_style) :: pid
+  defcall set_line_cap(style, _from, document) do
+    {:reply, self(), Document.set_line_cap(document, style)}
+  end
+
+  @type join_style :: :miter | :round | :bevel | integer()
+  @spec set_line_join(pid, join_style) :: pid
+  defcall set_line_join(style, _from, document) do
+    {:reply, self(), Document.set_line_join(document, style)}
+  end
+
   @type x :: integer
   @type y :: integer
   @type width :: integer
@@ -128,6 +140,16 @@ defmodule Pdf do
 
   defcall text_lines({x, y}, lines, _from, document) do
     {:reply, self(), Document.text_lines(document, {x, y}, lines)}
+  end
+
+  defcall table({x, y}, {w, h}, data, _from, document) do
+    {document, remaining} = Document.table(document, {x, y}, {w, h}, data)
+    {:reply, {self(), remaining}, document}
+  end
+
+  defcall table({x, y}, {w, h}, data, opts, _from, document) do
+    {document, remaining} = Document.table(document, {x, y}, {w, h}, data, opts)
+    {:reply, {self(), remaining}, document}
   end
 
   def add_image(pid, {x, y}, image_path), do: add_image(pid, {x, y}, image_path, [])

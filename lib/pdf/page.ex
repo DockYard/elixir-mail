@@ -6,7 +6,11 @@ defmodule Pdf.Page do
             current_font_size: 0,
             fill_color: :black,
             leading: nil,
-            cursor: 0
+            cursor: 0,
+            saving_state: false
+
+  defdelegate table(page, data, xy, wh), to: Pdf.Table
+  defdelegate table(page, data, xy, wh, opts), to: Pdf.Table
 
   import Pdf.Utils
   alias Pdf.{Image, Fonts, Stream, Text}
@@ -33,6 +37,10 @@ defmodule Pdf.Page do
 
   def set_fill_color(%{fill_color: color} = page, color), do: page
 
+  def set_fill_color(%{saving_state: true} = page, color) do
+    push(page, color_command(color, fill_command(color)))
+  end
+
   def set_fill_color(page, color) do
     push(%{page | fill_color: color}, color_command(color, fill_command(color)))
   end
@@ -44,6 +52,25 @@ defmodule Pdf.Page do
   def set_line_width(page, width) do
     push(page, [width, "w"])
   end
+
+  def set_line_cap(page, style) do
+    push(page, [line_cap(style), "J"])
+  end
+
+  defp line_cap(:butt), do: 0
+  defp line_cap(:round), do: 1
+  defp line_cap(:projecting_square), do: 2
+  defp line_cap(:square), do: 2
+  defp line_cap(style), do: style
+
+  def set_line_join(page, style) do
+    push(page, [line_join(style), "j"])
+  end
+
+  defp line_join(:miter), do: 0
+  defp line_join(:round), do: 1
+  defp line_join(:bevel), do: 2
+  defp line_join(style), do: style
 
   def rectangle(page, {x, y}, {w, h}) do
     push(page, [x, y, w, h, "re"])
@@ -116,6 +143,10 @@ defmodule Pdf.Page do
     [chunk | merge_same_opts(tail)]
   end
 
+  def annotate_attributed_text(nil, page, opts) do
+    annotate_attributed_text([""], page, opts)
+  end
+
   def annotate_attributed_text(text, page, opts) when is_binary(text) do
     annotate_attributed_text([text], page, opts)
   end
@@ -174,6 +205,18 @@ defmodule Pdf.Page do
       when is_binary(text) do
     {page, remaining} = text_wrap(page, {x, y}, {w, h}, [text], opts)
     {page, chunks_to_text(remaining)}
+  end
+
+  def text_wrap(page, {x, y}, {w, h}, [[{_, _, _} | _] | _] = lines, opts) do
+    page = push(page, "BT")
+
+    {page, remaining} =
+      page
+      |> set_cursor(0)
+      |> print_attributed_lines(lines, x, y + h, w, h, opts)
+
+    page = push(page, "ET")
+    {page, remaining}
   end
 
   def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
@@ -252,6 +295,43 @@ defmodule Pdf.Page do
     end
   end
 
+  defp print_attributed_lines(page, [], _x, _y, _width, _height, _opts), do: {page, []}
+
+  defp print_attributed_lines(page, [line | lines], x, y, width, height, opts) do
+    line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
+
+    max_ascender = line |> Enum.map(&Keyword.get(elem(&1, 2), :ascender)) |> Enum.max()
+    line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
+    line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
+
+    if line_height > height do
+      # No available vertical space to print the line so return remaining lines
+      {move_cursor(page, max_ascender - line_height), [line | lines]}
+    else
+      x_offset =
+        case Keyword.get(opts, :align, :left) do
+          :left -> x
+          :center -> x + (width - line_width) / 2
+          :right -> x + (width - line_width)
+        end
+
+      y_offset = y - max_ascender
+
+      page
+      |> push([x_offset, y_offset, "Td"])
+      |> print_attributed_line(line)
+      |> move_cursor(y - max_ascender)
+      |> print_attributed_lines(
+        lines,
+        x - x_offset,
+        y - y - line_height + max_ascender,
+        width,
+        height - line_height,
+        opts
+      )
+    end
+  end
+
   defp print_attributed_line(page, attributed_text) do
     attributed_text
     |> merge_same_opts
@@ -259,7 +339,7 @@ defmodule Pdf.Page do
       page
       |> set_font(opts[:font].module.name, opts[:size], opts)
       |> set_fill_color(opts[:color])
-      |> push(kerned_text(opts[:font], text, Keyword.get(opts, :kerning, false)))
+      |> push(kerned_text(opts[:font].module, text, Keyword.get(opts, :kerning, false)))
     end)
   end
 
@@ -286,10 +366,22 @@ defmodule Pdf.Page do
     height = Keyword.get(opts, :height, height * scaled_width)
 
     page
-    |> push("q")
+    |> save_state()
     |> push([width, 0, 0, height, x, y, "cm"])
     |> push([image_name, "Do"])
-    |> push("Q")
+    |> restore_state()
+  end
+
+  def clip(page) do
+    push(page, ["W n"])
+  end
+
+  def save_state(page) do
+    push(%{page | saving_state: true}, "q")
+  end
+
+  def restore_state(page) do
+    push(%{page | saving_state: false}, "Q")
   end
 
   def size(%{size: size}) do

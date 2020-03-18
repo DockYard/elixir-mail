@@ -80,6 +80,8 @@ defmodule Pdf.Document do
     {:set_fill_color, quote(do: [color])},
     {:set_stroke_color, quote(do: [color])},
     {:set_line_width, quote(do: [width])},
+    {:set_line_cap, quote(do: [style])},
+    {:set_line_join, quote(do: [style])},
     {:rectangle, quote(do: [{x, y}, {w, h}])},
     {:line, quote(do: [{x, y}, {x2, y2}])},
     {:move_to, quote(do: [{x, y}])},
@@ -105,6 +107,13 @@ defmodule Pdf.Document do
 
   def text_wrap(%__MODULE__{current: page} = document, xy, wh, text, opts) do
     {page, remaining} = Page.text_wrap(page, xy, wh, text, opts)
+    {%{document | current: page}, remaining}
+  end
+
+  def table(document, xy, wh, data), do: table(document, xy, wh, data, [])
+
+  def table(%__MODULE__{current: page} = document, xy, wh, data, opts) do
+    {page, remaining} = Page.table(page, xy, wh, data, opts)
     {%{document | current: page}, remaining}
   end
 

@@ -2,7 +2,7 @@ defmodule PdfTest do
   use Pdf.Case, async: true
   doctest Pdf
 
-  @open true
+  @open false
   test "new/1" do
     file_path = output("qtest.pdf")
 
