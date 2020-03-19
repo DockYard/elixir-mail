@@ -21,8 +21,12 @@ defmodule Pdf.Table do
 
   def continue_table(page, {x, y}, {w, h}, data, opts \\ []) do
     case draw_table(page, {x, y}, {w, h}, data, opts) do
-      {page, []} -> {page, []}
-      {page, data} -> {page, data}
+      {page, []} ->
+        {page, []}
+
+      {page, remaining} ->
+        repeat_rows = Keyword.get(opts, :repeat_header, 0)
+        {page, Enum.take(data, repeat_rows) ++ remaining}
     end
   end
 
