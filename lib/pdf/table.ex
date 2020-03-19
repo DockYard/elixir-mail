@@ -16,8 +16,14 @@ defmodule Pdf.Table do
       |> chunk_data(page, opts, Keyword.get(opts, :rows, %{}))
       |> set_col_dimensions({x, y}, {w, h}, col_opts)
 
-    page = build_table(page, {x, y}, {w, h}, data, opts)
-    {page, []}
+    continue_table(page, {x, y}, {w, h}, data, opts)
+  end
+
+  def continue_table(page, {x, y}, {w, h}, data, opts \\ []) do
+    case draw_table(page, {x, y}, {w, h}, data, opts) do
+      {page, []} -> {page, []}
+      {page, data} -> {page, data}
+    end
   end
 
   defp set_col_dimensions(data, {x, _y}, {width, _height}, col_opts) do
@@ -198,11 +204,11 @@ defmodule Pdf.Table do
     |> Enum.map(&Enum.max/1)
   end
 
-  defp build_table(page, _xy, _wh, [], _opts), do: page
+  defp draw_table(page, _xy, _wh, [], _opts), do: {page, []}
 
-  defp build_table(page, {x, y}, {w, h}, [row | data], opts) do
+  defp draw_table(page, {x, y}, {w, h}, [head | tail], opts) do
     row =
-      row
+      head
       |> Enum.map(fn {col, col_opts} ->
         {_, pr, _, pl} = padding(col_opts)
         width = Keyword.get(col_opts, :width) - pr - pl
@@ -219,14 +225,21 @@ defmodule Pdf.Table do
 
     row_height = Enum.map(row, &col_height/1) |> Enum.max()
 
-    page = print_row(page, y - row_height, row_height, row)
+    if row_height > h do
+      {page, [head | tail]}
+    else
+      page =
+        page
+        |> draw_row(y - row_height, row_height, row)
+        |> Page.set_cursor(y - row_height)
 
-    build_table(page, {x, y - row_height}, {w, h - row_height}, data, opts)
+      draw_table(page, {x, y - row_height}, {w, h - row_height}, tail, opts)
+    end
   end
 
-  defp print_row(page, _y, _row_height, []), do: page
+  defp draw_row(page, _y, _row_height, []), do: page
 
-  defp print_row(page, y, row_height, [{lines, col_opts} | tail]) do
+  defp draw_row(page, y, row_height, [{lines, col_opts} | tail]) do
     {pt, pr, pb, pl} = padding(col_opts)
     width = Keyword.get(col_opts, :width)
     x = Keyword.get(col_opts, :x)
@@ -246,7 +259,7 @@ defmodule Pdf.Table do
     page
     |> Page.restore_state()
     |> draw_border({x, y}, {width, row_height}, border(col_opts))
-    |> print_row(y, row_height, tail)
+    |> draw_row(y, row_height, tail)
   end
 
   defp draw_background(page, _lines, _xy, _wh, nil), do: page

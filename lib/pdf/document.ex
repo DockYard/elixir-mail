@@ -117,6 +117,13 @@ defmodule Pdf.Document do
     {%{document | current: page}, remaining}
   end
 
+  def continue_table(document, xy, wh, data), do: continue_table(document, xy, wh, data, [])
+
+  def continue_table(%__MODULE__{current: page} = document, xy, wh, data, opts) do
+    {page, remaining} = Page.continue_table(page, xy, wh, data, opts)
+    {%{document | current: page}, remaining}
+  end
+
   def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 
   def add_image(%__MODULE__{current: page} = document, {x, y}, image_path, opts \\ []) do

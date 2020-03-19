@@ -16,12 +16,7 @@ defmodule Pdf.Examples.TableTest do
 
     {:ok, pdf} = Pdf.new(size: :a4, compress: false)
 
-    pdf
-    |> Pdf.set_font("Helvetica", 12)
-    |> Pdf.set_fill_color(:black)
-    |> Pdf.set_line_cap(:square)
-    |> Pdf.set_line_join(:miter)
-    |> Pdf.table({100, 800}, {400, 300}, data,
+    table_opts = [
       padding: {4, 6, 0},
       background: :gainsboro,
       cols: [
@@ -45,8 +40,25 @@ defmodule Pdf.Examples.TableTest do
         ]
       },
       border: 0.5
-    )
-    |> elem(0)
+    ]
+
+    pdf
+    |> Pdf.set_font("Helvetica", 12)
+    |> Pdf.set_fill_color(:black)
+    |> Pdf.set_line_cap(:square)
+    |> Pdf.set_line_join(:miter)
+
+    {pdf, data} =
+      pdf
+      |> Pdf.table({100, 800}, {400, 100}, data, table_opts)
+
+    cursor = Pdf.cursor(pdf)
+
+    {pdf, []} =
+      pdf
+      |> Pdf.continue_table({100, cursor - 20}, {400, 100}, data, table_opts)
+
+    pdf
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 
