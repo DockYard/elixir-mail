@@ -23,7 +23,10 @@ defmodule Pdf.Page do
   defp init([], page), do: page
   defp init([{:fonts, fonts} | tail], page), do: init(tail, %{page | fonts: fonts})
 
-  defp init([{:size, size} | tail], page), do: init(tail, %{page | size: size})
+  defp init([{:size, size} | tail], page) do
+    [_bottom, _left, _width, height] = Pdf.Paper.size(size)
+    init(tail, %{page | size: size, cursor: height})
+  end
 
   defp init([{:compress, false} | tail], page),
     do: init(tail, %{page | stream: Stream.new(compress: false)})

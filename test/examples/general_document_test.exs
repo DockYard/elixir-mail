@@ -7,8 +7,6 @@ defmodule Pdf.Examples.GeneralDocumentTest do
 
     {:ok, pdf} = Pdf.new(size: :a4, compress: false)
 
-    %{width: width, height: height} = Pdf.size(pdf)
-
     pdf
     |> Pdf.set_info(
       title: "Test Document",
@@ -19,16 +17,22 @@ defmodule Pdf.Examples.GeneralDocumentTest do
       author: "Test Author",
       subject: "Test Subject"
     )
-    |> add_header("Lorem ipsum dolor sit amet", width, height)
-    |> write_paragraphs1(width)
-    |> write_paragraphs2(width)
+    |> add_header("Lorem ipsum dolor sit amet")
+    |> write_paragraphs1()
+    |> write_paragraphs2()
+    |> Pdf.add_page({:a4, :landscape})
+    |> Pdf.move_down(20)
+    |> write_paragraphs1()
+    |> write_paragraphs2()
     |> Pdf.write_to(file_path)
     |> Pdf.delete()
 
     if @open, do: System.cmd("open", ["-g", file_path])
   end
 
-  defp add_header(pdf, header, width, height) do
+  defp add_header(pdf, header) do
+    %{width: width, height: height} = Pdf.size(pdf)
+
     {pdf, ""} =
       pdf
       |> Pdf.set_font("Helvetica", 16, bold: true)
@@ -37,7 +41,8 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     Pdf.move_down(pdf, 16)
   end
 
-  defp write_paragraphs1(pdf, width) do
+  defp write_paragraphs1(pdf) do
+    %{width: width} = Pdf.size(pdf)
     cursor = Pdf.cursor(pdf)
 
     text = """
@@ -71,7 +76,9 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     Pdf.move_down(pdf, 12)
   end
 
-  defp write_paragraphs2(pdf, width) do
+  defp write_paragraphs2(pdf) do
+    %{width: width} = Pdf.size(pdf)
+
     cursor = Pdf.cursor(pdf)
 
     text = """

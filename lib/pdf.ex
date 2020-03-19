@@ -30,6 +30,14 @@ defmodule Pdf do
     {:reply, Document.to_iolist(document) |> :binary.list_to_bin(), document}
   end
 
+  defcall add_page(size, _from, document) do
+    {:reply, self(), Document.add_page(document, size: size)}
+  end
+
+  defcall page_number(_from, document) do
+    {:reply, Document.page_number(document), document}
+  end
+
   @type color_name :: atom
   @type rgb :: {integer, integer, integer} | {float, float, float}
   @type cmyk :: {float, float, float, float}

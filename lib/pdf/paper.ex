@@ -33,6 +33,7 @@ defmodule Pdf.Paper do
   ]
   |> Enum.each(fn {size, dimensions} ->
     def size(unquote(size)), do: [0, 0 | unquote(dimensions)]
+    def size({unquote(size), :landscape}), do: [0, 0 | unquote(Enum.reverse(dimensions))]
   end)
 
   def size([_width, _height] = dimensions), do: [0, 0, dimensions]

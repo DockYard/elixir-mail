@@ -37,7 +37,7 @@ defmodule Pdf.Document do
       )
 
     document = %__MODULE__{objects: collection, fonts: fonts, info: info, opts: opts}
-    add_page(document, Page.new(Keyword.merge(opts, fonts: fonts)))
+    add_page(document, opts)
   end
 
   @info_map %{
@@ -149,11 +149,16 @@ defmodule Pdf.Document do
     document
   end
 
-  def add_page(%__MODULE__{current: nil} = document, new_page),
-    do: %{document | current: new_page}
+  def add_page(%__MODULE__{current: nil, fonts: fonts} = document, opts) do
+    new_page = Page.new(Keyword.merge(opts, fonts: fonts))
+    %{document | current: new_page}
+  end
 
-  def add_page(%__MODULE__{current: current_page, pages: pages} = document, new_page),
-    do: add_page(%{document | current: nil, pages: [current_page | pages]}, new_page)
+  def add_page(%__MODULE__{current: current_page, pages: pages} = document, opts) do
+    add_page(%{document | current: nil, pages: [current_page | pages]}, opts)
+  end
+
+  def page_number(%__MODULE__{pages: pages}), do: length(pages) + 1
 
   def size(%__MODULE__{current: current_page}) do
     Page.size(current_page)
