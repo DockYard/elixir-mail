@@ -116,6 +116,10 @@ defmodule Pdf do
     {:reply, self(), Document.set_font(document, font_name, font_size, opts)}
   end
 
+  defcall set_font_size(size, _from, document) do
+    {:reply, self(), Document.set_font_size(document, size)}
+  end
+
   defcall add_font(path, _from, document) do
     {:reply, self(), Document.add_external_font(document, path)}
   end
@@ -182,6 +186,10 @@ defmodule Pdf do
 
   defcall cursor(_from, document) do
     {:reply, Document.cursor(document), document}
+  end
+
+  defcall set_cursor(y, _from, document) do
+    {:reply, self(), Document.set_cursor(document, y)}
   end
 
   defcall move_down(amount, _from, document) do

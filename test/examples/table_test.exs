@@ -28,7 +28,14 @@ defmodule Pdf.Examples.TableTest do
         [width: 80, align: :right, padding: {4, 2, 0}]
       ],
       rows: %{
-        0 => [bold: true, align: :center, kerning: true],
+        0 => [
+          bold: true,
+          align: :center,
+          kerning: true,
+          cols: [
+            [colspan: 2]
+          ]
+        ],
         2 => [background: :silver, cols: [[], [], [background: :dark_green]]],
         -1 => [
           bold: true,

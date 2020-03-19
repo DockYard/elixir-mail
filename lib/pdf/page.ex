@@ -119,6 +119,20 @@ defmodule Pdf.Page do
     %{page | current_font: font, current_font_size: size}
   end
 
+  def set_font_size(page, size) do
+    push_font_size(page, size)
+  end
+
+  defp push_font_size(%{current_font_size: size} = page, size), do: page
+
+  defp push_font_size(%{in_text: true, current_font: font} = page, size) do
+    push(%{page | current_font_size: size}, [font.name, size, "Tf"])
+  end
+
+  defp push_font_size(page, size) do
+    %{page | current_font_size: size}
+  end
+
   def set_text_leading(page, leading) do
     %{page | leading: leading}
   end
@@ -488,5 +502,9 @@ defmodule Pdf.Page do
 
   defimpl Pdf.Export do
     def to_iolist(%Pdf.Page{} = page), do: Pdf.Export.to_iolist(page.stream)
+  end
+
+  defimpl Inspect do
+    def inspect(%Pdf.Page{size: size}, _opts), do: "#Page<size: #{size}>"
   end
 end

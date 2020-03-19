@@ -19,7 +19,7 @@ defmodule Pdf.TableTest do
   end
 
   test "it does nothing with an empty data list", %{page: page} do
-    page = Page.table(page, {20, 600}, {500, 500}, [])
+    {page, []} = Page.table(page, {20, 600}, {500, 500}, [])
 
     assert export(page) == "\n"
   end

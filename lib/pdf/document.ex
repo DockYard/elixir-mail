@@ -87,6 +87,7 @@ defmodule Pdf.Document do
     {:move_to, quote(do: [{x, y}])},
     {:line_append, quote(do: [{x, y}])},
     {:set_font, quote(do: [name, size, opts])},
+    {:set_font_size, quote(do: [size])},
     {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
@@ -166,6 +167,10 @@ defmodule Pdf.Document do
 
   def cursor(%__MODULE__{current: current_page}) do
     Page.cursor(current_page)
+  end
+
+  def set_cursor(%__MODULE__{current: current_page} = document, y) do
+    %{document | current: Page.set_cursor(current_page, y)}
   end
 
   def to_iolist(document) do

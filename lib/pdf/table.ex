@@ -3,7 +3,7 @@ defmodule Pdf.Table do
 
   def table(page, xy, wh, data, opts \\ [])
 
-  def table(page, _xy, _wh, [], _opts), do: page
+  def table(page, _xy, _wh, [], _opts), do: {page, []}
 
   def table(page, {x, y}, {w, h}, data, opts) do
     [first_row | _] = data
@@ -61,7 +61,32 @@ defmodule Pdf.Table do
         widths
       end
 
-    set_widths(data, widths, x)
+    data
+    |> set_widths(widths, x)
+    |> set_spanning()
+  end
+
+  defp set_spanning([]), do: []
+
+  defp set_spanning([row | rows]) do
+    [span_cols(row) | set_spanning(rows)]
+  end
+
+  defp span_cols([]), do: []
+
+  defp span_cols([{content, col_opts} = col | _] = cols) do
+    case Enum.split(cols, Keyword.get(col_opts, :colspan, 1)) do
+      {[col], cols} ->
+        [col | span_cols(cols)]
+
+      {[{content, col_opts} | tail] = spanned, cols} ->
+        spanned_width =
+          Enum.reduce(spanned, 0, fn {_, col_opts}, acc ->
+            Keyword.get(col_opts, :width, 0) + acc
+          end)
+
+        [{content, Keyword.put(col_opts, :width, spanned_width)} | span_cols(cols)]
+    end
   end
 
   defp calculate_dimensions(widths, width) do
@@ -255,7 +280,7 @@ defmodule Pdf.Table do
       |> clip({x + pl, y + pb}, {width - pl - pr, row_height - pt - pb})
       |> Page.text_wrap(
         {x + pl, y + row_height - pt},
-        {width - pl - pr, row_height - pt - pb},
+        {width - pl - pr, row_height},
         lines,
         col_opts
       )
