@@ -1,7 +1,7 @@
 defmodule Pdf.Examples.TableTest do
   use Pdf.Case, async: true
 
-  @open true
+  @open false
   test "" do
     data = [
       ["Header 1", "Header 2", "Header 3", "Header 4"],

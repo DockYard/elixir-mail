@@ -68,7 +68,7 @@ defmodule PdfTest do
     |> Pdf.set_fill_color(:black)
     |> Pdf.set_text_leading(14)
     |> Pdf.text_wrap(
-      {250, 550},
+      {250, 650},
       {200, 100},
       "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit.",
       align: :center
@@ -76,7 +76,7 @@ defmodule PdfTest do
     |> elem(0)
     |> Pdf.set_text_leading(10)
     |> Pdf.text_wrap(
-      {50, 400},
+      {50, 500},
       {100, 100},
       [
         {"Lorem "},

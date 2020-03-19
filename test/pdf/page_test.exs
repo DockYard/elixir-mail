@@ -155,7 +155,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             10 112.82 Td
+             10 12.82 Td
              (Hello world) Tj
              ET
              """
@@ -168,7 +168,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             160.55 112.82 Td
+             160.55 12.82 Td
              (Hello world) Tj
              ET
              """
@@ -183,7 +183,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             85.275 112.82 Td
+             85.275 12.82 Td
              (Hello world) Tj
              ET
              """
@@ -204,7 +204,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             10 22.82 Td
+             10 12.82 Td
              (Lorem ipsum dolor sit amet, consectetur) Tj
              ET
              """
@@ -228,7 +228,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 12 Tf
-             10 111.384 Td
+             10 11.384 Td
              /F1 10 Tf
              (Lorem ipsum dolor ) Tj
              /F3 12 Tf

@@ -56,7 +56,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
       |> Pdf.set_font("Helvetica", 12)
       |> Pdf.add_image({padding, cursor - image_height}, fixture("rgb.jpg"))
       |> Pdf.text_wrap(
-        {padding + image_width + image_margin, cursor - image_height - image_margin},
+        {padding + image_width + image_margin, cursor},
         {width - padding * 2 - image_width - image_margin, image_height + image_margin},
         text
       )
@@ -66,7 +66,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     {pdf, ""} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_wrap({padding, padding}, {width - padding * 2, cursor - padding}, remaining)
+      |> Pdf.text_wrap({padding, cursor}, {width - padding * 2, cursor - padding}, remaining)
 
     Pdf.move_down(pdf, 12)
   end
@@ -85,7 +85,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     {pdf, ""} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_wrap({padding, padding}, {width - padding * 2, cursor - padding}, text)
+      |> Pdf.text_wrap({padding, cursor}, {width - padding * 2, cursor - padding}, text)
 
     Pdf.move_down(pdf, 12)
   end

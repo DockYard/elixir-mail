@@ -231,7 +231,7 @@ defmodule Pdf.Page do
     {page, remaining} =
       page
       |> set_cursor(0)
-      |> print_attributed_lines(lines, x, y + h, w, h, opts)
+      |> print_attributed_lines(lines, x, y, w, h, opts)
 
     page = end_text(page)
     {page, remaining}
@@ -247,7 +247,7 @@ defmodule Pdf.Page do
     {page, remaining} =
       page
       |> set_cursor(0)
-      |> print_attributed_chunks(chunks, x, y + h, w, h, opts)
+      |> print_attributed_chunks(chunks, x, y, w, h, opts)
 
     page = end_text(page)
     {page, remaining}

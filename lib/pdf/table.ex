@@ -254,7 +254,7 @@ defmodule Pdf.Table do
       |> Page.save_state()
       |> clip({x + pl, y + pb}, {width - pl - pr, row_height - pt - pb})
       |> Page.text_wrap(
-        {x + pl, y + pb},
+        {x + pl, y + row_height - pt},
         {width - pl - pr, row_height - pt - pb},
         lines,
         col_opts
