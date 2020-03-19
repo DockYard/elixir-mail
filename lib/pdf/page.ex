@@ -217,6 +217,10 @@ defmodule Pdf.Page do
 
         height = font_size
         ascender = font.module.ascender * font_size / 1000
+        descender = -(font.module.descender * font_size / 1000)
+        cap_height = font.module.cap_height * font_size / 1000
+        x_height = font.module.x_height * font_size / 1000
+        line_gap = (font_size - (ascender + descender)) / 2
 
         width = font.module.text_width(text, font_size, opts)
 
@@ -225,10 +229,14 @@ defmodule Pdf.Page do
            overall_opts,
            Keyword.merge(opts,
              ascender: ascender,
+             cap_height: cap_height,
              color: color,
+             descender: descender,
              font: font,
              height: height,
-             size: font_size
+             line_gap: line_gap,
+             size: font_size,
+             x_height: x_height
            )
          )}
     end)
@@ -247,7 +255,7 @@ defmodule Pdf.Page do
 
     {page, remaining} =
       page
-      |> set_cursor(0)
+      |> set_cursor(y)
       |> print_attributed_lines(lines, x, y, w, h, opts)
 
     page = end_text(page)
@@ -263,7 +271,7 @@ defmodule Pdf.Page do
 
     {page, remaining} =
       page
-      |> set_cursor(0)
+      |> set_cursor(y)
       |> print_attributed_chunks(chunks, x, y, w, h, opts)
 
     page = end_text(page)
@@ -282,11 +290,11 @@ defmodule Pdf.Page do
     Enum.max(Enum.filter([page.leading, line_height], & &1))
   end
 
-  defp print_attributed_chunks(page, chunks, x, y, width, height, opts)
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, prev_line_height \\ 0)
 
-  defp print_attributed_chunks(page, [], _, _, _, _, _), do: {page, []}
+  defp print_attributed_chunks(page, [], _, _, _, _, _, _), do: {page, []}
 
-  defp print_attributed_chunks(page, chunks, x, y, width, height, opts) do
+  defp print_attributed_chunks(page, chunks, x, y, width, height, opts, prev_line_height) do
     {line, tail} =
       case Text.wrap_chunks(chunks, width) do
         {[], [line | tail]} ->
@@ -298,13 +306,12 @@ defmodule Pdf.Page do
 
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
 
-    max_ascender = line |> Enum.map(&Keyword.get(elem(&1, 2), :ascender)) |> Enum.max()
-    line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
-    line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
+    line_height =
+      page.leading || line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
 
     if line_height > height do
       # No available vertical space to print the line so return remaining lines
-      {move_cursor(page, max_ascender - line_height), [line | tail]}
+      {page, [line | tail]}
     else
       x_offset =
         case Keyword.get(opts, :align, :left) do
@@ -313,35 +320,48 @@ defmodule Pdf.Page do
           :right -> x + (width - line_width)
         end
 
-      y_offset = y - max_ascender
+      ascender =
+        line
+        |> Enum.map(&Keyword.get(elem(&1, 2), :ascender))
+        |> Enum.max()
+
+      line_gap =
+        line
+        |> Enum.map(&Keyword.get(elem(&1, 2), :line_gap))
+        |> Enum.max()
+
+      y_offset = if prev_line_height == 0, do: y - (ascender + line_gap), else: -prev_line_height
 
       page
       |> push([x_offset, y_offset, "Td"])
       |> print_attributed_line(line)
-      |> move_cursor(y - max_ascender)
+      |> move_down(line_height)
       |> print_attributed_chunks(
         tail,
         x - x_offset,
-        y - y - line_height + max_ascender,
+        y - line_height,
         width,
         height - line_height,
-        opts
+        opts,
+        line_height
       )
     end
   end
 
-  defp print_attributed_lines(page, [], _x, _y, _width, _height, _opts), do: {page, []}
+  defp print_attributed_lines(page, lines, x, y, width, height, opts, prev_line_height \\ 0)
 
-  defp print_attributed_lines(page, [line | lines], x, y, width, height, opts) do
+  defp print_attributed_lines(page, [], _x, _y, _width, _height, _opts, _prev_line_height),
+    do: {page, []}
+
+  defp print_attributed_lines(page, [line | lines], x, y, width, height, opts, prev_line_height) do
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
 
-    max_ascender = line |> Enum.map(&Keyword.get(elem(&1, 2), :ascender)) |> Enum.max()
-    line_height = line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
-    line_height = Enum.max(Enum.filter([page.leading, line_height], & &1))
+    line_height =
+      page.leading || line |> Enum.map(&Keyword.get(elem(&1, 2), :height)) |> Enum.max()
 
     if line_height > height do
       # No available vertical space to print the line so return remaining lines
-      {move_cursor(page, max_ascender - line_height), [line | lines]}
+      {page, [line | lines]}
     else
       x_offset =
         case Keyword.get(opts, :align, :left) do
@@ -350,19 +370,30 @@ defmodule Pdf.Page do
           :right -> x + (width - line_width)
         end
 
-      y_offset = y - max_ascender
+      ascender =
+        line
+        |> Enum.map(&Keyword.get(elem(&1, 2), :ascender))
+        |> Enum.max()
+
+      line_gap =
+        line
+        |> Enum.map(&Keyword.get(elem(&1, 2), :line_gap))
+        |> Enum.max()
+
+      y_offset = if prev_line_height == 0, do: y - (ascender + line_gap), else: -prev_line_height
 
       page
       |> push([x_offset, y_offset, "Td"])
       |> print_attributed_line(line)
-      |> move_cursor(y - max_ascender)
+      |> move_down(line_height)
       |> print_attributed_lines(
         lines,
         x - x_offset,
-        y - y - line_height + max_ascender,
+        y - line_height,
         width,
         height - line_height,
-        opts
+        opts,
+        line_height
       )
     end
   end
@@ -428,12 +459,8 @@ defmodule Pdf.Page do
     %{page | cursor: y}
   end
 
-  def move_cursor(%{cursor: cursor} = page, y) do
-    %{page | cursor: cursor + y}
-  end
-
-  def move_down(page, amount) do
-    move_cursor(page, -amount)
+  def move_down(%{cursor: y} = page, amount) do
+    %{page | cursor: y - amount}
   end
 
   def cursor(%{cursor: cursor}) do

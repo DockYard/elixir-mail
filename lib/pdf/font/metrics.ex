@@ -71,7 +71,7 @@ defmodule Pdf.Font.Metrics do
       data
       |> String.split(" ", trim: true)
       |> Enum.map(fn f -> Float.parse(f) |> elem(0) end)
-      |> Enum.map(fn f -> :erlang.float_to_binary(f, decimals: 1) end)
+      |> List.to_tuple()
 
     %{metrics | bbox: bbox}
   end

@@ -155,7 +155,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             10 12.82 Td
+             10 12.445 Td
              (Hello world) Tj
              ET
              """
@@ -168,7 +168,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             160.55 12.82 Td
+             160.55 12.445 Td
              (Hello world) Tj
              ET
              """
@@ -183,7 +183,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             85.275 12.82 Td
+             85.275 12.445 Td
              (Hello world) Tj
              ET
              """
@@ -204,7 +204,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 10 Tf
-             10 12.82 Td
+             10 12.445 Td
              (Lorem ipsum dolor sit amet, consectetur) Tj
              ET
              """
@@ -228,7 +228,7 @@ defmodule Pdf.PageTest do
       assert export(page) == """
              BT
              /F1 12 Tf
-             10 11.384 Td
+             10 10.934 Td
              /F1 10 Tf
              (Lorem ipsum dolor ) Tj
              /F3 12 Tf
@@ -236,13 +236,13 @@ defmodule Pdf.PageTest do
              /F1 12 Tf
              0.0 0.0 1.0 rg
              (consectetur) Tj
-             0 -12.0 Td
+             0 -12 Td
              (adipiscing elit. ) Tj
              0.0 0.0 0.0 rg
              (Ut ut enim) Tj
              /F4 10 Tf
              (commodo) Tj
-             0 -12.0 Td
+             0 -12 Td
              (diam ) Tj
              /F1 12 Tf
              1.0 0.0 0.0 rg
@@ -250,7 +250,7 @@ defmodule Pdf.PageTest do
              /F1 8 Tf
              0.0 0.0 0.0 rg
              (Curabitur tempor) Tj
-             0 -9.128 Td
+             0 -12 Td
              (aliquam nulla, vitae cursus purus iaculis vitae.) Tj
              ET
              """

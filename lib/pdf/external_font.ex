@@ -61,7 +61,7 @@ defmodule Pdf.ExternalFont do
     |> Dictionary.put("StemV", 100)
     |> Dictionary.put("Ascent", font.metrics.ascender / 1)
     |> Dictionary.put("Descent", font.metrics.descender / 1)
-    |> Dictionary.put("FontBBox", Array.new(font.metrics.bbox))
+    |> Dictionary.put("FontBBox", Array.new(Tuple.to_list(font.metrics.bbox)))
     |> Dictionary.put("ItalicAngle", font.metrics.italic_angle)
     |> Dictionary.put("FontFile", ff_id)
   end

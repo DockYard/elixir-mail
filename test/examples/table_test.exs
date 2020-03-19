@@ -18,14 +18,14 @@ defmodule Pdf.Examples.TableTest do
     {:ok, pdf} = Pdf.new(size: :a4, compress: false)
 
     table_opts = [
-      padding: {4, 6, 0},
+      padding: 2,
       background: :gainsboro,
       repeat_header: 1,
       cols: [
         [width: 100, size: 8],
         [],
         [min_width: 30, background: :dark_gray, color: :white],
-        [width: 80, align: :right, padding: {4, 2, 0}]
+        [width: 80, align: :right, padding: {2, 4}]
       ],
       rows: %{
         0 => [

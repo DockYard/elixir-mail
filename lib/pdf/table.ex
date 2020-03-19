@@ -355,7 +355,7 @@ defmodule Pdf.Table do
   defp col_height({_, col_opts}) do
     {pt, _pr, pb, _pl} = padding(col_opts)
     height = Keyword.get(col_opts, :height)
-    height + 2 + pt + pb
+    height + pt + pb
   end
 
   defp col_height({_, _, col_opts}) do
@@ -367,6 +367,7 @@ defmodule Pdf.Table do
   defp padding(nil), do: {0, 0, 0, 0}
   defp padding(opts) when is_list(opts), do: padding(Keyword.get(opts, :padding, 0))
   defp padding(p) when is_number(p), do: {p, p, p, p}
+  defp padding({p}) when is_number(p), do: {p, p, p, p}
   defp padding({py, px}), do: {py, px, py, px}
   defp padding({pt, px, pb}), do: {pt, px, pb, px}
   defp padding({pt, pr, pb, pl}), do: {pt, pr, pb, pl}
@@ -374,6 +375,7 @@ defmodule Pdf.Table do
   defp border(nil), do: {0, 0, 0, 0}
   defp border(opts) when is_list(opts), do: border(Keyword.get(opts, :border, 0))
   defp border(b) when is_number(b), do: {b, b, b, b}
+  defp border({b}) when is_number(b), do: {b, b, b, b}
   defp border({by, bx}), do: {by, bx, by, bx}
   defp border({bt, bx, bb}), do: {bt, bx, bb, bx}
   defp border({bt, br, bb, bl}), do: {bt, br, bb, bl}

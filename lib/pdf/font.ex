@@ -38,13 +38,20 @@ defmodule Pdf.Font do
       @doc "The last character defined in `widths/0`"
       def last_char, do: unquote(metrics.last_char)
       @doc "The font ascender"
-      def ascender, do: unquote(metrics.ascender)
+      def ascender, do: unquote(metrics.ascender || 0)
       @doc "The font descender"
-      def descender, do: unquote(metrics.descender)
+      def descender, do: unquote(metrics.descender || 0)
       @doc "The font cap height"
       def cap_height, do: unquote(metrics.cap_height)
       @doc "The font x-height"
       def x_height, do: unquote(metrics.x_height)
+      @doc "The font bbox"
+      def bbox, do: unquote(Macro.escape(metrics.bbox))
+
+      {_llx, lly, _urx, ury} = metrics.bbox
+
+      def line_gap,
+        do: unquote(ury - lly - ((metrics.ascender || 0) + (metrics.descender || 0)))
 
       @doc """
       Returns the character widths of characters beginning from `first_char/0`
