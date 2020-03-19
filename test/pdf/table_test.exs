@@ -36,11 +36,11 @@ defmodule Pdf.TableTest do
       |> Page.table({20, 600}, {300, 500}, data)
 
     assert export(page) == """
-           /F1 12 Tf
            q
            20 586 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            20 591.384 Td
            (Col 1,1) Tj
            ET
@@ -49,6 +49,7 @@ defmodule Pdf.TableTest do
            120.0 586 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            120.0 591.384 Td
            (Col 1,2) Tj
            ET
@@ -57,6 +58,7 @@ defmodule Pdf.TableTest do
            220.0 586 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            220.0 591.384 Td
            (Col 1,3) Tj
            ET
@@ -65,6 +67,7 @@ defmodule Pdf.TableTest do
            20 572 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            20 577.384 Td
            (Col 2,1) Tj
            ET
@@ -73,6 +76,7 @@ defmodule Pdf.TableTest do
            120.0 572 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            120.0 577.384 Td
            (Col 2,2) Tj
            ET
@@ -81,6 +85,7 @@ defmodule Pdf.TableTest do
            220.0 572 100.0 14 re
            W n
            BT
+           /F1 12 Tf
            220.0 577.384 Td
            (Col 2,3) Tj
            ET

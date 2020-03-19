@@ -7,6 +7,7 @@ defmodule Pdf.Page do
             fill_color: :black,
             leading: nil,
             cursor: 0,
+            in_text: false,
             saving_state: false
 
   defdelegate table(page, data, xy, wh), to: Pdf.Table
@@ -102,16 +103,31 @@ defmodule Pdf.Page do
 
   def set_font(%{fonts: fonts} = page, name, size, opts \\ []) do
     font = Fonts.get_font(fonts, name, opts)
+    push_font(page, font, size)
+  end
 
-    if page.current_font == font && page.current_font_size == size do
-      page
-    else
-      push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
-    end
+  defp push_font(%{current_font: font, current_font_size: size} = page, font, size), do: page
+
+  defp push_font(%{in_text: true} = page, font, size) do
+    push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
+  end
+
+  defp push_font(page, font, size) do
+    %{page | current_font: font, current_font_size: size}
   end
 
   def set_text_leading(page, leading) do
     %{page | leading: leading}
+  end
+
+  defp begin_text(%{current_font: font, current_font_size: size} = page) do
+    %{page | in_text: true}
+    |> push(["BT"])
+    |> push([font.name, size, "Tf"])
+  end
+
+  defp end_text(%{in_text: true} = page) do
+    push(%{page | in_text: false}, ["ET"])
   end
 
   def text_at(page, xy, text, opts \\ [])
@@ -120,19 +136,19 @@ defmodule Pdf.Page do
     attributed_text = annotate_attributed_text(attributed_text, page, opts)
 
     page
-    |> push("BT")
+    |> begin_text()
     |> push([x, y, "Td"])
     |> print_attributed_line(attributed_text)
-    |> push("ET")
+    |> end_text()
     |> set_cursor(y - line_height(page, attributed_text))
   end
 
   def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
     page
-    |> push("BT")
+    |> begin_text()
     |> push([x, y, "Td"])
     |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
-    |> push("ET")
+    |> end_text()
   end
 
   defp merge_same_opts([]), do: []
@@ -210,14 +226,14 @@ defmodule Pdf.Page do
   end
 
   def text_wrap(page, {x, y}, {w, h}, [[{_, _, _} | _] | _] = lines, opts) do
-    page = push(page, "BT")
+    page = begin_text(page)
 
     {page, remaining} =
       page
       |> set_cursor(0)
       |> print_attributed_lines(lines, x, y + h, w, h, opts)
 
-    page = push(page, "ET")
+    page = end_text(page)
     {page, remaining}
   end
 
@@ -226,14 +242,14 @@ defmodule Pdf.Page do
 
     chunks = Text.chunk_attributed_text(attributed_text, opts)
 
-    page = push(page, "BT")
+    page = begin_text(page)
 
     {page, remaining} =
       page
       |> set_cursor(0)
       |> print_attributed_chunks(chunks, x, y + h, w, h, opts)
 
-    page = push(page, "ET")
+    page = end_text(page)
     {page, remaining}
   end
 
@@ -353,11 +369,11 @@ defmodule Pdf.Page do
     leading = page.leading || page.current_font_size
 
     page
-    |> push("BT")
+    |> begin_text()
     |> push([x, y, "Td"])
     |> push([leading, "TL"])
     |> draw_lines(lines, opts)
-    |> push("ET")
+    |> end_text()
   end
 
   def add_image(page, {x, y}, image, opts \\ []) do

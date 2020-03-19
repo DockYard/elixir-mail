@@ -91,8 +91,8 @@ defmodule Pdf.PageTest do
 
       assert export(page) ==
                """
-               /F1 12 Tf
                BT
+               /F1 12 Tf
                10 20 Td
                (Hello world) Tj
                ET
@@ -107,8 +107,8 @@ defmodule Pdf.PageTest do
 
       assert export(page) ==
                """
-               /F1 12 Tf
                BT
+               /F1 12 Tf
                10 20 Td
                (Hello world) Tj
                ET
@@ -128,8 +128,8 @@ defmodule Pdf.PageTest do
         ])
 
       assert export(page) == """
-             /F1 12 Tf
              BT
+             /F1 12 Tf
              10 20 Td
              (Hello ) Tj
              /F2 12 Tf
@@ -153,8 +153,8 @@ defmodule Pdf.PageTest do
       assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
 
       assert export(page) == """
-             /F1 10 Tf
              BT
+             /F1 10 Tf
              10 112.82 Td
              (Hello world) Tj
              ET
@@ -166,8 +166,8 @@ defmodule Pdf.PageTest do
       assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
 
       assert export(page) == """
-             /F1 10 Tf
              BT
+             /F1 10 Tf
              160.55 112.82 Td
              (Hello world) Tj
              ET
@@ -181,8 +181,8 @@ defmodule Pdf.PageTest do
                Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :center)
 
       assert export(page) == """
-             /F1 10 Tf
              BT
+             /F1 10 Tf
              85.275 112.82 Td
              (Hello world) Tj
              ET
@@ -202,8 +202,8 @@ defmodule Pdf.PageTest do
                )
 
       assert export(page) == """
-             /F1 10 Tf
              BT
+             /F1 10 Tf
              10 22.82 Td
              (Lorem ipsum dolor sit amet, consectetur) Tj
              ET
@@ -226,8 +226,8 @@ defmodule Pdf.PageTest do
       assert {page, []} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
 
       assert export(page) == """
-             /F1 12 Tf
              BT
+             /F1 12 Tf
              10 111.384 Td
              /F1 10 Tf
              (Lorem ipsum dolor ) Tj
