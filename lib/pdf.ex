@@ -108,7 +108,7 @@ defmodule Pdf do
     set_font(pid, font_name, font_size, Keyword.delete(opts, :size))
   end
 
-  def set_font(pid, font_name, font_size) when is_integer(font_size) do
+  def set_font(pid, font_name, font_size) when is_number(font_size) do
     set_font(pid, font_name, font_size, [])
   end
 

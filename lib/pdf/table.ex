@@ -74,12 +74,12 @@ defmodule Pdf.Table do
 
   defp span_cols([]), do: []
 
-  defp span_cols([{content, col_opts} = col | _] = cols) do
+  defp span_cols([{_content, col_opts} | _] = cols) do
     case Enum.split(cols, Keyword.get(col_opts, :colspan, 1)) do
       {[col], cols} ->
         [col | span_cols(cols)]
 
-      {[{content, col_opts} | tail] = spanned, cols} ->
+      {[{content, col_opts} | _tail] = spanned, cols} ->
         spanned_width =
           Enum.reduce(spanned, 0, fn {_, col_opts}, acc ->
             Keyword.get(col_opts, :width, 0) + acc
@@ -359,20 +359,20 @@ defmodule Pdf.Table do
   end
 
   defp col_height({_, _, col_opts}) do
-    padding = Keyword.get(col_opts, :padding, 0)
+    {pt, _pr, pb, _pl} = padding(col_opts)
     height = Keyword.get(col_opts, :height)
-    height + 2 * padding
+    height + pt + pb
   end
 
   defp padding(nil), do: {0, 0, 0, 0}
-  defp padding(opts) when is_list(opts), do: padding(Keyword.get(opts, :padding))
+  defp padding(opts) when is_list(opts), do: padding(Keyword.get(opts, :padding, 0))
   defp padding(p) when is_number(p), do: {p, p, p, p}
   defp padding({py, px}), do: {py, px, py, px}
   defp padding({pt, px, pb}), do: {pt, px, pb, px}
   defp padding({pt, pr, pb, pl}), do: {pt, pr, pb, pl}
 
   defp border(nil), do: {0, 0, 0, 0}
-  defp border(opts) when is_list(opts), do: border(Keyword.get(opts, :border))
+  defp border(opts) when is_list(opts), do: border(Keyword.get(opts, :border, 0))
   defp border(b) when is_number(b), do: {b, b, b, b}
   defp border({by, bx}), do: {by, bx, by, bx}
   defp border({bt, bx, bb}), do: {bt, bx, bb, bx}

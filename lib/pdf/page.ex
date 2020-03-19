@@ -505,6 +505,6 @@ defmodule Pdf.Page do
   end
 
   defimpl Inspect do
-    def inspect(%Pdf.Page{size: size}, _opts), do: "#Page<size: #{size}>"
+    def inspect(%Pdf.Page{size: size}, _opts), do: "#Page<size: #{inspect(size)}>"
   end
 end

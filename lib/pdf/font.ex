@@ -100,11 +100,11 @@ defmodule Pdf.Font do
       @doc ~S"""
       Returns the width of a string in points (72 points = 1 inch)
       """
-      def text_width(string, font_size) when is_integer(font_size) do
+      def text_width(string, font_size) when is_number(font_size) do
         text_width(string, font_size, [])
       end
 
-      def text_width(string, font_size, opts) when is_integer(font_size) do
+      def text_width(string, font_size, opts) when is_number(font_size) do
         width = text_width(string, opts)
         width * font_size / 1000
       end
