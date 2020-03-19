@@ -6,7 +6,7 @@ defmodule Pdf.Examples.TableTest do
     data = [
       ["Col 1,1", "Col 1,2", "Col 1,3", "Col 1,4"],
       ["Col 2,1", "Column 2,2", "Col 2,3", "Col 2,4"],
-      ["mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", nil, nil, "mmmmmmmmmmm"],
+      [nil, "mmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm", nil, "mmmmmmmmmmm"],
       ["Col 3,1", ["Column ", {"3,2", bold: true}], "Col 3,3", "Col 3,4"],
       ["Col 4,1", "Column 4,2", "Col 4,3", "Col 4,4"],
       [nil, nil, "Col 5,3", "Col 5,4"]
@@ -27,7 +27,7 @@ defmodule Pdf.Examples.TableTest do
       cols: [
         [width: 100, size: 8],
         [],
-        [background: :dark_gray, color: :white],
+        [min_width: 30, background: :dark_gray, color: :white],
         [width: 80, align: :right, padding: {4, 2, 0}]
       ],
       rows: %{

@@ -25,31 +25,70 @@ defmodule Pdf.Table do
       data
       |> calculate_widths()
       |> Enum.zip(Enum.map(col_opts, &Keyword.get(&1, :width)))
+      |> Enum.zip(col_opts)
+      |> Enum.map(fn
+        {{flex_width, width}, col_opts} ->
+          min_width = Keyword.get(col_opts, :min_width)
+          max_width = Keyword.get(col_opts, :max_width)
+          {flex_width, width, min_width, max_width}
+      end)
+      # First pass makes min/max width adjustments
+      |> calculate_dimensions(width)
+      # Second pass resizes cols without min/max widths
+      |> calculate_dimensions(width)
+      |> Enum.map(fn
+        {width, nil, _, _} -> width
+        {_, width, _, _} -> width
+      end)
 
+    # Make sure the total width distribution matches the expected width
+    total_calculated = Enum.reduce(widths, 0, &(&1 + &2))
+
+    widths =
+      if total_calculated != width do
+        Enum.map(widths, &(&1 / total_calculated * width))
+      else
+        widths
+      end
+
+    set_widths(data, widths, x)
+  end
+
+  defp calculate_dimensions(widths, width) do
     total_fixed =
       Enum.reduce(widths, 0, fn
-        {_, nil}, acc -> acc
-        {_, width}, acc -> width + acc
+        {_, nil, _, _}, acc -> acc
+        {_, width, _, _}, acc -> width + acc
       end)
 
     available_width = width - total_fixed
 
     total_flexible =
       Enum.reduce(widths, 0, fn
-        {width, nil}, acc -> width + acc
+        {width, nil, _, _}, acc -> width + acc
         _, acc -> acc
       end)
 
-    # TODO: Deal with situation where total flexible is greater than available
+    widths
+    |> Enum.map(fn
+      {width, nil, min_width, max_width} ->
+        calculated_width = width / total_flexible * available_width
 
-    widths =
-      widths
-      |> Enum.map(fn
-        {width, nil} -> width / total_flexible * available_width
-        {_, width} -> width
-      end)
+        adjusted_width =
+          if min_width && min_width > calculated_width, do: min_width, else: calculated_width
 
-    set_widths(data, widths, x)
+        adjusted_width =
+          if max_width && max_width < adjusted_width, do: max_width, else: adjusted_width
+
+        if adjusted_width != calculated_width do
+          {width, adjusted_width, min_width, max_width}
+        else
+          {calculated_width, nil, nil, nil}
+        end
+
+      width ->
+        width
+    end)
   end
 
   defp set_widths([], _widths, _x), do: []
@@ -144,7 +183,12 @@ defmodule Pdf.Table do
           0
 
         {col, _col_opts} ->
-          col |> Enum.map(fn {_, width, _} -> width end) |> Enum.max()
+          col
+          |> Enum.map(fn {_, width, col_opts} ->
+            {_, pr, _, pl} = padding(col_opts)
+            width + pr + pl
+          end)
+          |> Enum.max()
       end)
     end)
     |> List.zip()
