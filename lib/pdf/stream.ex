@@ -52,9 +52,9 @@ defmodule Pdf.Stream do
   defp compress(iodata, level) do
     z = :zlib.open()
     :zlib.deflateInit(z, level)
-    [compressed] = :zlib.deflate(z, iodata, :finish)
+    compressed = :zlib.deflate(z, iodata, :finish)
     :zlib.deflateEnd(z)
-    compressed
+    IO.iodata_to_binary(compressed)
   end
 
   defimpl Pdf.Export do
