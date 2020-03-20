@@ -57,7 +57,7 @@ defmodule Pdf.Examples.TableTest do
     |> Pdf.set_line_cap(:square)
     |> Pdf.set_line_join(:miter)
 
-    {pdf, data} =
+    {pdf, remaining} =
       pdf
       |> Pdf.table({100, 800}, {400, 80}, data, table_opts)
 
@@ -65,7 +65,7 @@ defmodule Pdf.Examples.TableTest do
 
     {pdf, []} =
       pdf
-      |> Pdf.continue_table({100, cursor - 20}, {400, 200}, data, table_opts)
+      |> Pdf.table({100, cursor - 20}, {400, 200}, remaining, table_opts)
 
     pdf
     |> Pdf.write_to(file_path)

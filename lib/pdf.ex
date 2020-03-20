@@ -164,16 +164,6 @@ defmodule Pdf do
     {:reply, {self(), remaining}, document}
   end
 
-  defcall continue_table({x, y}, {w, h}, data, _from, document) do
-    {document, remaining} = Document.continue_table(document, {x, y}, {w, h}, data)
-    {:reply, {self(), remaining}, document}
-  end
-
-  defcall continue_table({x, y}, {w, h}, data, opts, _from, document) do
-    {document, remaining} = Document.continue_table(document, {x, y}, {w, h}, data, opts)
-    {:reply, {self(), remaining}, document}
-  end
-
   def add_image(pid, {x, y}, image_path), do: add_image(pid, {x, y}, image_path, [])
 
   defcall add_image({x, y}, image_path, opts, _from, document) do

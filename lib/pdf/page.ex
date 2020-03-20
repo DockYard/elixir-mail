@@ -12,8 +12,6 @@ defmodule Pdf.Page do
 
   defdelegate table(page, data, xy, wh), to: Pdf.Table
   defdelegate table(page, data, xy, wh, opts), to: Pdf.Table
-  defdelegate continue_table(page, data, xy, wh), to: Pdf.Table
-  defdelegate continue_table(page, data, xy, wh, opts), to: Pdf.Table
 
   import Pdf.Utils
   alias Pdf.{Image, Fonts, Stream, Text}

@@ -5,6 +5,17 @@ defmodule Pdf.Table do
 
   def table(page, _xy, _wh, [], _opts), do: {page, []}
 
+  def table(page, {x, y}, {w, h}, {:continue, data}, opts) do
+    case draw_table(page, {x, y}, {w, h}, data, opts) do
+      {page, []} ->
+        {page, []}
+
+      {page, remaining} ->
+        repeat_rows = Keyword.get(opts, :repeat_header, 0)
+        {page, {:continue, Enum.take(data, repeat_rows) ++ remaining}}
+    end
+  end
+
   def table(page, {x, y}, {w, h}, data, opts) do
     [first_row | _] = data
     num_cols = length(first_row)
@@ -16,18 +27,7 @@ defmodule Pdf.Table do
       |> chunk_data(page, opts, Keyword.get(opts, :rows, %{}))
       |> set_col_dimensions({x, y}, {w, h}, col_opts)
 
-    continue_table(page, {x, y}, {w, h}, data, opts)
-  end
-
-  def continue_table(page, {x, y}, {w, h}, data, opts \\ []) do
-    case draw_table(page, {x, y}, {w, h}, data, opts) do
-      {page, []} ->
-        {page, []}
-
-      {page, remaining} ->
-        repeat_rows = Keyword.get(opts, :repeat_header, 0)
-        {page, Enum.take(data, repeat_rows) ++ remaining}
-    end
+    table(page, {x, y}, {w, h}, {:continue, data}, opts)
   end
 
   defp set_col_dimensions(data, {x, _y}, {width, _height}, col_opts) do
