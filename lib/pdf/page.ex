@@ -188,7 +188,8 @@ defmodule Pdf.Page do
         attributed_text,
         %{fonts: fonts, current_font: %{module: font}} = page,
         overall_opts
-      ) do
+      )
+      when is_list(attributed_text) do
     attributed_text
     |> Enum.map(fn
       str when is_binary(str) -> {str, []}
@@ -238,6 +239,10 @@ defmodule Pdf.Page do
            )
          )}
     end)
+  end
+
+  def annotate_attributed_text(non_string, page, overall_opts) do
+    annotate_attributed_text(to_string(non_string), page, overall_opts)
   end
 
   def text_wrap(page, xy, wh, text, opts \\ [])
