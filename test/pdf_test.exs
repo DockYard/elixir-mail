@@ -2,7 +2,7 @@ defmodule PdfTest do
   use Pdf.Case, async: true
   doctest Pdf
 
-  @open false
+  @open true
   test "new/1" do
     file_path = output("qtest.pdf")
 
@@ -38,6 +38,17 @@ defmodule PdfTest do
     |> Pdf.add_image({25, 50}, fixture("rgb.jpg"))
     |> Pdf.add_image({175, 50}, fixture("cmyk.jpg"))
     |> Pdf.add_image({325, 50}, fixture("grayscale.jpg"))
+    |> Pdf.add_image({200, 450}, fixture("grayscale.png"))
+    |> Pdf.add_image({310, 450}, fixture("truecolour.png"))
+    |> Pdf.add_image({420, 450}, fixture("indexed.png"))
+    |> Pdf.rectangle({200, 365}, {100, 75})
+    |> Pdf.set_fill_color(:red)
+    |> Pdf.fill()
+    |> Pdf.add_image({200, 365}, fixture("grayscale-alpha.png"))
+    |> Pdf.rectangle({310, 365}, {100, 75})
+    |> Pdf.fill()
+    |> Pdf.set_fill_color(:black)
+    |> Pdf.add_image({310, 365}, fixture("truecolour-alpha.png"))
     |> Pdf.add_font("test/fonts/Verdana-Bold.afm")
     |> Pdf.set_font("Verdana-Bold", 28)
     |> Pdf.text_at({120.070, 762.653}, "External fonts work")

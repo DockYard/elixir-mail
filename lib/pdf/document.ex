@@ -129,7 +129,7 @@ defmodule Pdf.Document do
   defp create_image(%{objects: objects, images: images} = document, image_path) do
     images =
       Map.put_new_lazy(images, image_path, fn ->
-        image = Image.new(image_path)
+        image = Image.new(image_path, objects)
         object = ObjectCollection.create_object(objects, image)
         name = n("I#{Kernel.map_size(images) + 1}")
         %{name: name, object: object, image: image}
@@ -143,8 +143,8 @@ defmodule Pdf.Document do
     document
   end
 
-  def add_page(%__MODULE__{current: nil, fonts: fonts} = document, opts) do
-    new_page = Page.new(Keyword.merge(opts, fonts: fonts))
+  def add_page(%__MODULE__{current: nil, fonts: fonts, opts: doc_opts} = document, opts) do
+    new_page = Page.new(Keyword.merge(Keyword.merge(doc_opts, opts), fonts: fonts))
     %{document | current: new_page}
   end
 

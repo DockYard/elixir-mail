@@ -8,4 +8,7 @@ defmodule Pdf.Utils do
 
   def s({:string, _} = string), do: string
   def s(string), do: {:string, string}
+
+  def a(%Pdf.Array{} = array), do: array
+  def a(list), do: Pdf.Array.new(list)
 end

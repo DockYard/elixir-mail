@@ -1,5 +1,5 @@
 defmodule Pdf.Stream do
-  defstruct compress: 6, size: 0, content: []
+  defstruct compress: 6, size: 0, dictionary: %{}, content: []
 
   import Pdf.Size
   import Pdf.Utils
@@ -8,8 +8,21 @@ defmodule Pdf.Stream do
   @stream_start "\nstream\n"
   @stream_end "endstream"
 
-  def new(compress: level), do: %__MODULE__{compress: level}
-  def new, do: %__MODULE__{}
+  def new(opts \\ []), do: init(opts, %__MODULE__{})
+
+  defp init([], stream), do: stream
+
+  defp init([{:compress, true} | tail], stream),
+    do: init(tail, %{stream | compress: 6})
+
+  defp init([{:compress, compress} | tail], stream),
+    do: init(tail, %{stream | compress: compress})
+
+  defp init([{:dictionary, dictionary} | tail], stream),
+    do: init(tail, %{stream | dictionary: dictionary})
+
+  defp init([_ | tail], stream),
+    do: init(tail, stream)
 
   def push(stream, {:command, _} = command) do
     size = size_of(command) + 1
@@ -18,8 +31,13 @@ defmodule Pdf.Stream do
 
   def push(stream, command), do: push(stream, c(command))
 
+  def set(stream, content) when is_binary(content) do
+    size = byte_size(content)
+    %{stream | size: size, content: [content]}
+  end
+
   def to_iolist(%{compress: false} = stream) do
-    dictionary = Dictionary.new(%{"Length" => stream.size})
+    dictionary = Dictionary.new(Map.merge(stream.dictionary, %{"Length" => stream.size}))
 
     Pdf.Export.to_iolist([
       dictionary,
@@ -39,7 +57,12 @@ defmodule Pdf.Stream do
       |> compress(level)
 
     dictionary =
-      Dictionary.new(%{"Length" => byte_size(compressed), "Filter" => n("FlateDecode")})
+      Dictionary.new(
+        Map.merge(stream.dictionary, %{
+          "Length" => byte_size(compressed),
+          "Filter" => n("FlateDecode")
+        })
+      )
 
     Pdf.Export.to_iolist([
       dictionary,

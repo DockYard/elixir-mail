@@ -2,78 +2,53 @@ defmodule Pdf.Image do
   defstruct bits: nil,
             width: nil,
             height: nil,
-            channels: nil,
+            color_type: nil,
             size: nil,
-            path: nil,
-            dictionary: nil
+            data: nil,
+            dictionary: nil,
+            extra_object: nil
 
   import Pdf.Size
-  import Pdf.Utils
-  alias Pdf.{Array, Dictionary}
 
   @stream_start "\nstream\n"
-  @stream_end "endstream"
+  @stream_end "endstream\n"
 
-  def new(image_path) do
-    {:ok, {bits, height, width, channels}} = Pdf.Images.JPEG.decode(image_path)
+  def new(image_path, objects) do
+    image_data = File.read!(image_path)
 
-    build_dictionary(%__MODULE__{
-      bits: bits,
-      height: height,
-      width: width,
-      channels: channels,
-      path: image_path,
-      size: get_file_size(image_path)
-    })
+    case identify_image(image_data) do
+      :jpeg ->
+        Pdf.Images.JPEG.prepare_image(image_data)
+
+      :png ->
+        Pdf.Images.PNG.prepare_image(image_data, objects)
+
+      _else ->
+        {:error, :image_format_not_recognised}
+    end
   end
 
-  def build_dictionary(%__MODULE__{} = image) do
-    %{bits: bits, width: width, height: height, channels: channels, size: size} = image
-
-    image_dic =
-      Dictionary.new(%{
-        "Type" => n("XObject"),
-        "Subtype" => n("Image"),
-        "ColorSpace" => get_colorspace(channels),
-        "BitsPerComponent" => bits,
-        "Width" => width,
-        "Height" => height,
-        "Length" => size,
-        "Filter" => Array.new([n("DCTDecode")])
-      })
-
-    image_dic =
-      if channels == 4 do
-        # Invert colours, See :4.8.4 of the spec
-        Dictionary.put(image_dic, "Decode", Array.new([1, 0, 1, 0, 1, 0, 1, 0]))
-      else
-        image_dic
-      end
-
-    %{image | dictionary: image_dic}
-  end
-
-  defp get_colorspace(1), do: n("DeviceGray")
-  defp get_colorspace(3), do: n("DeviceRGB")
-  defp get_colorspace(4), do: n("DeviceCMYK")
-  defp get_colorspace(_), do: raise("Unsupported number of JPG channels")
-
-  defp get_file_size(path) do
-    info = File.stat!(path)
-    info.size
-  end
+  def identify_image(<<255, 216, _rest::binary>>), do: :jpeg
+  def identify_image(<<137, 80, 78, 71, 13, 10, 26, 10, _rest::binary>>), do: :png
+  def identify_image(_), do: {:error, :image_format_not_recognised}
 
   def size(%__MODULE__{size: size, dictionary: dictionary}) do
     size_of(dictionary) + size + byte_size(@stream_start <> @stream_end)
   end
 
-  def to_iolist(%__MODULE__{path: path, dictionary: dictionary}) do
-    Pdf.Export.to_iolist([
-      dictionary,
-      @stream_start,
-      File.read!(path),
-      @stream_end
-    ])
+  def to_iolist(%__MODULE__{data: data, dictionary: dictionary, extra_object: extra_object}) do
+    Pdf.Export.to_iolist(
+      Enum.filter(
+        [
+          dictionary,
+          @stream_start,
+          data,
+          @stream_end,
+          extra_object
+        ],
+        & &1
+      )
+    )
   end
 
   defimpl Pdf.Size do
