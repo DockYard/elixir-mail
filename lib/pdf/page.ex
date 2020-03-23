@@ -471,7 +471,7 @@ defmodule Pdf.Page do
   end
 
   defp kerned_text(_font, text, false) do
-    [s(Text.normalize_string(text)), "Tj"]
+    [s(Text.normalize_string(Text.escape(text))), "Tj"]
   end
 
   defp kerned_text(font, text, true) do
@@ -479,6 +479,7 @@ defmodule Pdf.Page do
       text
       |> Text.normalize_string()
       |> font.kern_text()
+      |> Text.escape()
       |> Enum.map(fn
         str when is_binary(str) -> s(str)
         num -> num

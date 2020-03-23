@@ -1,4 +1,16 @@
 defmodule Pdf.Text do
+  def escape(parts) when is_list(parts) do
+    Enum.map(parts, &escape/1)
+  end
+
+  def escape(string) when is_binary(string) do
+    string
+    |> String.replace("(", "\\(")
+    |> String.replace(")", "\\)")
+  end
+
+  def escape(other), do: other
+
   def chunk_text(string, font, font_size, opts \\ []) do
     zero_width_space = "\u200B"
     soft_hyphen = "\u00AD"

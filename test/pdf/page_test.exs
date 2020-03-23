@@ -98,6 +98,34 @@ defmodule Pdf.PageTest do
                ET
                """
     end
+
+    test "text is escaped", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+      page = Page.text_at(page, {10, 20}, "Hello (world)")
+
+      assert export(page) ==
+               """
+               BT
+               /F1 12 Tf
+               10 20 Td
+               (Hello \\(world\\)) Tj
+               ET
+               """
+    end
+
+    test "text is escaped when kerned", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+      page = Page.text_at(page, {10, 20}, "Hello (world)", kerning: true)
+
+      assert export(page) ==
+               """
+               BT
+               /F1 12 Tf
+               10 20 Td
+               [ (Hello \\(w) 10 (or) -15 (ld\\)) ] TJ
+               ET
+               """
+    end
   end
 
   describe "text_at/4" do
