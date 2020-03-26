@@ -40,7 +40,7 @@ defmodule PdfTest do
     |> Pdf.add_image({325, 50}, fixture("grayscale.jpg"))
     |> Pdf.add_image({200, 450}, fixture("grayscale.png"))
     |> Pdf.add_image({310, 450}, fixture("truecolour.png"))
-    |> Pdf.add_image({420, 450}, fixture("indexed.png"))
+    |> Pdf.add_image({420, 450}, {:binary, File.read!(fixture("indexed.png"))})
     |> Pdf.rectangle({200, 365}, {100, 75})
     |> Pdf.set_fill_color(:red)
     |> Pdf.fill()

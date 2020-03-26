@@ -120,22 +120,39 @@ defmodule Pdf.Document do
 
   def text_lines(document, xy, lines), do: text_lines(document, xy, lines, [])
 
-  def add_image(%__MODULE__{current: page} = document, {x, y}, image_path, opts \\ []) do
-    document = create_image(document, image_path)
-    image = document.images[image_path]
-    %{document | current: Page.add_image(page, {x, y}, image, opts)}
+  def add_image(document, xy, image, opts \\ [])
+
+  def add_image(document, {x, y}, {:binary, image_data}, opts) do
+    md5 = :erlang.md5(image_data)
+    add_or_create_image(document, {x, y}, md5, {:binary, image_data}, opts)
   end
 
-  defp create_image(%{objects: objects, images: images} = document, image_path) do
-    images =
-      Map.put_new_lazy(images, image_path, fn ->
-        image = Image.new(image_path, objects)
-        object = ObjectCollection.create_object(objects, image)
-        name = n("I#{Kernel.map_size(images) + 1}")
-        %{name: name, object: object, image: image}
-      end)
+  def add_image(document, {x, y}, image_path, opts) do
+    add_or_create_image(document, {x, y}, image_path, image_path, opts)
+  end
 
-    %{document | images: images}
+  defp add_or_create_image(%__MODULE__{current: page} = document, {x, y}, image_key, image, opts) do
+    image =
+      case Map.get(document.images, image_key) do
+        nil ->
+          create_image(document, image)
+
+        image ->
+          image
+      end
+
+    %{
+      document
+      | current: Page.add_image(page, {x, y}, image, opts),
+        images: Map.put_new(document.images, image_key, image)
+    }
+  end
+
+  defp create_image(%{objects: objects, images: images}, image_path) do
+    image = Image.new(image_path, objects)
+    object = ObjectCollection.create_object(objects, image)
+    name = n("I#{Kernel.map_size(images) + 1}")
+    %{name: name, object: object, image: image}
   end
 
   def add_external_font(%{fonts: fonts} = document, path) do

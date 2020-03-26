@@ -13,9 +13,7 @@ defmodule Pdf.Image do
   @stream_start "\nstream\n"
   @stream_end "endstream\n"
 
-  def new(image_path, objects) do
-    image_data = File.read!(image_path)
-
+  def new({:binary, image_data}, objects) do
     case identify_image(image_data) do
       :jpeg ->
         Pdf.Images.JPEG.prepare_image(image_data)
@@ -26,6 +24,10 @@ defmodule Pdf.Image do
       _else ->
         {:error, :image_format_not_recognised}
     end
+  end
+
+  def new(image_path, objects) do
+    new({:binary, File.read!(image_path)}, objects)
   end
 
   def identify_image(<<255, 216, _rest::binary>>), do: :jpeg
