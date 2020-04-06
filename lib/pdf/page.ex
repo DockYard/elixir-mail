@@ -8,6 +8,7 @@ defmodule Pdf.Page do
             leading: nil,
             cursor: 0,
             in_text: false,
+            saved: %{},
             saving_state: false
 
   defdelegate table(page, data, xy, wh), to: Pdf.Table
@@ -112,7 +113,7 @@ defmodule Pdf.Page do
   defp push_font(%{current_font: font, current_font_size: size} = page, font, size), do: page
 
   defp push_font(%{in_text: true} = page, font, size) do
-    push(page, [font.name, size, "Tf"])
+    push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
   end
 
   defp push_font(page, font, size) do
@@ -138,13 +139,22 @@ defmodule Pdf.Page do
   end
 
   defp begin_text(%{current_font: font, current_font_size: size} = page) do
-    %{page | in_text: true}
+    %{page | in_text: true, saved: %{current_font: font, current_font_size: size}}
     |> push(["BT"])
     |> push([font.name, size, "Tf"])
   end
 
-  defp end_text(%{in_text: true} = page) do
-    push(%{page | in_text: false}, ["ET"])
+  defp end_text(%{in_text: true, saved: saved} = page) do
+    push(
+      %{
+        page
+        | in_text: false,
+          current_font: Map.get(saved, :current_font),
+          current_font_size: Map.get(saved, :current_font_size),
+          saved: %{}
+      },
+      ["ET"]
+    )
   end
 
   def text_at(page, xy, text, opts \\ [])
@@ -161,7 +171,11 @@ defmodule Pdf.Page do
   end
 
   def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
-    text_at(page, {x, y}, [text], opts)
+    page
+    |> begin_text()
+    |> push([x, y, "Td"])
+    |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
+    |> end_text()
   end
 
   defp merge_same_opts([]), do: []

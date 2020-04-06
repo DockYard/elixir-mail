@@ -187,129 +187,129 @@ defmodule Pdf.TextTest do
     end
   end
 
-  describe "wrap/2" do
-    test "it breaks on a space", %{font: font, font_size: font_size} do
-      string = "Hello world"
-      width = font.text_width("world", font_size)
+  # describe "wrap/2" do
+  #   test "it breaks on a space", %{font: font, font_size: font_size} do
+  #     string = "Hello world"
+  #     width = font.text_width("world", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
+  #   end
 
-    test "it breaks on a zero-width space", %{font: font, font_size: font_size} do
-      string = "Hello\u200Bworld"
+  #   test "it breaks on a zero-width space", %{font: font, font_size: font_size} do
+  #     string = "Hello\u200Bworld"
 
-      width = font.text_width("world", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
-    end
+  #     width = font.text_width("world", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
+  #   end
 
-    test "it does not display zero-width space", %{font: font, font_size: font_size} do
-      string = "Hello\u200Bworld"
+  #   test "it does not display zero-width space", %{font: font, font_size: font_size} do
+  #     string = "Hello\u200Bworld"
 
-      width = font.text_width("Hello world", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Helloworld"]
-    end
+  #     width = font.text_width("Hello world", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Helloworld"]
+  #   end
 
-    test "it breaks on a tab", %{font: font, font_size: font_size} do
-      string = "Hello\tworld"
+  #   test "it breaks on a tab", %{font: font, font_size: font_size} do
+  #     string = "Hello\tworld"
 
-      width = font.text_width("world", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
-    end
+  #     width = font.text_width("world", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "world"]
+  #   end
 
-    test "it does not break on a non-breaking space", %{font: font, font_size: font_size} do
-      string = "Hello\u00A0world"
+  #   test "it does not break on a non-breaking space", %{font: font, font_size: font_size} do
+  #     string = "Hello\u00A0world"
 
-      width = font.text_width("world   ", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello\u00A0world"]
-    end
+  #     width = font.text_width("world   ", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello\u00A0world"]
+  #   end
 
-    test "it includes words that are longer than the wrapping boundary", %{
-      font: font,
-      font_size: font_size
-    } do
-      string = "Hello wwwwworld"
-      width = font.text_width("Hello", font_size)
+  #   test "it includes words that are longer than the wrapping boundary", %{
+  #     font: font,
+  #     font_size: font_size
+  #   } do
+  #     string = "Hello wwwwworld"
+  #     width = font.text_width("Hello", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "wwwwworld"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "wwwwworld"]
+  #   end
 
-    test "It correctly handles the breaking character (drops the appropriate space)", %{
-      font: font,
-      font_size: font_size
-    } do
-      string = "foo bar baz"
-      width = font.text_width("foo bar", font_size)
+  #   test "It correctly handles the breaking character (drops the appropriate space)", %{
+  #     font: font,
+  #     font_size: font_size
+  #   } do
+  #     string = "foo bar baz"
+  #     width = font.text_width("foo bar", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["foo bar", "baz"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["foo bar", "baz"]
+  #   end
 
-    test "It force wraps on a charriage return", %{font: font, font_size: font_size} do
-      string = "foo\nbar baz"
-      width = font.text_width("bar baz", font_size)
+  #   test "It force wraps on a charriage return", %{font: font, font_size: font_size} do
+  #     string = "foo\nbar baz"
+  #     width = font.text_width("bar baz", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["foo", "bar baz"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["foo", "bar baz"]
+  #   end
 
-    test "It force wraps on every charriage return", %{font: font, font_size: font_size} do
-      string = "foo\n\n\nbar baz"
-      width = font.text_width("bar baz", font_size)
+  #   test "It force wraps on every charriage return", %{font: font, font_size: font_size} do
+  #     string = "foo\n\n\nbar baz"
+  #     width = font.text_width("bar baz", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["foo", "", "", "bar baz"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["foo", "", "", "bar baz"]
+  #   end
 
-    test "It wraps after a hyphen", %{font: font, font_size: font_size} do
-      string = "foo bar-baz"
-      width = font.text_width("foo bar-b", font_size)
+  #   test "It wraps after a hyphen", %{font: font, font_size: font_size} do
+  #     string = "foo bar-baz"
+  #     width = font.text_width("foo bar-b", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["foo bar-", "baz"]
-    end
+  #     assert Text.wrap(string, width, font, font_size) == ["foo bar-", "baz"]
+  #   end
 
-    test "it does not break after a hyphen that follows white space and precedes a word", %{
-      font: font,
-      font_size: font_size
-    } do
-      string = "Hello -world"
+  #   test "it does not break after a hyphen that follows white space and precedes a word", %{
+  #     font: font,
+  #     font_size: font_size
+  #   } do
+  #     string = "Hello -world"
 
-      width = font.text_width("Hello  ", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "-world"]
-    end
+  #     width = font.text_width("Hello  ", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "-world"]
+  #   end
 
-    test "it does not break before a hyphen that follows a word", %{
-      font: font,
-      font_size: font_size
-    } do
-      string = "Hello world-"
+  #   test "it does not break before a hyphen that follows a word", %{
+  #     font: font,
+  #     font_size: font_size
+  #   } do
+  #     string = "Hello world-"
 
-      width = font.text_width("Hello world", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello", "world-"]
-    end
+  #     width = font.text_width("Hello world", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello", "world-"]
+  #   end
 
-    test "it does not break after a hyphen that follows a soft hyphen and precedes a word", %{
-      font: font,
-      font_size: font_size
-    } do
-      string = "Hello\u00AD-"
+  #   test "it does not break after a hyphen that follows a soft hyphen and precedes a word", %{
+  #     font: font,
+  #     font_size: font_size
+  #   } do
+  #     string = "Hello\u00AD-"
 
-      width = font.text_width("Hello-", font_size)
+  #     width = font.text_width("Hello-", font_size)
 
-      assert Text.wrap(string, width, font, font_size) == ["Hello-"]
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello-"]
 
-      string = "Hello\u00AD-world"
-      assert Text.wrap(string, width, font, font_size) == ["Hello\u00AD", "-world"]
-    end
+  #     string = "Hello\u00AD-world"
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello\u00AD", "-world"]
+  #   end
 
-    test "it wraps on a soft hyphen", %{font: font, font_size: font_size} do
-      string = "Hello\u00ADworld"
+  #   test "it wraps on a soft hyphen", %{font: font, font_size: font_size} do
+  #     string = "Hello\u00ADworld"
 
-      width = font.text_width("Hello  ", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Hello\u00AD", "world"]
-    end
+  #     width = font.text_width("Hello  ", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Hello\u00AD", "world"]
+  #   end
 
-    test "it removes unused soft-hyphens", %{font: font, font_size: font_size} do
-      string = "Hello\u00ADworld"
+  #   test "it removes unused soft-hyphens", %{font: font, font_size: font_size} do
+  #     string = "Hello\u00ADworld"
 
-      width = font.text_width("Helloworld", font_size)
-      assert Text.wrap(string, width, font, font_size) == ["Helloworld"]
-    end
-  end
+  #     width = font.text_width("Helloworld", font_size)
+  #     assert Text.wrap(string, width, font, font_size) == ["Helloworld"]
+  #   end
+  # end
 end
