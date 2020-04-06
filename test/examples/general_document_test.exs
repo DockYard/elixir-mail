@@ -33,12 +33,10 @@ defmodule Pdf.Examples.GeneralDocumentTest do
   defp add_header(pdf, header) do
     %{width: width, height: height} = Pdf.size(pdf)
 
-    {pdf, ""} =
-      pdf
-      |> Pdf.set_font("Helvetica", 16, bold: true)
-      |> Pdf.text_wrap({20, height - 40}, {width - 40, 20}, header, align: :center)
-
-    Pdf.move_down(pdf, 16)
+    pdf
+    |> Pdf.set_font("Helvetica", 16, bold: true)
+    |> Pdf.text_wrap!({20, height - 40}, {width - 40, 20}, header, align: :center)
+    |> Pdf.move_down(16)
   end
 
   defp write_paragraphs1(pdf) do
@@ -56,7 +54,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     image_height = 75
     image_margin = 10
 
-    {pdf, remaining} =
+    {pdf, {:continue, _} = remaining} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
       |> Pdf.add_image({padding, cursor - image_height}, fixture("rgb.jpg"))
@@ -68,7 +66,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
 
     cursor = Pdf.cursor(pdf)
 
-    {pdf, ""} =
+    {pdf, :complete} =
       pdf
       |> Pdf.set_font("Helvetica", 12)
       |> Pdf.text_wrap({padding, cursor}, {width - padding * 2, cursor - padding}, remaining)
@@ -89,11 +87,9 @@ defmodule Pdf.Examples.GeneralDocumentTest do
 
     padding = 20
 
-    {pdf, ""} =
-      pdf
-      |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_wrap({padding, cursor}, {width - padding * 2, cursor - padding}, text)
-
-    Pdf.move_down(pdf, 12)
+    pdf
+    |> Pdf.set_font("Helvetica", 12)
+    |> Pdf.text_wrap!({padding, cursor}, {width - padding * 2, cursor - padding}, text)
+    |> Pdf.move_down(12)
   end
 end

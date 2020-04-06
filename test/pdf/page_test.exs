@@ -178,7 +178,7 @@ defmodule Pdf.PageTest do
   describe "text_wrap/5" do
     test "with text", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
-      assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
+      assert {page, :complete} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world")
 
       assert export(page) == """
              BT
@@ -191,7 +191,9 @@ defmodule Pdf.PageTest do
 
     test "with text, aligned: right", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
-      assert {page, ""} = Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
+
+      assert {page, :complete} =
+               Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :right)
 
       assert export(page) == """
              BT
@@ -205,7 +207,7 @@ defmodule Pdf.PageTest do
     test "with text, aligned: center", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
 
-      assert {page, ""} =
+      assert {page, :complete} =
                Page.text_wrap(page, {10, 20}, {200, 100}, "Hello world", align: :center)
 
       assert export(page) == """
@@ -220,20 +222,32 @@ defmodule Pdf.PageTest do
     test "it returns the text that didn't fit", %{page: page} do
       page = Page.set_font(page, "Helvetica", 10)
 
-      assert {page,
-              "adipiscing elit. Suspendisse elementum enimmetus, quis posuere sem molestie interdum. Ut efficitur odio lectus, ut facilisis odio tempor quis."} =
+      assert {page, {:continue, _} = remaining} =
                Page.text_wrap(
                  page,
-                 {10, 20},
+                 {10, 200},
                  {200, 10},
                  "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse elementum enim metus, quis posuere sem molestie interdum. Ut efficitur odio lectus, ut facilisis odio tempor quis."
                )
 
+      assert {page, :complete} = Page.text_wrap(page, {10, 100}, {200, 100}, remaining)
+
       assert export(page) == """
              BT
              /F1 10 Tf
-             10 12.445 Td
+             10 192.445 Td
              (Lorem ipsum dolor sit amet, consectetur) Tj
+             ET
+             BT
+             /F1 10 Tf
+             10 92.445 Td
+             (adipiscing elit. Suspendisse elementum enim) Tj
+             0 -10 Td
+             (metus, quis posuere sem molestie interdum.) Tj
+             0 -10 Td
+             (Ut efficitur odio lectus, ut facilisis odio) Tj
+             0 -10 Td
+             (tempor quis.) Tj
              ET
              """
     end
@@ -251,7 +265,7 @@ defmodule Pdf.PageTest do
         {"Curabitur tempor aliquam nulla, vitae cursus purus iaculis vitae.", size: 8}
       ]
 
-      assert {page, []} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
+      assert {page, :complete} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
 
       assert export(page) == """
              BT
@@ -282,6 +296,29 @@ defmodule Pdf.PageTest do
              (aliquam nulla, vitae cursus purus iaculis vitae.) Tj
              ET
              """
+    end
+  end
+
+  describe "text_wrap!/5" do
+    test "when you know it will fit", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+      assert page = Page.text_wrap!(page, {10, 20}, {200, 100}, "Hello world")
+
+      assert export(page) == """
+             BT
+             /F1 10 Tf
+             10 12.445 Td
+             (Hello world) Tj
+             ET
+             """
+    end
+
+    test "it fails when it doesn't fit", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 10)
+
+      assert_raise RuntimeError, fn ->
+        Page.text_wrap!(page, {10, 20}, {200, 10}, "Hello\nworld")
+      end
     end
   end
 end

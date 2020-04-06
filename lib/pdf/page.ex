@@ -12,6 +12,8 @@ defmodule Pdf.Page do
 
   defdelegate table(page, data, xy, wh), to: Pdf.Table
   defdelegate table(page, data, xy, wh, opts), to: Pdf.Table
+  defdelegate table!(page, data, xy, wh), to: Pdf.Table
+  defdelegate table!(page, data, xy, wh, opts), to: Pdf.Table
 
   import Pdf.Utils
   alias Pdf.{Image, Fonts, Stream, Text}
@@ -110,7 +112,7 @@ defmodule Pdf.Page do
   defp push_font(%{current_font: font, current_font_size: size} = page, font, size), do: page
 
   defp push_font(%{in_text: true} = page, font, size) do
-    push(%{page | current_font: font, current_font_size: size}, [font.name, size, "Tf"])
+    push(page, [font.name, size, "Tf"])
   end
 
   defp push_font(page, font, size) do
@@ -159,11 +161,7 @@ defmodule Pdf.Page do
   end
 
   def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
-    page
-    |> begin_text()
-    |> push([x, y, "Td"])
-    |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
-    |> end_text()
+    text_at(page, {x, y}, [text], opts)
   end
 
   defp merge_same_opts([]), do: []
@@ -245,24 +243,43 @@ defmodule Pdf.Page do
     annotate_attributed_text(to_string(non_string), page, overall_opts)
   end
 
+  def text_wrap!(page, xy, wh, text, opts \\ []) do
+    case text_wrap(page, xy, wh, text, opts) do
+      {page, :complete} -> page
+      _ -> raise(RuntimeError, "The supplied text did not fit within the supplied boundary")
+    end
+  end
+
   def text_wrap(page, xy, wh, text, opts \\ [])
+
+  def text_wrap(page, {x, :cursor}, wh, text, opts) do
+    y = cursor(page)
+    text_wrap(page, {x, y}, wh, text, opts)
+  end
 
   def text_wrap(page, {x, y}, {w, h}, text, opts)
       when is_binary(text) do
-    {page, remaining} = text_wrap(page, {x, y}, {w, h}, [text], opts)
-    {page, chunks_to_text(remaining)}
+    text_wrap(page, {x, y}, {w, h}, [text], opts)
   end
 
-  def text_wrap(page, {x, y}, {w, h}, [[{_, _, _} | _] | _] = lines, opts) do
-    page = begin_text(page)
+  def text_wrap(page, {x, y}, {w, h}, {:continue, [{:line, _line} | _] = lines}, opts) do
+    text_wrap(page, {x, y}, {w, h}, lines, opts)
+  end
 
-    {page, remaining} =
-      page
-      |> set_cursor(y)
-      |> print_attributed_lines(lines, x, y, w, h, opts)
+  def text_wrap(page, {x, y}, {w, h}, [{:line, _line} | _] = lines, opts) do
+    page
+    |> begin_text()
+    |> set_cursor(y)
+    |> print_attributed_lines(lines, x, y, w, h, opts)
+    |> complete_wrapping()
+  end
 
-    page = end_text(page)
-    {page, remaining}
+  def text_wrap(page, {x, y}, {w, h}, {:continue, chunks}, opts) do
+    page
+    |> begin_text()
+    |> set_cursor(y)
+    |> print_attributed_chunks(chunks, x, y, w, h, opts)
+    |> complete_wrapping()
   end
 
   def text_wrap(page, {x, y}, {w, h}, attributed_text, opts) when is_list(attributed_text) do
@@ -270,22 +287,19 @@ defmodule Pdf.Page do
 
     chunks = Text.chunk_attributed_text(attributed_text, opts)
 
-    page = begin_text(page)
-
-    {page, remaining} =
-      page
-      |> set_cursor(y)
-      |> print_attributed_chunks(chunks, x, y, w, h, opts)
-
-    page = end_text(page)
-    {page, remaining}
+    page
+    |> begin_text()
+    |> set_cursor(y)
+    |> print_attributed_chunks(chunks, x, y, w, h, opts)
+    |> complete_wrapping()
   end
 
-  defp chunks_to_text(chunks) do
-    chunks
-    |> List.flatten()
-    |> Enum.map(&elem(&1, 0))
-    |> Enum.join()
+  def complete_wrapping({page, []}) do
+    {end_text(page), :complete}
+  end
+
+  def complete_wrapping({page, [_ | _] = remaining}) do
+    {end_text(page), {:continue, remaining}}
   end
 
   defp line_height(page, attributed_text) do
@@ -314,7 +328,7 @@ defmodule Pdf.Page do
 
     if line_height > height do
       # No available vertical space to print the line so return remaining lines
-      {page, [line | tail]}
+      {page, chunks}
     else
       x_offset =
         case Keyword.get(opts, :align, :left) do
@@ -356,7 +370,16 @@ defmodule Pdf.Page do
   defp print_attributed_lines(page, [], _x, _y, _width, _height, _opts, _prev_line_height),
     do: {page, []}
 
-  defp print_attributed_lines(page, [line | lines], x, y, width, height, opts, prev_line_height) do
+  defp print_attributed_lines(
+         page,
+         [{:line, line} | lines],
+         x,
+         y,
+         width,
+         height,
+         opts,
+         prev_line_height
+       ) do
     line_width = Enum.reduce(line, 0, fn {_, width, _}, acc -> width + acc end)
 
     line_height =

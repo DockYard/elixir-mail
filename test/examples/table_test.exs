@@ -63,7 +63,7 @@ defmodule Pdf.Examples.TableTest do
 
     cursor = Pdf.cursor(pdf)
 
-    {pdf, []} =
+    {pdf, :complete} =
       pdf
       |> Pdf.table({100, cursor - 20}, {400, 200}, remaining, table_opts)
 

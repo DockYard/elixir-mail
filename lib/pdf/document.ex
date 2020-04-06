@@ -90,6 +90,8 @@ defmodule Pdf.Document do
     {:set_font_size, quote(do: [size])},
     {:set_text_leading, quote(do: [leading])},
     {:text_at, quote(do: [{x, y}, text, opts])},
+    {:text_wrap!, quote(do: [{x, y}, {w, h}, text, opts])},
+    {:table!, quote(do: [{x, y}, {w, h}, data, opts])},
     {:text_lines, quote(do: [{x, y}, lines, opts])},
     {:stroke, []},
     {:fill, []},
@@ -104,12 +106,16 @@ defmodule Pdf.Document do
 
   def text_at(document, xy, text), do: text_at(document, xy, text, [])
 
+  def text_wrap!(document, xy, wh, text), do: text_wrap!(document, xy, wh, text, [])
+
   def text_wrap(document, xy, wh, text), do: text_wrap(document, xy, wh, text, [])
 
   def text_wrap(%__MODULE__{current: page} = document, xy, wh, text, opts) do
     {page, remaining} = Page.text_wrap(page, xy, wh, text, opts)
     {%{document | current: page}, remaining}
   end
+
+  def table!(document, xy, wh, data), do: table!(document, xy, wh, data, [])
 
   def table(document, xy, wh, data), do: table(document, xy, wh, data, [])
 

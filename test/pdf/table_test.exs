@@ -30,7 +30,7 @@ defmodule Pdf.TableTest do
       ["Col 2,1", "Col 2,2", "Col 2,3"]
     ]
 
-    {page, []} =
+    {page, :complete} =
       page
       |> Page.set_font("Helvetica", 12)
       |> Page.table({20, 600}, {300, 500}, data)

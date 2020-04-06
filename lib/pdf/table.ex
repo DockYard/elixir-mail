@@ -1,14 +1,26 @@
 defmodule Pdf.Table do
   alias Pdf.{Page, Text}
 
+  def table!(page, xy, wh, data, opts \\ [])
+
+  def table!(page, xy, wh, data, opts) do
+    case table(page, xy, wh, data, opts) do
+      {page, :complete} -> page
+      _ -> raise(RuntimeError, "The supplied data did not fit within the supplied boundary")
+    end
+  end
+
   def table(page, xy, wh, data, opts \\ [])
+
+  def table(page, {x, :cursor}, wh, data, opts),
+    do: table(page, {x, Page.cursor(page)}, wh, data, opts)
 
   def table(page, _xy, _wh, [], _opts), do: {page, []}
 
   def table(page, {x, y}, {w, h}, {:continue, data}, opts) do
     case draw_table(page, {x, y}, {w, h}, data, opts) do
       {page, []} ->
-        {page, []}
+        {page, :complete}
 
       {page, remaining} ->
         repeat_rows = Keyword.get(opts, :repeat_header, 0)
@@ -245,7 +257,7 @@ defmodule Pdf.Table do
         lines = Text.wrap_all_chunks(col, width)
 
         height =
-          Enum.reduce(lines, 0, fn line, acc ->
+          Enum.reduce(lines, 0, fn {:line, line}, acc ->
             Enum.max(Enum.map(line, &Keyword.get(elem(&1, 2), :height))) + acc
           end)
 
@@ -273,7 +285,7 @@ defmodule Pdf.Table do
     width = Keyword.get(col_opts, :width)
     x = Keyword.get(col_opts, :x)
 
-    {page, []} =
+    {page, :complete} =
       page
       |> draw_background(lines, {x, y}, {width, row_height}, background(col_opts))
       |> Page.save_state()

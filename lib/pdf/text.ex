@@ -78,7 +78,7 @@ defmodule Pdf.Text do
   def wrap(string, width, font, font_size, opts \\ []) do
     string
     |> chunk_text(font, font_size, opts)
-    |> wrap_all_chunks(width)
+    |> wrap_chunks(width)
     |> Enum.map(fn chunks ->
       chunks
       |> Enum.reject(&(elem(&1, 1) == 0.00))
@@ -93,8 +93,8 @@ defmodule Pdf.Text do
 
   def wrap_all_chunks(chunks, width) do
     case wrap_chunks(chunks, width) do
-      {[], [chunk | tail]} -> [[chunk] | wrap_all_chunks(tail, width)]
-      {chunks, tail} -> [chunks | wrap_all_chunks(tail, width)]
+      {[], [chunk | tail]} -> [{:line, [chunk]} | wrap_all_chunks(tail, width)]
+      {chunks, tail} -> [{:line, chunks} | wrap_all_chunks(tail, width)]
     end
   end
 

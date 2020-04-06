@@ -21,6 +21,8 @@ defmodule Pdf do
   def inches(x), do: round(x * 72.21)
   def cm(x), do: round(x * 72.21 / 2.54)
 
+  def pixels_to_points(pixels, dpi \\ 300), do: round(pixels / dpi * 72.21)
+
   defcall write_to(path, _from, document) do
     File.write!(path, Document.to_iolist(document))
     {:reply, self(), document}
@@ -146,6 +148,16 @@ defmodule Pdf do
     {:reply, {self(), remaining}, document}
   end
 
+  defcall text_wrap!({x, y}, {w, h}, text, _from, document) do
+    document = Document.text_wrap!(document, {x, y}, {w, h}, text)
+    {:reply, self(), document}
+  end
+
+  defcall text_wrap!({x, y}, {w, h}, text, opts, _from, document) do
+    document = Document.text_wrap!(document, {x, y}, {w, h}, text, opts)
+    {:reply, self(), document}
+  end
+
   defcall text_lines({x, y}, lines, opts, _from, document) do
     {:reply, self(), Document.text_lines(document, {x, y}, lines, opts)}
   end
@@ -162,6 +174,16 @@ defmodule Pdf do
   defcall table({x, y}, {w, h}, data, opts, _from, document) do
     {document, remaining} = Document.table(document, {x, y}, {w, h}, data, opts)
     {:reply, {self(), remaining}, document}
+  end
+
+  defcall table!({x, y}, {w, h}, data, _from, document) do
+    document = Document.table!(document, {x, y}, {w, h}, data)
+    {:reply, self(), document}
+  end
+
+  defcall table!({x, y}, {w, h}, data, opts, _from, document) do
+    document = Document.table!(document, {x, y}, {w, h}, data, opts)
+    {:reply, self(), document}
   end
 
   def add_image(pid, {x, y}, image_path), do: add_image(pid, {x, y}, image_path, [])
