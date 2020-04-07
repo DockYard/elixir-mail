@@ -20,7 +20,8 @@ defmodule Pdf.Document do
     ObjectCollection,
     Page,
     Paper,
-    Image
+    Image,
+    Text
   }
 
   @header <<"%PDF-1.7\n%", 304, 345, 362, 345, 353, 247, 363, 240, 320, 304, 306, 10>>
@@ -62,7 +63,7 @@ defmodule Pdf.Document do
             raise ArgumentError, "Invalid info key #{inspect(key)}"
 
           info_key ->
-            Dictionary.put(info, info_key, value)
+            Dictionary.put(info, info_key, Text.escape(value))
         end
       end)
 
