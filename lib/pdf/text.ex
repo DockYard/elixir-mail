@@ -52,7 +52,7 @@ defmodule Pdf.Text do
   defp fit_chunks(chunks, wrap_width, acc_width \\ 0, acc \\ [])
 
   defp fit_chunks([{"\n", _, _} = chunk | tail], _wrap_width, _acc_width, acc) do
-    {Enum.reverse([chunk | remove_wrapped_whitespace(acc)]), remove_wrapped_whitespace(tail)}
+    {Enum.reverse(remove_wrapped_whitespace(acc)), remove_wrapped_whitespace(tail)}
   end
 
   defp fit_chunks([{_, width, _} = chunk | tail], wrap_width, acc_width, [
