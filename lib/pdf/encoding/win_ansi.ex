@@ -272,7 +272,7 @@ defmodule Pdf.Encoding.WinAnsi do
   def from_name(_), do: nil
 
   def characters do
-    Enum.map(@char_info, fn {c, u, name} -> {c, u, to_string(name)} end)
+    Enum.map(Enum.take(@char_info, 256), fn {c, u, name} -> {c, u, to_string(name)} end)
   end
 
   def encode(""), do: ""
