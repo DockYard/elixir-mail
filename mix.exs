@@ -19,7 +19,7 @@ defmodule Pdf.Mixfile do
         [
           source_ref: "v#{@version}",
           canonical: "http://hexdocs.pm/pdf",
-          main: "PDF",
+          main: "Pdf",
           source_url: @github_url,
           extras: ["README.md"]
         ]
