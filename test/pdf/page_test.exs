@@ -150,7 +150,7 @@ defmodule Pdf.PageTest do
         Page.text_at(page, {10, 20}, [
           "Hello ",
           {"world: ", color: :red, bold: true},
-          {"foo, ", size: 14},
+          {"foo, ", font_size: 14},
           {"bar, ", italic: true},
           {"baz"}
         ])
@@ -256,13 +256,13 @@ defmodule Pdf.PageTest do
       page = Page.set_font(page, "Helvetica", 12)
 
       attributed_text = [
-        {"Lorem ipsum dolor ", size: 10},
+        {"Lorem ipsum dolor ", font_size: 10},
         {"sit amet, ", italic: true},
         {"consectetur adipiscing elit. ", color: :blue},
         "Ut ut enim",
-        {"commodo diam ", bold: true, italic: true, size: 10},
+        {"commodo diam ", bold: true, italic: true, font_size: 10},
         {"lobortis efficitur. ", color: :red},
-        {"Curabitur tempor aliquam nulla, vitae cursus purus iaculis vitae.", size: 8}
+        {"Curabitur tempor aliquam nulla, vitae cursus purus iaculis vitae.", font_size: 8}
       ]
 
       assert {page, :complete} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)

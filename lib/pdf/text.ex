@@ -39,7 +39,7 @@ defmodule Pdf.Text do
       chunk_text(
         text,
         Keyword.get(text_opts, :font).module,
-        Keyword.get(text_opts, :size),
+        Keyword.get(text_opts, :font_size),
         Keyword.merge(opts, text_opts)
       )
     end)

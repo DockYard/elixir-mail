@@ -223,7 +223,7 @@ defmodule Pdf.Page do
             Fonts.get_font(fonts, font.name, [])
           end
 
-        font_size = Keyword.get(opts, :size, page.current_font_size)
+        font_size = Keyword.get(opts, :font_size, page.current_font_size)
         color = Keyword.get(opts, :color, page.fill_color)
 
         height = font_size
@@ -246,7 +246,7 @@ defmodule Pdf.Page do
              font: font,
              height: height,
              line_gap: line_gap,
-             size: font_size,
+             font_size: font_size,
              x_height: x_height
            )
          )}
@@ -443,7 +443,7 @@ defmodule Pdf.Page do
     |> merge_same_opts
     |> Enum.reduce(page, fn {text, _width, opts}, page ->
       page
-      |> set_font(opts[:font].module.name, opts[:size], opts)
+      |> set_font(opts[:font].module.name, opts[:font_size], opts)
       |> set_fill_color(opts[:color])
       |> push(kerned_text(opts[:font].module, text, Keyword.get(opts, :kerning, false)))
     end)
