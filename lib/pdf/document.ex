@@ -230,7 +230,7 @@ defmodule Pdf.Document do
         Dictionary.new(%{"Type" => n("Catalog"), "Pages" => master_page})
       )
 
-    objects = ObjectCollection.all(document.objects)
+    objects = Enum.sort_by(ObjectCollection.all(document.objects), &sort_objects/1)
 
     {ref_table, offset} = RefTable.to_iolist(objects, @header_size)
 
@@ -240,6 +240,12 @@ defmodule Pdf.Document do
       ref_table,
       Trailer.new(objects, offset, catalogue, document.info)
     ])
+  end
+
+  defp sort_objects(%{generation: g, number: n}) do
+    g = String.to_integer(g)
+    n = String.to_integer(n)
+    {g, n}
   end
 
   defp pages_to_objects(%__MODULE__{objects: objects} = document, pages, parent) do

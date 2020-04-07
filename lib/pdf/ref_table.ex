@@ -13,7 +13,7 @@ defmodule Pdf.RefTable do
      ], offset}
   end
 
-  defp first_reference, do: "0000000000 65535 f\n"
+  defp first_reference, do: "0000000000 65535 f \n"
 
   defp objects_to_iolist(list, offset, acc \\ [])
   defp objects_to_iolist([], offset, acc), do: {Enum.reverse(acc), offset}
@@ -30,7 +30,7 @@ defmodule Pdf.RefTable do
       String.pad_leading(to_string(offset), 10, "0"),
       " ",
       String.pad_leading(object.generation, 5, "0"),
-      " n\n"
+      " n \n"
     ]
   end
 end
