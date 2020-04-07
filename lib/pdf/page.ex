@@ -138,8 +138,12 @@ defmodule Pdf.Page do
     %{page | leading: leading}
   end
 
-  defp begin_text(%{current_font: font, current_font_size: size} = page) do
-    %{page | in_text: true, saved: %{current_font: font, current_font_size: size}}
+  defp begin_text(%{current_font: font, current_font_size: size, leading: leading} = page) do
+    %{
+      page
+      | in_text: true,
+        saved: %{current_font: font, current_font_size: size, leading: leading}
+    }
     |> push(["BT"])
     |> push([font.name, size, "Tf"])
   end
@@ -151,6 +155,7 @@ defmodule Pdf.Page do
         | in_text: false,
           current_font: Map.get(saved, :current_font),
           current_font_size: Map.get(saved, :current_font_size),
+          leading: Map.get(saved, :leading),
           saved: %{}
       },
       ["ET"]
@@ -224,9 +229,10 @@ defmodule Pdf.Page do
           end
 
         font_size = Keyword.get(opts, :font_size, page.current_font_size)
+        leading = Keyword.get(opts, :leading, page.leading || page.current_font_size)
         color = Keyword.get(opts, :color, page.fill_color)
 
-        height = font_size
+        height = Enum.max([leading, font_size])
         ascender = font.module.ascender * font_size / 1000
         descender = -(font.module.descender * font_size / 1000)
         cap_height = font.module.cap_height * font_size / 1000
@@ -247,6 +253,7 @@ defmodule Pdf.Page do
              height: height,
              line_gap: line_gap,
              font_size: font_size,
+             leading: leading,
              x_height: x_height
            )
          )}
@@ -444,6 +451,7 @@ defmodule Pdf.Page do
     |> Enum.reduce(page, fn {text, _width, opts}, page ->
       page
       |> set_font(opts[:font].module.name, opts[:font_size], opts)
+      |> set_text_leading(opts[:leading])
       |> set_fill_color(opts[:color])
       |> push(kerned_text(opts[:font].module, text, Keyword.get(opts, :kerning, false)))
     end)
