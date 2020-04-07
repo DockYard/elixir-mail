@@ -151,7 +151,7 @@ defmodule Pdf.Images.PNG do
   def prepare_image(image_data, objects) do
     %__MODULE__{bit_depth: bits, height: height, width: width} = image = parse(image_data)
 
-    {extra, extra_object} = prepare_extra(image, objects)
+    extra = prepare_extra(image, objects)
 
     build_dictionary(
       %Image{
@@ -159,8 +159,7 @@ defmodule Pdf.Images.PNG do
         height: height,
         width: width,
         data: image.image_data,
-        size: byte_size(image.image_data),
-        extra_object: extra_object
+        size: byte_size(image.image_data)
       },
       extra
     )
@@ -168,60 +167,60 @@ defmodule Pdf.Images.PNG do
 
   # Grayscale
   defp prepare_extra(%{color_type: 0} = image, _objects) do
-    {%{
-       "Filter" => n("FlateDecode"),
-       "DecodeParms" =>
-         Dictionary.new(%{
-           "Predictor" => 15,
-           "Colors" => get_colors(image.color_type),
-           "BitsPerComponent" => image.bit_depth,
-           "Columns" => image.width
-         }),
-       "ColorSpace" => n(get_colorspace(image.color_type)),
-       "BitsPerComponent" => image.bit_depth
-     }, nil}
+    %{
+      "Filter" => n("FlateDecode"),
+      "DecodeParms" =>
+        Dictionary.new(%{
+          "Predictor" => 15,
+          "Colors" => get_colors(image.color_type),
+          "BitsPerComponent" => image.bit_depth,
+          "Columns" => image.width
+        }),
+      "ColorSpace" => n(get_colorspace(image.color_type)),
+      "BitsPerComponent" => image.bit_depth
+    }
   end
 
   # Truecolour
   defp prepare_extra(%{color_type: 2} = image, _objects) do
-    {%{
-       "Filter" => n("FlateDecode"),
-       "DecodeParms" =>
-         Dictionary.new(%{
-           "Predictor" => 15,
-           "Colors" => get_colors(image.color_type),
-           "BitsPerComponent" => image.bit_depth,
-           "Columns" => image.width
-         }),
-       "ColorSpace" => n(get_colorspace(image.color_type)),
-       "BitsPerComponent" => image.bit_depth
-     }, nil}
+    %{
+      "Filter" => n("FlateDecode"),
+      "DecodeParms" =>
+        Dictionary.new(%{
+          "Predictor" => 15,
+          "Colors" => get_colors(image.color_type),
+          "BitsPerComponent" => image.bit_depth,
+          "Columns" => image.width
+        }),
+      "ColorSpace" => n(get_colorspace(image.color_type)),
+      "BitsPerComponent" => image.bit_depth
+    }
   end
 
   # Indexed-colour
   defp prepare_extra(%{color_type: 3} = image, objects) do
     stream = Stream.set(Stream.new(compress: false), image.palette)
     {:object, number, _} = object_key = ObjectCollection.create_object(objects, stream)
-    object = Pdf.Object.new(number, ObjectCollection.get_object(objects, object_key))
+    _object = Pdf.Object.new(number, ObjectCollection.get_object(objects, object_key))
 
-    {%{
-       "Filter" => n("FlateDecode"),
-       "DecodeParms" =>
-         Dictionary.new(%{
-           "Predictor" => 15,
-           "Colors" => get_colors(image.color_type),
-           "BitsPerComponent" => image.bit_depth,
-           "Columns" => image.width
-         }),
-       "ColorSpace" =>
-         a([
-           n("Indexed"),
-           n("DeviceRGB"),
-           round(byte_size(image.palette) / 3 - 1),
-           object_key
-         ]),
-       "BitsPerComponent" => image.bit_depth
-     }, object}
+    %{
+      "Filter" => n("FlateDecode"),
+      "DecodeParms" =>
+        Dictionary.new(%{
+          "Predictor" => 15,
+          "Colors" => get_colors(image.color_type),
+          "BitsPerComponent" => image.bit_depth,
+          "Columns" => image.width
+        }),
+      "ColorSpace" =>
+        a([
+          n("Indexed"),
+          n("DeviceRGB"),
+          round(byte_size(image.palette) / 3 - 1),
+          object_key
+        ]),
+      "BitsPerComponent" => image.bit_depth
+    }
   end
 
   # Greyscale with alpha (4)
@@ -252,21 +251,21 @@ defmodule Pdf.Images.PNG do
       )
 
     {:object, number, _} = object_key = ObjectCollection.create_object(objects, stream)
-    object = Pdf.Object.new(number, ObjectCollection.get_object(objects, object_key))
+    _object = Pdf.Object.new(number, ObjectCollection.get_object(objects, object_key))
 
-    {%{
-       "Filter" => n("FlateDecode"),
-       "DecodeParms" =>
-         Dictionary.new(%{
-           "Predictor" => 15,
-           "Colors" => get_colors(color_type),
-           "BitsPerComponent" => image.bit_depth,
-           "Columns" => image.width
-         }),
-       "ColorSpace" => n(get_colorspace(color_type)),
-       "BitsPerComponent" => image.bit_depth,
-       "SMask" => object_key
-     }, object}
+    %{
+      "Filter" => n("FlateDecode"),
+      "DecodeParms" =>
+        Dictionary.new(%{
+          "Predictor" => 15,
+          "Colors" => get_colors(color_type),
+          "BitsPerComponent" => image.bit_depth,
+          "Columns" => image.width
+        }),
+      "ColorSpace" => n(get_colorspace(color_type)),
+      "BitsPerComponent" => image.bit_depth,
+      "SMask" => object_key
+    }
   end
 
   defp get_colorspace(0), do: "DeviceGray"

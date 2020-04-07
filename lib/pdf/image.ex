@@ -5,8 +5,7 @@ defmodule Pdf.Image do
             color_type: nil,
             size: nil,
             data: nil,
-            dictionary: nil,
-            extra_object: nil
+            dictionary: nil
 
   import Pdf.Size
 
@@ -38,15 +37,14 @@ defmodule Pdf.Image do
     size_of(dictionary) + size + byte_size(@stream_start <> @stream_end)
   end
 
-  def to_iolist(%__MODULE__{data: data, dictionary: dictionary, extra_object: extra_object}) do
+  def to_iolist(%__MODULE__{data: data, dictionary: dictionary}) do
     Pdf.Export.to_iolist(
       Enum.filter(
         [
           dictionary,
           @stream_start,
           data,
-          @stream_end,
-          extra_object
+          @stream_end
         ],
         & &1
       )
