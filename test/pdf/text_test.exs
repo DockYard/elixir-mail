@@ -114,7 +114,7 @@ defmodule Pdf.TextTest do
       ]
 
       assert Text.wrap_chunks(chunks, 60.0) ==
-               {[{"Hello", 22.78, []}], [{"world", 26.11, []}]}
+               {[{"Hello", 22.78, []}], [{"", 0.0, []}, {"world", 26.11, []}]}
 
       chunks = [
         {"Hello", 22.78, size: 10},
@@ -123,7 +123,7 @@ defmodule Pdf.TextTest do
       ]
 
       assert Text.wrap_chunks(chunks, 60.0) ==
-               {[{"Hello", 22.78, size: 10}], [{"world", 26.11, size: 12}]}
+               {[{"Hello", 22.78, size: 10}], [{"", 0.0, [size: 11]}, {"world", 26.11, size: 12}]}
     end
 
     test "it wraps on a carriage return even if the carriage return is first" do
@@ -132,7 +132,7 @@ defmodule Pdf.TextTest do
         {"world", 26.11, []}
       ]
 
-      assert Text.wrap_chunks(chunks, 60.0) == {[], [{"world", 26.11, []}]}
+      assert Text.wrap_chunks(chunks, 60.0) == {[], [{"", 0.0, []}, {"world", 26.11, []}]}
 
       chunks = [
         {"\n", 0.00, size: 10},
@@ -140,7 +140,7 @@ defmodule Pdf.TextTest do
       ]
 
       assert Text.wrap_chunks(chunks, 60.0) ==
-               {[], [{"world", 26.11, size: 11}]}
+               {[], [{"", 0.0, [size: 10]}, {"world", 26.11, size: 11}]}
     end
 
     test "it returns an empty array if the next chunk doesn't fit" do

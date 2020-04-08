@@ -297,6 +297,28 @@ defmodule Pdf.PageTest do
              ET
              """
     end
+
+    test "with ending blank lines", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+
+      attributed_text = [
+        "Hello world\n\n"
+      ]
+
+      assert {page, :complete} = Page.text_wrap(page, {10, 20}, {200, 100}, attributed_text)
+
+      assert export(page) == """
+             BT
+             /F1 12 Tf
+             10 10.934 Td
+             (Hello world) Tj
+             0 -12 Td
+             () Tj
+             0 -12 Td
+             () Tj
+             ET
+             """
+    end
   end
 
   describe "text_wrap!/5" do

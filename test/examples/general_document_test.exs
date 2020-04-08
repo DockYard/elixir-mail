@@ -61,7 +61,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
       |> Pdf.text_wrap(
         {padding + image_width + image_margin, cursor},
         {width - padding * 2 - image_width - image_margin, image_height + image_margin},
-        text
+        String.trim(text)
       )
 
     cursor = Pdf.cursor(pdf)
@@ -89,7 +89,11 @@ defmodule Pdf.Examples.GeneralDocumentTest do
 
     pdf
     |> Pdf.set_font("Helvetica", 12)
-    |> Pdf.text_wrap!({padding, cursor}, {width - padding * 2, cursor - padding}, text)
+    |> Pdf.text_wrap!(
+      {padding, cursor},
+      {width - padding * 2, cursor - padding},
+      String.trim(text)
+    )
     |> Pdf.move_down(12)
   end
 end
