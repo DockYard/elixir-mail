@@ -61,7 +61,7 @@ defmodule Pdf.Fonts do
     end
   end
 
-  defp lookup_font(state, name, opts) do
+  defp lookup_font(state, name, opts) when is_binary(name) do
     case Font.lookup(name, opts) do
       nil ->
         lookup_font(state, name)
@@ -71,7 +71,38 @@ defmodule Pdf.Fonts do
     end
   end
 
+  defp lookup_font(%{fonts: fonts} = state, %ExternalFont{family_name: family_name}, opts) do
+    bold = Keyword.get(opts, :bold, false)
+    italic = Keyword.get(opts, :italic, false)
+
+    Enum.find(fonts, fn {_, %{module: font}} ->
+      if font.family_name == family_name do
+        cond do
+          bold && !italic && font.weight == :bold && font.italic_angle == 0 -> true
+          bold && italic && font.weight == :bold && font.italic_angle != 0 -> true
+          !bold && !italic && font.weight != :bold && font.italic_angle == 0 -> true
+          !bold && italic && font.weight != :bold && font.italic_angle != 0 -> true
+          true -> false
+        end
+      else
+        false
+      end
+    end)
+    |> case do
+      nil -> {state, nil}
+      {_, f} -> {state, f}
+    end
+  end
+
+  defp lookup_font(state, font, opts) do
+    lookup_font(state, font.family_name, opts)
+  end
+
   defp lookup_font(%{fonts: fonts} = state, name) when is_binary(name) do
+    {state, fonts[name]}
+  end
+
+  defp lookup_font(fonts = state, name) when is_binary(name) do
     {state, fonts[name]}
   end
 

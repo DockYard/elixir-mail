@@ -32,7 +32,7 @@ defmodule Pdf.Text do
     |> Regex.scan(string, capture: :all_but_first)
     |> Enum.flat_map(& &1)
     |> Enum.reject(&(&1 == ""))
-    |> Enum.map(&{&1, font.text_width(&1, font_size, opts), opts})
+    |> Enum.map(&{&1, Pdf.Font.text_width(font, &1, font_size, opts), opts})
   end
 
   def chunk_attributed_text(attributed_text, opts) do
