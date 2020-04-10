@@ -141,13 +141,12 @@ defmodule Pdf.Color do
     {:dim_gray, {0x69, 0x69, 0x69}},
     {:light_slate_gray, {0x77, 0x88, 0x99}},
     {:slate_gray, {0x70, 0x80, 0x90}},
-    {:dark_slate_gray, {0x2F, 0x4F, 0x4F}}
+    {:dark_slate_gray, {0x2F, 0x4F, 0x4F}},
+    {:black, {0x00, 0x00, 0x00}}
   ]
 
-  Enum.map(@colors, fn {func_name, rgb} ->
-    quote do
-      def color(unquote(func_name)), do: unquote(rgb)
-    end
+  Enum.each(@colors, fn {func_name, {r, g, b}} ->
+    def color(unquote(func_name)), do: {unquote(r), unquote(g), unquote(b)}
   end)
 
   @doc """
