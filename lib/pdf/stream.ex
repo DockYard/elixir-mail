@@ -1,4 +1,5 @@
 defmodule Pdf.Stream do
+  @moduledoc false
   defstruct compress: 6, size: 0, dictionary: %{}, content: []
 
   import Pdf.Size

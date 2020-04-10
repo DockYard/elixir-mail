@@ -1,4 +1,6 @@
 defmodule Pdf.Encoding.WinAnsi do
+  @moduledoc false
+
   @char_info [
     {0x00, 0x0000, nil},
     {0x01, 0x0001, nil},

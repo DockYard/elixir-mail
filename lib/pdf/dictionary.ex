@@ -1,4 +1,5 @@
 defmodule Pdf.Dictionary do
+  @moduledoc false
   import Pdf.Size
   import Pdf.Utils
 

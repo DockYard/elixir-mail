@@ -1,4 +1,6 @@
 defmodule Pdf.Images.PNG do
+  @moduledoc false
+
   import Pdf.Utils
 
   alias Pdf.{Image, Dictionary, Stream, ObjectCollection}

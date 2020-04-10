@@ -1,4 +1,5 @@
 defmodule Pdf.Fonts do
+  @moduledoc false
   use GenServer
   import Pdf.Util.GenServerMacros
   import Pdf.Utils
@@ -6,10 +7,12 @@ defmodule Pdf.Fonts do
   alias Pdf.{Font, ExternalFont, ObjectCollection}
 
   defmodule State do
+    @moduledoc false
     defstruct last_id: 0, fonts: %{}, objects: nil
   end
 
   defmodule FontReference do
+    @moduledoc false
     defstruct name: nil, module: nil, object: nil
   end
 

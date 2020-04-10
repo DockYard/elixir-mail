@@ -1,4 +1,6 @@
 defmodule Pdf.ObjectCollection do
+  @moduledoc false
+
   use GenServer
   import Pdf.Util.GenServerMacros
 

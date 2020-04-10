@@ -1,4 +1,6 @@
 defmodule Pdf.Object do
+  @moduledoc false
+
   defstruct number: nil, generation: "0", size: 0, value: nil
 
   import Pdf.Size

@@ -1,4 +1,5 @@
 defmodule Pdf.RefTable do
+  @moduledoc false
   def to_iolist(objects, offset \\ 0) do
     {objects_iolist, offset} = objects_to_iolist(objects, offset)
 

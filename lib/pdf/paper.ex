@@ -1,4 +1,6 @@
 defmodule Pdf.Paper do
+  @moduledoc false
+
   [
     a0: [2380, 3368],
     a1: [1684, 2380],

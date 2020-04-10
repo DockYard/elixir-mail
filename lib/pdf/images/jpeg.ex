@@ -1,4 +1,6 @@
 defmodule Pdf.Images.JPEG do
+  @moduledoc false
+
   import Pdf.Utils
 
   alias Pdf.{Array, Dictionary, Image}
