@@ -1,6 +1,8 @@
 defmodule Pdf.Trailer do
   alias Pdf.Dictionary
 
+  @moduledoc false
+
   defstruct objects: [], offset: 0, root: nil, info: nil
 
   def new(objects, offset, root, info),

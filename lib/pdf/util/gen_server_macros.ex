@@ -1,4 +1,6 @@
 defmodule Pdf.Util.GenServerMacros do
+  @moduledoc false
+  @doc false
   defmacro defcall({name, _, args}, opts) do
     [state, from | args] = Enum.reverse(args)
     args = Enum.reverse(args)
