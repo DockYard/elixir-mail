@@ -21,7 +21,8 @@ defmodule Pdf.Mixfile do
           canonical: "http://hexdocs.pm/pdf",
           main: "Pdf",
           source_url: @github_url,
-          extras: ["README.md"]
+          extras: ["extra_doc/Tables.md"],
+          assets: "extra_doc/assets"
         ]
       end,
       description: description(),

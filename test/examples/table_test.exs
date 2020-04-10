@@ -21,8 +21,9 @@ defmodule Pdf.Examples.TableTest do
       padding: 2,
       background: :gainsboro,
       repeat_header: 1,
+      italic: true,
       cols: [
-        [width: 100, size: 8],
+        [width: 100, font_size: 8],
         [],
         [min_width: 30, background: :dark_gray, color: :white],
         [width: 80, align: :right, padding: {2, 4}]

@@ -160,6 +160,6 @@ defmodule Pdf.Color do
   }
   """
 
-  @spec color(:atom) :: Pdf.rgb()
+  @spec color(Pdf.color_name()) :: Pdf.rgb()
   def color(color), do: raise(ArgumentError, "Undefined color #{color}")
 end
