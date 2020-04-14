@@ -115,7 +115,7 @@ defmodule Pdf do
   Builds a PDF document taking care of cleaning up resources on completion.
 
   ```elixir
-  Pdf.build([size: a3], fn pdf ->
+  Pdf.build([size: :a3], fn pdf ->
     pdf
     |> Pdf.set_font("Helvetica", 12)
     |> Pdf.text_at({100, 100}, "Open")
@@ -124,7 +124,7 @@ defmodule Pdf do
   ```
   is equivalent to
   ```elixir
-  pdf = Pdf.new(size: a3)
+  {:ok, pdf} = Pdf.new(size: :a3)
   pdf
   |> Pdf.set_font("Helvetica", 12)
   |> Pdf.text_at({100, 100}, "Open")
