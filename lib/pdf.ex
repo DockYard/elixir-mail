@@ -38,6 +38,8 @@ defmodule Pdf do
    - :letter
    - :tabloid
    - a custom size `[width, height]` in Pdf points.
+
+   or you can also specify a tuple { size, :landscape}.
   """
 
   @typedoc """
@@ -212,26 +214,46 @@ defmodule Pdf do
     {:reply, Document.page_number(document), document}
   end
 
+  @doc """
+  Set the color to use when filling.
+
+  This takes either a `Pdf.Color.color/1` atom, an RGB tuple or a CMYK tuple.
+  """
+
   @spec set_fill_color(pid, color_name | rgb | cmyk) :: pid
   defcall set_fill_color(color, _from, document) do
     {:reply, self(), Document.set_fill_color(document, color)}
   end
 
+  @doc """
+  Set the color to use when drawing lines.
+
+  This takes either a `Pdf.Color.color/1` atom, an RGB tuple or a CMYK tuple.
+  """
   @spec set_stroke_color(pid, color_name | rgb | cmyk) :: pid
   defcall set_stroke_color(color, _from, document) do
     {:reply, self(), Document.set_stroke_color(document, color)}
   end
 
+  @doc """
+  The width to use when drawing lines.
+  """
   @spec set_line_width(pid, number) :: pid
   defcall set_line_width(width, _from, document) do
     {:reply, self(), Document.set_line_width(document, width)}
   end
 
+  @doc """
+  The line endings to draw, see `t:cap_style/0`.
+  """
   @spec set_line_cap(pid, cap_style) :: pid
   defcall set_line_cap(style, _from, document) do
     {:reply, self(), Document.set_line_cap(document, style)}
   end
 
+  @doc """
+  The join style to use where lines meet, see `t:join_style/0`.
+  """
   @spec set_line_join(pid, join_style) :: pid
   defcall set_line_join(style, _from, document) do
     {:reply, self(), Document.set_line_join(document, style)}
@@ -415,6 +437,9 @@ defmodule Pdf do
 
   If the text is too large for the box, it may overrun its boundaries, but only horizontally.
 
+  This function will return a tuple `{pid, :complete}` if all text was rendered, or `{pid, remaining}` if not.
+  It can subsequently be called with the _remaining_ data, after eg starting a new page, until `{pid, :complete}`.
+
   The _text_ can be either a binary or a list of binaries or annotated binaries.
   The `:kerning` option if set will apply to all rendered text.
 
@@ -428,10 +453,10 @@ defmodule Pdf do
   `:italic` | boolean | false
   `:leading` | integer | current
   `:color` | :atom | current
-  `:align` | :left , :center , :right | :left
 
   When choosing `:bold` or `:italic`, make sure that your current font supports these or an error will occur.
   If using an external font, you have to `add_font/2` all variants you want to use.
+
 
   """
 
@@ -442,7 +467,12 @@ defmodule Pdf do
   end
 
   @doc """
-  This function has the same options as `text_wrap/4`, but also supports `:kerning`, see `text_at/4` for information about kerning.
+  This function has the same options as `text_wrap/4`, but also supports additional options that will be applied to the complete text.
+
+  Option  |  Value  | Default
+  :------ | :------ | :------
+  `:align` | :left , :center , :right | :left
+  `:kerning` | `boolean` | false
   """
   @spec text_wrap(pid, coords(), dimension(), binary | list, keyword) :: pid
   defcall text_wrap(coords, dimensions, text, opts, _from, document) do

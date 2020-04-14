@@ -88,13 +88,13 @@ These options can be applied to the table, rows and columns.
 
 Options | 
 :----- | :------
-`:background` | One of the predefined color atoms, see `Pdf.Color.color/1`
-`:border` | The thickness of the border.
-`:color` | The font color
+`:background` | One of the predefined color atomsi (see `Pdf.Color.color/1`), an RGB tuple or a CMYK tuple.
+`:border` | The thickness of the border, see `:padding` below.
+`:color` | The font color, accepts the same options as `:background`.
 `:font_size` | Font size
 `:bold` | `true` or `false`
 `:italic` | `true` or `false`
-`:padding` | The padding to apply, integer for both or {horizontal, vertical}
+`:padding` | The padding to apply, cfr CSS, can take for all sides `{int}`, `{horizontal, vertical}`, `{top, horizontal, bottom}`, `{top, right, bottom, left}`
 `:colspan` | The number of columns to merge together
 
 ### Table specific options
@@ -102,7 +102,7 @@ Options |
 Extra Options |  
 :------------ | :------
 `:cols` | Definitions for the individual columns.
-`:repeat_header` | The number of rows that make up the header of the table. 
+`:repeat_header` | The number of rows that make up the header of the table, and that will be repeated when the data overflows the supplied boundary.
 `:rows` | Definitions for the individual rows.
 
 The headers if set will be repeated with each call.
@@ -118,7 +118,7 @@ Extra Options |
 
 ### Row specific options
 `:rows` takes a map of row numbers and a list of row definitions.
-Valid row numbers are `0..number of rows in data` and `-1` for the last row.
+Valid row numbers are `-number..0..number of rows in data`, eg 0 for the first row, -1 for the last, -2 for the second last, etc.
 
 
 Extra Options | 

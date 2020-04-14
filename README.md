@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/andrewtimberlake/elixir-pdf.svg?branch=master)](https://travis-ci.org/andrewtimberlake/elixir-pdf)
 # Pdf
 
 The missing PDF library for Elixir.
