@@ -4,6 +4,7 @@ elixir:
   - 1.7.3
   - 1.8.0
   - 1.9.1
+  - 1.10.2
 notifications:
   recipients:
     - andrew@andrewtimberlake.com
