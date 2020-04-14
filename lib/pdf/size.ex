@@ -11,7 +11,8 @@ defimpl Pdf.Size, for: Integer do
 end
 
 defimpl Pdf.Size, for: Float do
-  def size_of(number), do: Pdf.Size.size_of(Float.to_string(number))
+  def size_of(number),
+    do: Pdf.Size.size_of(Pdf.Export.to_iolist(number))
 end
 
 defimpl Pdf.Size, for: Date do
@@ -36,6 +37,6 @@ defimpl Pdf.Size, for: Tuple do
   def size_of({:object, number, generation}),
     do: 4 + Pdf.Size.size_of(number) + Pdf.Size.size_of(generation)
 
-  def size_of({:command, [_ | _] = list}), do: length(list) + Pdf.Size.size_of(list)
+  def size_of({:command, [_ | _] = list}), do: length(list) - 1 + Pdf.Size.size_of(list)
   def size_of({:command, command}), do: Pdf.Size.size_of(command)
 end

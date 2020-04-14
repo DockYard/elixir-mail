@@ -20,6 +20,7 @@ defmodule Pdf.ExportTest do
     test "it returns the number as a binary" do
       assert Export.to_iolist(13.2) == "13.2"
       assert Export.to_iolist(420.720) == "420.72"
+      assert Export.to_iolist(10.934000000000001) == "10.934"
     end
   end
 
@@ -112,8 +113,8 @@ defmodule Pdf.ExportTest do
       assert Export.to_iolist({:command, "BT"}) == "BT"
 
       assert Export.to_iolist({:command, [{:name, "F1"}, 12, "Tf"]}) == [
-               {:name, "F1"},
-               [[" ", 12], [" ", "Tf"]]
+               ["/", "F1"],
+               [[" ", "12"], [" ", "Tf"]]
              ]
     end
   end

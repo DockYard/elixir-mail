@@ -25,6 +25,7 @@ defmodule Pdf.Stream do
     do: init(tail, stream)
 
   def push(stream, {:command, _} = command) do
+    # +1 because we are adding a newline
     size = size_of(command) + 1
     %{stream | size: stream.size + size, content: ["\n", command | stream.content]}
   end
@@ -32,7 +33,7 @@ defmodule Pdf.Stream do
   def push(stream, command), do: push(stream, c(command))
 
   def set(stream, content) when is_binary(content) do
-    size = byte_size(content)
+    size = size_of(content)
     %{stream | size: size, content: [content]}
   end
 
@@ -51,8 +52,6 @@ defmodule Pdf.Stream do
     compressed =
       stream.content
       |> Enum.reverse()
-      |> Pdf.Export.to_iolist()
-      # We would usually return a structure but now we need to export the structure so it can be compressed
       |> Pdf.Export.to_iolist()
       |> compress(level)
 

@@ -71,6 +71,9 @@ defimpl Pdf.Export, for: Tuple do
     do: [Integer.to_string(number), " ", Integer.to_string(generation), " R"]
 
   def to_iolist({:command, []}), do: []
-  def to_iolist({:command, [head | tail]}), do: [head, Enum.map(tail, &[" ", &1])]
+
+  def to_iolist({:command, [head | tail]}),
+    do: [Pdf.Export.to_iolist(head), Enum.map(tail, &[" ", Pdf.Export.to_iolist(&1)])]
+
   def to_iolist({:command, command}), do: command
 end

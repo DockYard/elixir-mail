@@ -103,7 +103,6 @@ defmodule Pdf.Text do
     string
     |> normalize_unicode_characters()
     |> Pdf.Encoding.WinAnsi.encode()
-    |> String.to_charlist()
   end
 
   # Only available from OTP 20.0

@@ -87,9 +87,7 @@ defmodule Pdf.Font do
       def text_width(string, opts) when is_list(opts) do
         normalized_string = Pdf.Text.normalize_string(string)
 
-        string_width =
-          normalized_string
-          |> Enum.reduce(0, &(&2 + width(&1)))
+        string_width = calculate_string_width(normalized_string)
 
         kerning_adjustments =
           if Keyword.get(opts, :kerning, false) do
@@ -116,21 +114,30 @@ defmodule Pdf.Font do
         width * font_size / 1000
       end
 
-      def kern_text([]), do: []
+      defp calculate_string_width(""), do: 0
+
+      defp calculate_string_width(<<char::utf8, rest::binary>>) do
+        width(char) + calculate_string_width(rest)
+      end
+
+      def kern_text(""), do: [""]
 
       metrics.kern_pairs
       |> Enum.each(fn {first, second, amount} ->
-        def kern_text([unquote(first), unquote(second) | tail]) do
-          [<<unquote(first)>>, unquote(-amount) | kern_text([unquote(second) | tail])]
+        def kern_text(<<unquote(first)::utf8, unquote(second)::utf8, rest::binary>>) do
+          [
+            <<unquote(first)>>,
+            unquote(-amount) | kern_text(<<unquote(second)::utf8, rest::binary>>)
+          ]
         end
       end)
 
-      def kern_text([first, second | tail]) do
-        [<<head::binary>> | tail] = kern_text([second | tail])
-        [<<first, head::binary>> | tail]
+      def kern_text(<<first::utf8, second::utf8, rest::binary>>) do
+        [head | tail] = kern_text(<<second::utf8, rest::binary>>)
+        [<<first::utf8, head::binary>> | tail]
       end
 
-      def kern_text([char]), do: [<<char>>]
+      def kern_text(<<_::utf8>> = char), do: [char]
     end
   end)
 

@@ -22,6 +22,7 @@ defmodule Pdf.SizeTest do
       assert Size.size_of(13.3) == 4
       assert Size.size_of(420.0) == 5
       assert Size.size_of(999_999.01) == 9
+      assert Size.size_of(10.934000000000001) == 6
     end
   end
 
@@ -91,6 +92,10 @@ defmodule Pdf.SizeTest do
       list = ["a long string", 123_456, ~D"2018-05-22", {:name, "Name"}]
       assert Size.size_of(list) == Enum.map(list, &Size.size_of/1) |> Enum.reduce(&+/2)
     end
+
+    test "string in list" do
+      assert Size.size_of(["BT"]) == 2
+    end
   end
 
   describe "size_of/1 for Tuple" do
@@ -113,7 +118,9 @@ defmodule Pdf.SizeTest do
 
     test "it returns the correct length for a command" do
       assert Size.size_of({:command, "BT"}) == 2
-      assert Size.size_of({:command, [{:name, "F1"}, 12, "Tf"]}) == 10
+      # /F1 12 Tf
+      command = {:command, [{:name, "F1"}, 12, "Tf"]}
+      assert Size.size_of(command) == 9
     end
   end
 end

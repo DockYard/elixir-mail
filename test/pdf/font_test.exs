@@ -9,5 +9,13 @@ defmodule Pdf.FontTest do
       assert font.text_width("VA", kerning: true) == 1254
       assert font.text_width("VA", 10, kerning: true) == 12.54
     end
+
+    test "It calculates the width of a blank string" do
+      font = Pdf.Font.Helvetica
+      assert font.text_width("") == 0
+      assert font.text_width("", 10) == 0
+      assert font.text_width("", kerning: true) == 0
+      assert font.text_width("", 10, kerning: true) == 0
+    end
   end
 end
