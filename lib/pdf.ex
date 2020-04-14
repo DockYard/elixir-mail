@@ -3,8 +3,10 @@ defmodule Pdf do
   import Pdf.Util.GenServerMacros
   alias Pdf.Document
 
+  @spec new(any) :: :ignore | {:error, any} | {:ok, pid}
   def new(opts \\ []), do: GenServer.start_link(__MODULE__, opts)
 
+  @spec open(any, (any -> any)) :: :ok
   def open(opts \\ [], func) do
     {:ok, pdf} = new(opts)
     func.(pdf)
@@ -53,12 +55,12 @@ defmodule Pdf do
     {:reply, self(), Document.set_stroke_color(document, color)}
   end
 
-  @spec set_line_width(pid, integer) :: pid
+  @spec set_line_width(pid, number) :: pid
   defcall set_line_width(width, _from, document) do
     {:reply, self(), Document.set_line_width(document, width)}
   end
 
-  @type cap_style :: :butt | :round | :projecting_square | :sqaure | integer()
+  @type cap_style :: :butt | :round | :projecting_square | :square | integer()
   @spec set_line_cap(pid, cap_style) :: pid
   defcall set_line_cap(style, _from, document) do
     {:reply, self(), Document.set_line_cap(document, style)}
@@ -70,10 +72,10 @@ defmodule Pdf do
     {:reply, self(), Document.set_line_join(document, style)}
   end
 
-  @type x :: integer
-  @type y :: integer
-  @type width :: integer
-  @type height :: integer
+  @type x :: number
+  @type y :: number
+  @type width :: number
+  @type height :: number
 
   @spec rectangle(pid, {x, y}, {width, height}) :: pid
   defcall rectangle({x, y}, {w, h}, _from, document) do
