@@ -1,4 +1,6 @@
 defmodule Pdf.Text do
+  @moduledoc false
+
   def escape(parts) when is_list(parts) do
     Enum.map(parts, &escape/1)
   end

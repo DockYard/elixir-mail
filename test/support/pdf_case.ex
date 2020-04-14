@@ -4,6 +4,10 @@ defmodule Pdf.Case do
   using do
     quote do
       import Pdf.Case
+
+      setup_all do
+        File.mkdir_p(__DIR__ |> Path.join("../output"))
+      end
     end
   end
 

@@ -1,4 +1,6 @@
 defmodule Pdf.Array do
+  @moduledoc false
+
   defstruct values: []
 
   import Pdf.Size

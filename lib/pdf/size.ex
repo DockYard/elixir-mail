@@ -1,4 +1,5 @@
 defprotocol Pdf.Size do
+  @moduledoc false
   def size_of(object)
 end
 

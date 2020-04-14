@@ -2,6 +2,7 @@ defmodule Pdf.Font.Metrics do
   @moduledoc false
 
   defmodule Glyph do
+    @moduledoc false
     defstruct name: nil,
               char_code: 0x00,
               width: 0,

@@ -1,7 +1,7 @@
 defmodule Pdf.Examples.TextPositioningTest do
   use Pdf.Case, async: true
 
-  @open true
+  @open false
   test "" do
     file_path = output("text_positioning.pdf")
 

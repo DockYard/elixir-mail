@@ -1,4 +1,6 @@
 defmodule Pdf.Image do
+  @moduledoc false
+
   defstruct bits: nil,
             width: nil,
             height: nil,

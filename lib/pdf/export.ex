@@ -1,4 +1,6 @@
 defprotocol Pdf.Export do
+  @moduledoc false
+
   def to_iolist(object)
 end
 

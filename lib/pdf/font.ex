@@ -21,6 +21,7 @@ defmodule Pdf.Font do
     font_module = String.to_atom("Elixir.Pdf.Font.#{String.replace(metrics.name, "-", "")}")
 
     defmodule font_module do
+      @moduledoc false
       @doc "The name of the font"
       def name, do: unquote(metrics.name)
       @doc "The full name of the font"

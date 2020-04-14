@@ -1,4 +1,5 @@
 defmodule Pdf.Document do
+  @moduledoc false
   defstruct objects: nil,
             info: nil,
             fonts: nil,

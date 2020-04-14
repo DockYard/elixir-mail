@@ -1,4 +1,5 @@
 defmodule Pdf.Page do
+  @moduledoc false
   defstruct size: :a4,
             stream: nil,
             fonts: nil,
