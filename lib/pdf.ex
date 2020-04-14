@@ -18,8 +18,8 @@ defmodule Pdf do
 
   def points(x), do: x
   def picas(x), do: x * 6
-  def inches(x), do: round(x * 72.21)
-  def cm(x), do: round(x * 72.21 / 2.54)
+  def inches(x), do: round(x * 72)
+  def cm(x), do: round(x * 72 / 2.54)
 
   def pixels_to_points(pixels, dpi \\ 300), do: round(pixels / dpi * 72.21)
 
