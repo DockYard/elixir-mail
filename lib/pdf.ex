@@ -129,9 +129,8 @@ defmodule Pdf do
   |> Pdf.set_font("Helvetica", 12)
   |> Pdf.text_at({100, 100}, "Open")
   |> Pdf.write_to("test.pdf")
-  |> Pdf.delete()
+  |> Pdf.cleanup()
   ```
-
   """
   def build(opts \\ [], func) do
     {:ok, pdf} = new(opts)
@@ -145,9 +144,13 @@ defmodule Pdf do
     build(opts, func)
   end
 
-  Each Pdf is a GenServer that keeps running, until you `delete` it.
+  @doc """
+  Stop the Pdf process releasing all document memory.
   """
-  def delete(pdf), do: GenServer.stop(pdf)
+  def cleanup(pid), do: GenServer.stop(pid)
+
+  @deprecated "Use cleanup/1 instead"
+  def delete(pid), do: cleanup(pid)
 
   @doc false
   def init(opts), do: {:ok, Document.new(opts)}

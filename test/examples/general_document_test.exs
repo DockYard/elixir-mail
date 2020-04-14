@@ -25,7 +25,7 @@ defmodule Pdf.Examples.GeneralDocumentTest do
     |> write_paragraphs1()
     |> write_paragraphs2()
     |> Pdf.write_to(file_path)
-    |> Pdf.delete()
+    |> Pdf.cleanup()
 
     if @open, do: System.cmd("open", ["-g", file_path])
   end

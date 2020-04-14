@@ -70,7 +70,7 @@ defmodule Pdf.Examples.TableTest do
 
     pdf
     |> Pdf.write_to(file_path)
-    |> Pdf.delete()
+    |> Pdf.cleanup()
 
     if @open, do: System.cmd("open", ["-g", file_path])
   end
