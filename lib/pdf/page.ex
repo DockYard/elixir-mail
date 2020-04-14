@@ -517,7 +517,7 @@ defmodule Pdf.Page do
   end
 
   defp kerned_text(_font, text, false) do
-    [s(Text.normalize_string(Text.escape(text))), "Tj"]
+    [s(Text.escape(Text.normalize_string(text))), "Tj"]
   end
 
   defp kerned_text(font, text, true) do

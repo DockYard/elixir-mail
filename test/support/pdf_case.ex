@@ -68,8 +68,7 @@ defmodule Pdf.Case do
   def export(%{stream: stream}) do
     (stream
      |> Pdf.Export.to_iolist()
-     |> Pdf.Export.to_iolist()
-     |> IO.chardata_to_string()
+     |> IO.iodata_to_binary()
      |> String.split("\n")
      |> Enum.drop_while(&(&1 != "stream"))
      |> Enum.drop(1)

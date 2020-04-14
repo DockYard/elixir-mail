@@ -113,6 +113,20 @@ defmodule Pdf.PageTest do
                """
     end
 
+    test "text is normalized", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+      page = Page.text_at(page, {10, 20}, "Hellö wôrld")
+
+      assert export(page) ==
+               """
+               BT
+               /F1 12 Tf
+               10 20 Td
+               (Hell\xF6 w\xF4rld) Tj
+               ET
+               """
+    end
+
     test "text is escaped when kerned", %{page: page} do
       page = Page.set_font(page, "Helvetica", 12)
       page = Page.text_at(page, {10, 20}, "Hello (world)", kerning: true)

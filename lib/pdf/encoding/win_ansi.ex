@@ -283,15 +283,15 @@ defmodule Pdf.Encoding.WinAnsi do
   |> Enum.each(fn
     {char, nil, _} ->
       def encode(<<unquote(char)::utf8, rest::binary>>),
-        do: <<unquote(char)::utf8>> <> encode(rest)
+        do: <<unquote(char)::integer>> <> encode(rest)
 
     {char, utf_char, _} ->
       def encode(<<unquote(char)::utf8, rest::binary>>),
-        do: <<unquote(char)::utf8>> <> encode(rest)
+        do: <<unquote(char)::integer>> <> encode(rest)
 
       if <<char::utf8>> != <<utf_char::utf8>> do
         def encode(<<unquote(utf_char)::utf8, rest::binary>>),
-          do: <<unquote(char)::utf8>> <> encode(rest)
+          do: <<unquote(char)::integer>> <> encode(rest)
       end
   end)
 

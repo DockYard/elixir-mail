@@ -117,7 +117,7 @@ defmodule Pdf.Font do
 
       defp calculate_string_width(""), do: 0
 
-      defp calculate_string_width(<<char::utf8, rest::binary>>) do
+      defp calculate_string_width(<<char::integer, rest::binary>>) do
         width(char) + calculate_string_width(rest)
       end
 
@@ -125,20 +125,20 @@ defmodule Pdf.Font do
 
       metrics.kern_pairs
       |> Enum.each(fn {first, second, amount} ->
-        def kern_text(<<unquote(first)::utf8, unquote(second)::utf8, rest::binary>>) do
+        def kern_text(<<unquote(first)::integer, unquote(second)::integer, rest::binary>>) do
           [
             <<unquote(first)>>,
-            unquote(-amount) | kern_text(<<unquote(second)::utf8, rest::binary>>)
+            unquote(-amount) | kern_text(<<unquote(second)::integer, rest::binary>>)
           ]
         end
       end)
 
-      def kern_text(<<first::utf8, second::utf8, rest::binary>>) do
-        [head | tail] = kern_text(<<second::utf8, rest::binary>>)
-        [<<first::utf8, head::binary>> | tail]
+      def kern_text(<<first::integer, second::integer, rest::binary>>) do
+        [head | tail] = kern_text(<<second::integer, rest::binary>>)
+        [<<first::integer, head::binary>> | tail]
       end
 
-      def kern_text(<<_::utf8>> = char), do: [char]
+      def kern_text(<<_::integer>> = char), do: [char]
     end
   end)
 
