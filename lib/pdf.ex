@@ -161,12 +161,12 @@ defmodule Pdf do
   @doc "Convert the given value from picas to Pdf points"
   def picas(x), do: x * 6
   @doc "Convert the given value from inches to Pdf points"
-  def inches(x), do: round(x * 72.21)
+  def inches(x), do: round(x * 72)
   @doc "Convert the given value from cm to Pdf points"
-  def cm(x), do: round(x * 72.21 / 2.54)
+  def cm(x), do: round(x * 72 / 2.54)
 
   @doc "Convert the given value from pixels to Pdf points"
-  def pixels_to_points(pixels, dpi \\ 300), do: round(pixels / dpi * 72.21)
+  def pixels_to_points(pixels, dpi \\ 300), do: round(pixels / dpi * 72)
 
   @doc "Write the PDF to the given path"
   defcall write_to(path, _from, document) do
@@ -222,7 +222,7 @@ defmodule Pdf do
     {:reply, self(), Document.set_stroke_color(document, color)}
   end
 
-  @spec set_line_width(pid, integer) :: pid
+  @spec set_line_width(pid, number) :: pid
   defcall set_line_width(width, _from, document) do
     {:reply, self(), Document.set_line_width(document, width)}
   end
