@@ -9,37 +9,32 @@ defmodule Pdf do
   ## Usage
 
   ```elixir
-
-    {:ok, pdf} = Pdf.new( size: :a4, compress: true)
-
-      pdf
-      |> Pdf.set_info(title: "Demo PDF")
-      |> Pdf.set_font("Helvetica", 10)  # always set a font and size
-      |> Pdf.text_at({200,200}, "Welcome to Pdf")
-      |> Pdf.write_to("test".pdf)
-
-    Pdf.delete(pdf)
+  Pdf.build([size: :a4, compress: true], fn pdf ->
+    pdf
+    |> Pdf.set_info(title: "Demo PDF")
+    |> Pdf.set_font("Helvetica", 10)
+    |> Pdf.text_at({200,200}, "Welcome to Pdf")
+    |> Pdf.write_to("test.pdf")
+  end)
   ```
-
-
   ## Page sizes
 
   The available page sizes are:
 
-   - :a0 - :a9
-   - :b0 - :b9
-   - :c5e
-   - :comm10e
-   - :dle
-   - :executive
-   - :folio
-   - :ledger
-   - :legal
-   - :letter
-   - :tabloid
+   - `:a0` - `:a9`
+   - `:b0` - `:b9`
+   - `:c5e`
+   - `:comm10e`
+   - `:dle`
+   - `:executive`
+   - `:folio`
+   - `:ledger`
+   - `:legal`
+   - `:letter`
+   - `:tabloid`
    - a custom size `[width, height]` in Pdf points.
 
-   or you can also specify a tuple { size, :landscape}.
+  or you can also specify a tuple `{size, :landscape}`.
   """
 
   @typedoc """
@@ -117,15 +112,15 @@ defmodule Pdf do
   def new(opts \\ []), do: GenServer.start_link(__MODULE__, opts)
 
   @doc """
-  Starts a new Pdf, runs `function/1` and deletes it.
+  Builds a PDF document taking care of cleaning up resources on completion.
 
   ```elixir
-  Pdf.open [size: a3], fn pdf ->
+  Pdf.build([size: a3], fn pdf ->
     pdf
     |> Pdf.set_font("Helvetica", 12)
     |> Pdf.text_at({100, 100}, "Open")
     |> Pdf.write_to("test.pdf")
-  end
+  end)
   ```
   is equivalent to
   ```elixir
@@ -138,15 +133,17 @@ defmodule Pdf do
   ```
 
   """
-  def open(opts \\ [], func) do
+  def build(opts \\ [], func) do
     {:ok, pdf} = new(opts)
-    func.(pdf)
-    delete(pdf)
-    :ok
+    result = func.(pdf)
+    cleanup(pdf)
+    result
   end
 
-  @doc """
-  Stop the Pdf Process.
+  @deprecated "Use build/2 instead"
+  def open(opts \\ [], func) do
+    build(opts, func)
+  end
 
   Each Pdf is a GenServer that keeps running, until you `delete` it.
   """
