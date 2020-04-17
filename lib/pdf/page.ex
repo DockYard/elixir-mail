@@ -18,7 +18,7 @@ defmodule Pdf.Page do
   defdelegate table!(page, data, xy, wh, opts), to: Pdf.Table
 
   import Pdf.Utils
-  alias Pdf.{Image, Fonts, Stream, Text}
+  alias Pdf.{Image, Fonts, Stream, Text, Font}
 
   def new(opts \\ [size: :a4]), do: init(opts, %__MODULE__{stream: Stream.new()})
 
@@ -224,7 +224,7 @@ defmodule Pdf.Page do
 
         font =
           if Enum.any?([:bold, :italic], &Keyword.has_key?(opts, &1)) do
-            Fonts.get_font(fonts, font.family_name, Keyword.take(opts, [:bold, :italic]))
+            Fonts.get_font(fonts, font, Keyword.take(opts, [:bold, :italic]))
           else
             Fonts.get_font(fonts, font.name, [])
           end
@@ -240,7 +240,7 @@ defmodule Pdf.Page do
         x_height = font.module.x_height * font_size / 1000
         line_gap = (font_size - (ascender + descender)) / 2
 
-        width = font.module.text_width(text, font_size, opts)
+        width = Font.text_width(font.module, text, font_size, opts)
 
         {text, width,
          Keyword.merge(

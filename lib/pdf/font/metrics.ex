@@ -40,8 +40,9 @@ defmodule Pdf.Font.Metrics do
   def process_line(<<"FullName ", data::binary>>, metrics), do: %{metrics | full_name: data}
   def process_line(<<"FamilyName ", data::binary>>, metrics), do: %{metrics | family_name: data}
 
-  def process_line(<<"Weight ", data::binary>>, metrics),
-    do: %{metrics | weight: String.to_atom(String.downcase(data))}
+  def process_line(<<"Weight ", data::binary>>, metrics) do
+    %{metrics | weight: String.to_atom(String.downcase(data))}
+  end
 
   def process_line(<<"ItalicAngle ", data::binary>>, metrics) do
     case Float.parse(data) do
