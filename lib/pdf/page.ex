@@ -139,24 +139,36 @@ defmodule Pdf.Page do
     %{page | leading: leading}
   end
 
-  defp begin_text(%{current_font: font, current_font_size: size, leading: leading} = page) do
+  defp begin_text(page) do
+    %{current_font: font, current_font_size: size, leading: leading, fill_color: fill_color} =
+      page
+
     %{
       page
       | in_text: true,
-        saved: %{current_font: font, current_font_size: size, leading: leading}
+        saved: %{
+          current_font: font,
+          current_font_size: size,
+          leading: leading,
+          fill_color: fill_color
+        }
     }
     |> push(["BT"])
     |> push([font.name, size, "Tf"])
   end
 
   defp end_text(%{in_text: true, saved: saved} = page) do
+    page =
+      page
+      |> set_text_leading(Map.get(saved, :leading))
+      |> set_fill_color(Map.get(saved, :fill_color))
+
     push(
       %{
         page
         | in_text: false,
           current_font: Map.get(saved, :current_font),
           current_font_size: Map.get(saved, :current_font_size),
-          leading: Map.get(saved, :leading),
           saved: %{}
       },
       ["ET"]

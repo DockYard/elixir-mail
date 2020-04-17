@@ -333,6 +333,42 @@ defmodule Pdf.PageTest do
              ET
              """
     end
+
+    test "resetting attributed changes", %{page: page} do
+      page =
+        page
+        |> Page.set_font("Helvetica", 12)
+        |> Page.set_fill_color(:black)
+
+      attributed_text = [
+        {"foo", font_size: 10, bold: true, color: :red},
+        {"bar", font_size: 10, italic: true, color: :red},
+        {"baz", font_size: 10, italic: true, color: :blue}
+      ]
+
+      assert {page, :complete} = Page.text_wrap(page, {800, 20}, {400, 200}, attributed_text)
+      assert {page, :complete} = Page.text_wrap(page, {400, 20}, {400, 200}, "Final text")
+
+      assert export(page) == """
+             BT
+             /F1 12 Tf
+             800 12.445 Td
+             /F2 10 Tf
+             1.0 0.0 0.0 rg
+             (foo) Tj
+             /F3 10 Tf
+             (bar) Tj
+             0.0 0.0 1.0 rg
+             (baz) Tj
+             0.0 0.0 0.0 rg
+             ET
+             BT
+             /F1 12 Tf
+             400 10.934 Td
+             (Final text) Tj
+             ET
+             """
+    end
   end
 
   describe "text_wrap!/5" do
