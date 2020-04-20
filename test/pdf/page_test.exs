@@ -187,6 +187,52 @@ defmodule Pdf.PageTest do
              ET
              """
     end
+
+    test "uses global opts for a string", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+
+      page =
+        Page.text_at(page, {10, 20}, "Hello world",
+          bold: true,
+          kerning: true,
+          font_size: 14,
+          color: :red
+        )
+
+      assert export(page) == """
+             BT
+             /F1 12 Tf
+             10 20 Td
+             /F2 14 Tf
+             1.0 0.0 0.0 rg
+             [ (Hello w) 20 (orld) ] TJ
+             0.0 0.0 0.0 rg
+             ET
+             """
+    end
+
+    test "uses global opts for attributed text", %{page: page} do
+      page = Page.set_font(page, "Helvetica", 12)
+
+      page =
+        Page.text_at(page, {10, 20}, [{"Hello world", color: :blue}],
+          bold: true,
+          kerning: true,
+          font_size: 14,
+          color: :red
+        )
+
+      assert export(page) == """
+             BT
+             /F1 12 Tf
+             10 20 Td
+             /F2 14 Tf
+             0.0 0.0 1.0 rg
+             [ (Hello w) 20 (orld) ] TJ
+             0.0 0.0 0.0 rg
+             ET
+             """
+    end
   end
 
   describe "text_wrap/5" do

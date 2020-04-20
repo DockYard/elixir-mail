@@ -188,12 +188,8 @@ defmodule Pdf.Page do
     |> set_cursor(y - line_height(page, attributed_text))
   end
 
-  def text_at(%{current_font: %{module: font}} = page, {x, y}, text, opts) do
-    page
-    |> begin_text()
-    |> push([x, y, "Td"])
-    |> push(kerned_text(font, text, Keyword.get(opts, :kerning, false)))
-    |> end_text()
+  def text_at(page, xy, text, opts) do
+    text_at(page, xy, [text], opts)
   end
 
   defp merge_same_opts([]), do: []
@@ -249,7 +245,7 @@ defmodule Pdf.Page do
         ascender = font.module.ascender * font_size / 1000
         descender = -(font.module.descender * font_size / 1000)
         cap_height = font.module.cap_height * font_size / 1000
-        x_height = font.module.x_height * font_size / 1000
+        x_height = (font.module.x_height || 0) * font_size / 1000
         line_gap = (font_size - (ascender + descender)) / 2
 
         width = Font.text_width(font.module, text, font_size, opts)
