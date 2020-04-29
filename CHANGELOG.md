@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.7
+- Bug fix: Fix memory leak by stopping internal processes
+
 ## 0.3.6
 - Bug fix: Correctly handle encoded text as binary, not UTF-8 encoded string
 - Bug fix: External fonts now work like built-in fonts #17

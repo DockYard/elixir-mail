@@ -153,7 +153,10 @@ defmodule Pdf do
   def delete(pid), do: cleanup(pid)
 
   @doc false
-  def init(opts), do: {:ok, Document.new(opts)}
+  def init(opts) do
+    Process.flag(:trap_exit, true)
+    {:ok, Document.new(opts)}
+  end
 
   @doc """
   The unit of measurement in a Pdf are points, where *1 point = 1/72 inch*.
@@ -649,5 +652,11 @@ defmodule Pdf do
 
   defp set_info(key, value, document) do
     {:reply, self(), Document.put_info(document, key, value)}
+  end
+
+  def terminate(_, %{objects: objects, fonts: fonts}) do
+    GenServer.stop(objects)
+    GenServer.stop(fonts)
+    nil
   end
 end
