@@ -121,17 +121,20 @@ defmodule Mail do
 
   Each call will add a new attachment part.
   """
-  def put_attachment(%Mail.Message{multipart: true} = message, path) when is_binary(path),
-    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path))
 
-  def put_attachment(%Mail.Message{multipart: true} = message, {filename, data}),
-    do: Mail.Message.put_part(message, Mail.Message.build_attachment({filename, data}))
+  def put_attachment(message, path_or_file_tuple, opts \\ [])
 
-  def put_attachment(%Mail.Message{} = message, path) when is_binary(path),
-    do: Mail.Message.put_attachment(message, path)
+  def put_attachment(%Mail.Message{multipart: true} = message, path, opts) when is_binary(path),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment(path, opts))
 
-  def put_attachment(%Mail.Message{} = message, {filename, data}),
-    do: Mail.Message.put_attachment(message, {filename, data})
+  def put_attachment(%Mail.Message{multipart: true} = message, {filename, data}, opts),
+    do: Mail.Message.put_part(message, Mail.Message.build_attachment({filename, data}, opts))
+
+  def put_attachment(%Mail.Message{} = message, path, opts) when is_binary(path),
+    do: Mail.Message.put_attachment(message, path, opts)
+
+  def put_attachment(%Mail.Message{} = message, {filename, data}, opts),
+    do: Mail.Message.put_attachment(message, {filename, data}, opts)
 
   @doc """
   Determines the message has any attachment parts

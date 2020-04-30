@@ -135,6 +135,22 @@ defmodule Mail.MessageTest do
     assert part.body == file_content
   end
 
+  test "build_attachment when given a path with headers" do
+    part = Mail.Message.build_attachment("README.md", headers: [content_id: "attachment-id"])
+    {:ok, file_content} = File.read("README.md")
+
+    assert Mail.Message.get_content_type(part) == ["text/markdown"]
+
+    assert Mail.Message.get_header(part, :content_disposition) == [
+             "attachment",
+             {"filename", "README.md"}
+           ]
+
+    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header(part, :content_id) == "attachment-id"
+    assert part.body == file_content
+  end
+
   test "put_attachment when given a path" do
     part = Mail.Message.put_attachment(%Mail.Message{}, "README.md")
     {:ok, file_content} = File.read("README.md")
@@ -147,6 +163,22 @@ defmodule Mail.MessageTest do
            ]
 
     assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert part.body == file_content
+  end
+
+  test "put_attachment when given a path with headers" do
+    part = Mail.Message.put_attachment(%Mail.Message{}, "README.md", headers: [content_id: "attachment-id"])
+    {:ok, file_content} = File.read("README.md")
+
+    assert Mail.Message.get_content_type(part) == ["text/markdown"]
+
+    assert Mail.Message.get_header(part, :content_disposition) == [
+             "attachment",
+             {"filename", "README.md"}
+           ]
+
+    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header(part, :content_id) == "attachment-id"
     assert part.body == file_content
   end
 

@@ -220,13 +220,12 @@ defmodule Mail.Message do
       Mail.Message.build_attachment("README.md")
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
-      Mail.Message.build_attachment({"README.md", "file contents})
+      Mail.Message.build_attachment({"README.md", "file contents"})
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
   ## Options
 
-  * `:encoding` - Valid values: `:base64`
-  * `:content_type` - override the mimetype, will autodetermine based upon file extension otherwise
+  See `put_attachment/3` for options
 
   ## Custom mimetype library
 
@@ -243,34 +242,45 @@ defmodule Mail.Message do
       CustomMimeAdapter.type("md")
       "text/markdown"
   """
-  def build_attachment(path_or_file_tuple)
+  def build_attachment(path_or_file_tuple, opts \\ [])
 
-  def build_attachment(path) when is_binary(path),
-    do: put_attachment(%Mail.Message{}, path)
+  def build_attachment(path, opts) when is_binary(path),
+    do: put_attachment(%Mail.Message{}, path, opts)
 
-  def build_attachment(file) when is_tuple(file),
-    do: put_attachment(%Mail.Message{}, file)
+  def build_attachment(file, opts) when is_tuple(file),
+    do: put_attachment(%Mail.Message{}, file, opts)
 
   @doc """
   Adds a new attachment part to the provided message
 
   The first argument must be a `Mail.Message`. The remaining argument is descibed in `build_attachment/1`
 
+  ## Options
+    * `:headers` - Headers to be merged
+
+  ## Examples
       Mail.Message.put_attachment(%Mail.Message{}, "README.md")
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
-      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents})
+      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents"})
       %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
-  """
-  def put_attachment(message, path_or_file_tuple)
 
-  def put_attachment(%Mail.Message{} = message, path) when is_binary(path) do
+  ### Adding custom headers
+      Mail.Message.put_attachment(%Mail.Message{}, "README.md", headers: [content_id: "attachment-id"])
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64, content_id: "attachment-id"}}
+
+      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", data}, headers: [content_id: "attachment-id"])
+      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64, content_id: "attachment-id"}}
+  """
+  def put_attachment(message, path_or_file_tuple, opts \\ [])
+
+  def put_attachment(%Mail.Message{} = message, path, opts) when is_binary(path) do
     {:ok, data} = File.read(path)
     basename = Path.basename(path)
-    put_attachment(message, {basename, data})
+    put_attachment(message, {basename, data}, opts)
   end
 
-  def put_attachment(%Mail.Message{} = message, {filename, data}) do
+  def put_attachment(%Mail.Message{} = message, {filename, data}, opts) do
     filename = Path.basename(filename)
 
     message
@@ -278,6 +288,11 @@ defmodule Mail.Message do
     |> put_content_type(mimetype(filename))
     |> put_header(:content_disposition, ["attachment", {"filename", filename}])
     |> put_header(:content_transfer_encoding, :base64)
+    |> merge_headers(opts)
+  end
+
+  defp merge_headers(message, opts) do
+    Enum.reduce(opts[:headers] || [], message, fn {k, v}, acc -> put_header(acc, k, v) end)
   end
 
   @doc """
