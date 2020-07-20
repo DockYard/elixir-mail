@@ -612,10 +612,10 @@ defmodule Mail.Parsers.RFC2822Test do
   test "content-type with implicit charset" do
     message =
       parse_email("""
-      Content-Type: text/html; us-ascii
+      Content-Type: text/html; charset=us-ascii
       """)
 
-    assert message.headers["content-type"] == ["text/html", "us-ascii"]
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
   defp parse_email(email),
