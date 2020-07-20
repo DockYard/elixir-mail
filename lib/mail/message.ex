@@ -186,24 +186,56 @@ defmodule Mail.Message do
 
       Mail.Message.build_text("Some text")
       %Mail.Message{body: "Some text", headers: %{content_type: "text/plain"}}
+
+      Mail.Message.build_text("Some text", charset: "UTF-8")
+      %Mail.Message{body: "Some text", headers: %{content_type: ["text/plain", {"charset", "UTF-8"}]}}
+
+  ## Options
+
+  * `:charset` - The character encoding standard for content type
   """
-  def build_text(body),
-    do:
-      put_content_type(%Mail.Message{}, "text/plain")
-      |> put_header(:content_transfer_encoding, :quoted_printable)
-      |> put_body(body)
+  def build_text(body, opts \\ []) do
+    content_type =
+      case opts do
+        charset: charset ->
+          ["text/plain", {"charset", charset}]
+
+        _else ->
+          "text/plain"
+      end
+
+    put_content_type(%Mail.Message{}, content_type)
+    |> put_header(:content_transfer_encoding, :quoted_printable)
+    |> put_body(body)
+  end
 
   @doc """
   Build a new HTML message
 
       Mail.Message.build_html("<h1>Some HTML</h1>")
       %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{content_type: "text/html"}}
+
+      Mail.Message.build_html("<h1>Some HTML</h1>", charset: "UTF-8")
+      %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{content_type: ["text/html", {"charset", "UTF-8"}]}}
+
+  ## Options
+
+  * `:charset` - The character encoding standard for content type
   """
-  def build_html(body),
-    do:
-      put_content_type(%Mail.Message{}, "text/html")
-      |> put_header(:content_transfer_encoding, :quoted_printable)
-      |> put_body(body)
+  def build_html(body, opts \\ []) do
+    content_type =
+      case opts do
+        charset: charset ->
+          ["text/html", {"charset", charset}]
+
+        _else ->
+          "text/html"
+      end
+
+    put_content_type(%Mail.Message{}, content_type)
+    |> put_header(:content_transfer_encoding, :quoted_printable)
+    |> put_body(body)
+  end
 
   @doc """
   Add attachment meta data to a `Mail.Message`

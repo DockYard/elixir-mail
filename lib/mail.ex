@@ -34,21 +34,36 @@ defmodule Mail do
 
   If a text part already exists this function will replace that existing
   part with the new part.
+
+  ## Options
+
+  * `:charset` - The character encoding standard for content type
   """
-  def put_text(%Mail.Message{multipart: true} = message, body) do
+  def put_text(message, body, opts \\ [])
+
+  def put_text(%Mail.Message{multipart: true} = message, body, opts) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
         %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
         _ -> message
       end
 
-    Mail.Message.put_part(message, Mail.Message.build_text(body))
+    Mail.Message.put_part(message, Mail.Message.build_text(body, opts))
   end
 
-  def put_text(%Mail.Message{} = message, body) do
+  def put_text(%Mail.Message{} = message, body, opts) do
+    content_type =
+      case opts do
+        charset: charset ->
+          ["text/plain", {"charset", charset}]
+
+        _else ->
+          "text/plain"
+      end
+
     Mail.Message.put_body(message, body)
     |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
-    |> Mail.Message.put_content_type("text/plain")
+    |> Mail.Message.put_content_type(content_type)
   end
 
   @doc """
@@ -67,8 +82,12 @@ defmodule Mail do
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message), do: message
-  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message), do: message
+  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message),
+    do: message
+
+  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
+    do: message
+
   def get_text(%Mail.Message{}), do: nil
 
   @doc """
@@ -78,21 +97,36 @@ defmodule Mail do
 
   If a text part already exists this function will replace that existing
   part with the new part.
+
+  ## Options
+
+  * `:charset` - The character encoding standard for content type
   """
-  def put_html(%Mail.Message{multipart: true} = message, body) do
+  def put_html(message, body, opts \\ [])
+
+  def put_html(%Mail.Message{multipart: true} = message, body, opts) do
     message =
       case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
         %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
         _ -> message
       end
 
-    Mail.Message.put_part(message, Mail.Message.build_html(body))
+    Mail.Message.put_part(message, Mail.Message.build_html(body, opts))
   end
 
-  def put_html(%Mail.Message{} = message, body) do
+  def put_html(%Mail.Message{} = message, body, opts) do
+    content_type =
+      case opts do
+        charset: charset ->
+          ["text/html", {"charset", charset}]
+
+        _else ->
+          "text/html"
+      end
+
     Mail.Message.put_body(message, body)
     |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
-    |> Mail.Message.put_content_type("text/html")
+    |> Mail.Message.put_content_type(content_type)
   end
 
   @doc """
@@ -106,11 +140,16 @@ defmodule Mail do
   def get_html(%Mail.Message{multipart: true} = message) do
     Enum.find(message.parts, fn
       %Mail.Message{headers: %{"content-type" => "text/html"}} = message -> message
+      %Mail.Message{headers: %{"content-type" => ["text/html", _]}} = message -> message
       _ -> nil
     end)
   end
 
   def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
+
+  def get_html(%Mail.Message{headers: %{"content-type" => ["text/html", _]}} = message),
+    do: message
+
   def get_html(%Mail.Message{}), do: nil
 
   @doc """
