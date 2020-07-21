@@ -149,8 +149,8 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Wed, 14 10 2015 12:34:17
   def erl_from_timestamp(
-        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4),
-          " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
           rest::binary>>
       ) do
     month_name = get_month_name(month_digits)
@@ -176,10 +176,10 @@ defmodule Mail.Parsers.RFC2822 do
   @spec parse_recipient_value(value :: String.t()) ::
           [{String.t(), String.t()} | String.t()]
   def parse_recipient_value(value) do
-    Regex.scan(~r/\s*"?(.*?)"?\s*?<?([^<\s]+@[^\s>,]+)>?,?/, value)
+    Regex.scan(~r/\s*("?)(.*?)\1\s*?<?([^<\s]+@[^\s>,]+)>?,?/, value)
     |> Enum.map(fn
-      [_, "", address] -> address
-      [_, name, address] -> {name, address}
+      [_, _, "", address] -> address
+      [_, _, name, address] -> {name, address}
     end)
   end
 
