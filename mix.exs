@@ -4,7 +4,7 @@ defmodule Mail.Mixfile do
   def project do
     [
       app: :mail,
-      version: "0.2.1",
+      version: "0.2.2",
       elixir: "~> 1.2",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
@@ -25,7 +25,7 @@ defmodule Mail.Mixfile do
 
   def package do
     [
-      maintainers: ["Brian Cardarella"],
+      maintainers: ["Brian Cardarella", "Andrew Timberlake"],
       licenses: ["MIT"],
       links: %{
         "GitHub" => "https://github.com/DockYard/elixir-mail",
