@@ -75,10 +75,9 @@ defmodule Mail do
   If multipart without part having `content-type` "text/plain" will return `nil`
   """
   def get_text(%Mail.Message{multipart: true} = message) do
-    Enum.find(message.parts, fn
-      %Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message -> message
-      %Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message -> message
-      _ -> nil
+    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+      text_part = get_text(sub_message)
+      if text_part, do: {:halt, text_part}, else: {:cont, acc}
     end)
   end
 
@@ -138,10 +137,9 @@ defmodule Mail do
   If multipart without part having `content-type` "text/html" will return `nil`
   """
   def get_html(%Mail.Message{multipart: true} = message) do
-    Enum.find(message.parts, fn
-      %Mail.Message{headers: %{"content-type" => "text/html"}} = message -> message
-      %Mail.Message{headers: %{"content-type" => ["text/html", _]}} = message -> message
-      _ -> nil
+    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+      html_part = get_html(sub_message)
+      if html_part, do: {:halt, html_part}, else: {:cont, acc}
     end)
   end
 
