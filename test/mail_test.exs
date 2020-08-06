@@ -187,7 +187,7 @@ defmodule MailTest do
 
   test "get_text with multipart and multiple values" do
     text = "I am the body!"
-    mail = 
+    mail =
       Mail.Message.put_part(
         Mail.build_multipart(),
         Mail.Message.put_content_type(%Mail.Message{}, "text/plain; charset=UTF-8; format=flowed")
@@ -195,13 +195,40 @@ defmodule MailTest do
         |> Mail.Message.put_body(text)
       )
 
-    parsed_mail = 
+    parsed_mail =
       mail
       |> Mail.render()
       |> Mail.Parsers.RFC2822.parse()
 
     assert Mail.get_text(mail).body == text
     assert Mail.get_text(parsed_mail).body == text
+  end
+
+  test "get_text with nested multiparts" do
+    inner_multipart =
+      Mail.build_multipart()
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.put_text("Some text")
+
+    mail =
+      Mail.build_multipart()
+      |> Mail.Message.put_part(inner_multipart)
+
+    text_part = Mail.get_text(mail)
+
+    assert text_part.body == "Some text"
+  end
+
+  test "get_text with nested multiparts without text" do
+    inner_multipart =
+      Mail.build_multipart()
+      |> Mail.put_html("<h1>Some HTML</h1>")
+
+    mail =
+      Mail.build_multipart()
+      |> Mail.Message.put_part(inner_multipart)
+
+    assert is_nil(Mail.get_text(mail))
   end
 
   test "put_html with a singlepart" do
@@ -254,6 +281,33 @@ defmodule MailTest do
 
   test "get_html with multipart not html" do
     mail = Mail.put_text(Mail.build_multipart(), "Some text")
+    assert is_nil(Mail.get_html(mail))
+  end
+
+  test "get_html with nested multiparts" do
+    inner_multipart =
+      Mail.build_multipart()
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.put_text("Some text")
+
+    mail =
+      Mail.build_multipart()
+      |> Mail.Message.put_part(inner_multipart)
+
+    html_part = Mail.get_html(mail)
+
+    assert html_part.body == "<h1>Some HTML</h1>"
+  end
+
+  test "get_html with nested multiparts without html" do
+    inner_multipart =
+      Mail.build_multipart()
+      |> Mail.put_text("Some text")
+
+    mail =
+      Mail.build_multipart()
+      |> Mail.Message.put_part(inner_multipart)
+
     assert is_nil(Mail.get_html(mail))
   end
 
