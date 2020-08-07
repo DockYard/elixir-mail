@@ -196,7 +196,7 @@ defmodule Pdf do
       "content-disposition",
       "attachment; filename=\\"document.pdf\\""
     )
-    |> send_resp(200, csv)
+    |> send_resp(200, report)
   ```
   """
   defcall export(_from, document) do

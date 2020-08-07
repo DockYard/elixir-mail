@@ -19,7 +19,7 @@ defmodule PdfTest do
         subject: "Test Subject"
       )
       |> Pdf.set_font("Helvetica", 12)
-      |> Pdf.text_at({10, 400}, "Hello World")
+      |> Pdf.text_at({10, 400}, "Hello World😃", encoding_replacement_character: "")
       |> Pdf.text_lines({10, 300}, [
         "First line å",
         "Second line ä",
@@ -34,6 +34,7 @@ defmodule PdfTest do
         ],
         kerning: true
       )
+      |> Pdf.text_lines({200, 300}, ["smile😀"], encoding_replacement_character: "")
       |> Pdf.add_image({25, 50}, fixture("rgb.jpg"))
       |> Pdf.add_image({175, 50}, fixture("cmyk.jpg"))
       |> Pdf.add_image({325, 50}, fixture("grayscale.jpg"))
@@ -80,8 +81,9 @@ defmodule PdfTest do
       |> Pdf.text_wrap(
         {250, 650},
         {200, 100},
-        "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit.",
-        align: :center
+        "Lorem ipsum dolor sit amet, consectetur\u00A0adipiscing elit. Nullam posuere-nibh consectetur, ullamcorper lorem vel, blandit est. Phasellus ut venenatis odio. Pellentesque eget venenatis dolor.\nUt mattis dui id nulla porta, sit amet congue lacus blandit.😁",
+        align: :center,
+        encoding_replacement_character: ""
       )
       |> elem(0)
       |> Pdf.set_text_leading(10)

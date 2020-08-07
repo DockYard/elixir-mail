@@ -277,23 +277,28 @@ defmodule Pdf.Encoding.WinAnsi do
     Enum.map(Enum.take(@char_info, 256), fn {c, u, name} -> {c, u, to_string(name)} end)
   end
 
-  def encode(""), do: ""
+  def encode(string, replace_with \\ :raise)
+
+  def encode("", _), do: ""
 
   @char_info
   |> Enum.each(fn
     {char, nil, _} ->
-      def encode(<<unquote(char)::utf8, rest::binary>>),
-        do: <<unquote(char)::integer>> <> encode(rest)
+      def encode(<<unquote(char)::utf8, rest::binary>>, replace_with),
+        do: <<unquote(char)::integer>> <> encode(rest, replace_with)
 
     {char, utf_char, _} ->
-      def encode(<<unquote(char)::utf8, rest::binary>>),
-        do: <<unquote(char)::integer>> <> encode(rest)
+      def encode(<<unquote(char)::utf8, rest::binary>>, replace_with),
+        do: <<unquote(char)::integer>> <> encode(rest, replace_with)
 
       if <<char::utf8>> != <<utf_char::utf8>> do
-        def encode(<<unquote(utf_char)::utf8, rest::binary>>),
-          do: <<unquote(char)::integer>> <> encode(rest)
+        def encode(<<unquote(utf_char)::utf8, rest::binary>>, replace_with),
+          do: <<unquote(char)::integer>> <> encode(rest, replace_with)
       end
   end)
 
-  def encode(_), do: raise(ArgumentError, "Incompatible with WinAnsi encoding")
+  def encode(_, :raise), do: raise(ArgumentError, "Incompatible with WinAnsi encoding")
+
+  def encode(<<_::utf8, rest::binary>>, replace_with) when is_binary(replace_with),
+    do: replace_with <> encode(rest)
 end

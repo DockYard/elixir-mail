@@ -462,7 +462,7 @@ defmodule Pdf.Page do
       |> set_font(opts[:font].module.name, opts[:font_size], opts)
       |> set_text_leading(opts[:leading])
       |> set_fill_color(opts[:color])
-      |> push(kerned_text(opts[:font].module, text, Keyword.get(opts, :kerning, false)))
+      |> push(kerned_text(opts[:font].module, text, opts))
     end)
   end
 
@@ -524,14 +524,19 @@ defmodule Pdf.Page do
     cursor
   end
 
-  defp kerned_text(_font, text, false) do
-    [s(Text.escape(Text.normalize_string(text))), "Tj"]
+  defp kerned_text(font, text, opts) when is_list(opts) do
+    text
+    |> Text.normalize_string(Keyword.get(opts, :encoding_replacement_character, :raise))
+    |> kern_text(font, Keyword.get(opts, :kerning, false))
   end
 
-  defp kerned_text(font, text, true) do
+  defp kern_text(text, _font, false) do
+    [s(Text.escape(text)), "Tj"]
+  end
+
+  defp kern_text(text, font, true) do
     text =
       text
-      |> Text.normalize_string()
       |> font.kern_text()
       |> Text.escape()
       |> Enum.map(fn
@@ -543,11 +548,11 @@ defmodule Pdf.Page do
   end
 
   defp draw_lines(%{current_font: %{module: font}} = page, [line], opts) do
-    push(page, kerned_text(font, line, Keyword.get(opts, :kerning, false)))
+    push(page, kerned_text(font, line, opts))
   end
 
   defp draw_lines(%{current_font: %{module: font}} = page, [line | tail], opts) do
-    text = kerned_text(font, line, Keyword.get(opts, :kerning, false))
+    text = kerned_text(font, line, opts)
     draw_lines(push(page, text ++ ["T*"]), tail, opts)
   end
 

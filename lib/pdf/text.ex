@@ -101,10 +101,10 @@ defmodule Pdf.Text do
     end
   end
 
-  def normalize_string(string) when is_binary(string) do
+  def normalize_string(string, replace_with \\ :raise) when is_binary(string) do
     string
     |> normalize_unicode_characters()
-    |> Pdf.Encoding.WinAnsi.encode()
+    |> Pdf.Encoding.WinAnsi.encode(replace_with)
   end
 
   # Only available from OTP 20.0

@@ -9,7 +9,7 @@ defmodule Pdf.Examples.TableTest do
       ["Col 2,1", "Column 2,2", "Col 2,3", "Col 2,4"],
       [nil, "mmmmmmmmmm", nil, "mmmmmmmmmmm"],
       ["Col 3,1", ["Column ", {"3,2", bold: true}], "Col 3,3", "Col 3,4"],
-      ["Col 4,1", "Column 4,2", "Col 4,3", "Col 4,4"],
+      ["Col 4,1 😅", "Column 4,2", "Col 4,3", "Col 4,4"],
       [nil, nil, "Col 5,3", "Col 5,4"]
     ]
 
@@ -19,6 +19,7 @@ defmodule Pdf.Examples.TableTest do
 
     table_opts = [
       padding: 2,
+      encoding_replacement_character: "?",
       background: :gainsboro,
       repeat_header: 1,
       italic: true,

@@ -190,7 +190,11 @@ defmodule Pdf.Font do
   def text_width(font, string), do: text_width(font, string, [])
 
   def text_width(font, string, opts) when is_list(opts) do
-    normalized_string = Pdf.Text.normalize_string(string)
+    normalized_string =
+      Pdf.Text.normalize_string(
+        string,
+        Keyword.get(opts, :encoding_replacement_character, :raise)
+      )
 
     string_width = calculate_string_width(font, normalized_string)
 
