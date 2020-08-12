@@ -22,7 +22,8 @@ defmodule Pdf.Mixfile do
           main: "Pdf",
           source_url: @github_url,
           extras: ["extra_doc/Tables.md"],
-          assets: "extra_doc/assets"
+          assets: "extra_doc/assets",
+          formatters: ["html"]
         ]
       end,
       description: description(),
