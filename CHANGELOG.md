@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0
+- Add `:encoding_replacement_character` option to supply a replacement character when encoding fails
+- Add `:allow_row_overflow` option to `Pdf.table/4` to allow row contents to be split across pages
+
 ## 0.3.7
 - Bug fix: Fix memory leak by stopping internal processes
 
