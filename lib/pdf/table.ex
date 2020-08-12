@@ -249,7 +249,7 @@ defmodule Pdf.Table do
   defp draw_table(page, _xy, _wh, [], _opts), do: {page, []}
 
   defp draw_table(page, {x, y}, {w, h}, [head | tail], opts) do
-    row =
+    {row, overflow} =
       head
       |> Enum.map(fn {col, col_opts} ->
         {_, pr, _, pl} = padding(col_opts)
@@ -257,26 +257,63 @@ defmodule Pdf.Table do
 
         lines = Text.wrap_all_chunks(col, width)
 
+        {lines, overflow} =
+          if Keyword.get(opts, :allow_row_overflow, false) do
+            overflow_lines(lines, h)
+          else
+            {lines, []}
+          end
+
         height =
           Enum.reduce(lines, 0, fn {:line, line}, acc ->
-            Enum.max(Enum.map(line, &Keyword.get(elem(&1, 2), :height))) + acc
+            line_height = Enum.max(Enum.map(line, &Keyword.get(elem(&1, 2), :height)))
+            line_height + acc
           end)
 
-        {lines, Keyword.put(col_opts, :height, height)}
+        {{lines, Keyword.put(col_opts, :height, height)}, {overflow, col_opts}}
       end)
+      |> Enum.unzip()
 
     row_height = Enum.map(row, &col_height/1) |> Enum.max()
 
-    if row_height > h do
-      {page, [head | tail]}
-    else
-      page =
-        page
-        |> draw_row(y - row_height, row_height, row)
-        |> Page.set_cursor(y - row_height)
+    cond do
+      # We have an overflow
+      !Enum.all?(overflow, &Enum.empty?(elem(&1, 0))) ->
+        page =
+          page
+          |> draw_row(y - row_height, row_height, row)
+          |> Page.set_cursor(y - row_height)
 
-      draw_table(page, {x, y - row_height}, {w, h - row_height}, tail, opts)
+        {page, [overflow | tail]}
+
+      # No space for this row so we need to bail with {:continue, data}
+      row_height > h ->
+        {page, [head | tail]}
+
+      true ->
+        page =
+          page
+          |> draw_row(y - row_height, row_height, row)
+          |> Page.set_cursor(y - row_height)
+
+        draw_table(page, {x, y - row_height}, {w, h - row_height}, tail, opts)
     end
+  end
+
+  defp overflow_lines(lines, max_height) do
+    {lines, overflow} =
+      lines
+      |> Enum.map_reduce(0, fn {:line, line}, acc ->
+        line_height = Enum.max(Enum.map(line, &Keyword.get(elem(&1, 2), :height)))
+        {{:line, line, line_height + acc}, line_height + acc}
+      end)
+      |> elem(0)
+      |> Enum.split_while(fn {:line, _line, height} -> height < max_height end)
+
+    {
+      Enum.map(lines, fn {:line, line, _} -> {:line, line} end),
+      Enum.flat_map(overflow, fn {:line, line, _} -> line end)
+    }
   end
 
   defp draw_row(page, _y, _row_height, []), do: page

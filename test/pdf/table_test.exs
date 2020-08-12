@@ -24,7 +24,7 @@ defmodule Pdf.TableTest do
     assert export(page) == "\n"
   end
 
-  test "", %{page: page} do
+  test "basic table", %{page: page} do
     data = [
       ["Col 1,1", "Col 1,2", "Col 1,3"],
       ["Col 2,1", "Col 2,2", "Col 2,3"]
@@ -91,5 +91,87 @@ defmodule Pdf.TableTest do
            ET
            Q
            """
+  end
+
+  test "row exceeds available space" do
+    {:ok, collection} = ObjectCollection.start_link()
+    {:ok, fonts} = Fonts.start_link(collection)
+    # Tiny paper so we run out of space quickly
+    page = Page.new(size: [100, 100], fonts: fonts, compress: false)
+
+    assert {page,
+            {:continue,
+             [
+               [
+                 {[{"Col", 18.0, [_ | _]}, {" ", 3.336, [_ | _]}, {"1", 6.672, [_ | _]}],
+                  [width: 26.666666666666664, x: 10]},
+                 {[
+                    {"Test", 23.34, [_ | _]},
+                    {" ", 3.336, [_ | _]},
+                    {"Test", 23.34, [_ | _]},
+                    {" ", 3.336, [_ | _]},
+                    {"Test", 23.34, [_ | _]},
+                    {" ", 3.336, [_ | _]},
+                    {"Test", 23.34, [_ | _]},
+                    {" ", 3.336, [_ | _]},
+                    {"Test", 23.34, [_ | _]}
+                  ], [width: 26.666666666666664, x: 36.666666666666664]},
+                 {[{"Col", 18.0, [_ | _]}, {" ", 3.336, [_ | _]}, {"3", 6.672, [_ | _]}],
+                  [width: 26.666666666666664, x: 63.33333333333333]}
+               ]
+             ]}} =
+             page
+             |> Page.set_font("Helvetica", 12)
+             |> Page.table({10, 90}, {80, 80}, [
+               ["Header 1", "Header 2", "Header 3"],
+               [
+                 "Col 1",
+                 long_content("Test", 5),
+                 "Col 3"
+               ]
+             ])
+  end
+
+  test "row exceeds available space but with partial row allowed" do
+    {:ok, collection} = ObjectCollection.start_link()
+    {:ok, fonts} = Fonts.start_link(collection)
+    # Tiny paper so we run out of space quickly
+    page = Page.new(size: [100, 100], fonts: fonts, compress: false)
+
+    assert {page,
+            {:continue,
+             [
+               [
+                 {[], [_ | _]},
+                 {[
+                    {"Test", 23.34, [_ | _]}
+                  ], [_ | _]},
+                 {[], [_ | _]}
+               ]
+             ]} = continued_data} =
+             page
+             |> Page.set_font("Helvetica", 12)
+             |> Page.table(
+               {10, 90},
+               {80, 80},
+               [
+                 ["Header 1", "Header 2", "Header 3"],
+                 [
+                   "Col 1",
+                   long_content("Test", 5),
+                   "Col 3"
+                 ]
+               ],
+               allow_row_overflow: true
+             )
+
+    assert {page, :complete} =
+             page |> Page.table({10, 90}, {80, 80}, continued_data, allow_row_overflow: true)
+  end
+
+  defp long_content(string, repeats) do
+    1..repeats
+    |> Enum.map(fn _ -> string end)
+    |> Enum.join(" ")
   end
 end

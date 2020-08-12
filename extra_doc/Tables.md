@@ -86,7 +86,7 @@ You can use either `Pdf.table/5` or `Pdf.table!/5` to add a table to your Pdf.
 ### General options
 These options can be applied to the table, rows and columns.
 
-Options | 
+Options |
 :----- | :------
 `:background` | One of the predefined color atomsi (see `Pdf.Color.color/1`), an RGB tuple or a CMYK tuple.
 `:border` | The thickness of the border, see `:padding` below.
@@ -99,18 +99,20 @@ Options |
 
 ### Table specific options
 
-Extra Options |  
+Extra Options |
 :------------ | :------
 `:cols` | Definitions for the individual columns.
 `:repeat_header` | The number of rows that make up the header of the table, and that will be repeated when the data overflows the supplied boundary.
 `:rows` | Definitions for the individual rows.
+`:encoding_replacement_character` | Supply a character to replace characters that don't match the WIN ANSI encoding
+`:allow_row_overflow` | (boolean) If a row can be split when returning {:continue, data}. Needed for when a row content will be longer than a full table height
 
 The headers if set will be repeated with each call.
 
 ### Column specific options
 `:cols` takes a list of column definitions.
 
-Extra Options | 
+Extra Options |
 :----- | :-----
 `:width` | Fixed width
 `:max_width` | The maximum column width
@@ -121,6 +123,6 @@ Extra Options |
 Valid row numbers are `-number..0..number of rows in data`, eg 0 for the first row, -1 for the last, -2 for the second last, etc.
 
 
-Extra Options | 
+Extra Options |
 :----- | :-----
 `:cols` | Definitions for the columns in this single row
