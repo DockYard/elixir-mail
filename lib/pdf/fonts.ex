@@ -26,8 +26,8 @@ defmodule Pdf.Fonts do
     {:reply, ref, state}
   end
 
-  defcall get_fonts(_from, %{fonts: fonts} = state) do
-    {:reply, fonts, state}
+  defcall get_fonts(_from, state) do
+    {:reply, state.fonts, state}
   end
 
   defcall add_external_font(path, _from, state) do
