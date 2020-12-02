@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.5.0
+- Catch errors raised within the GenServer and re-raise them in the calling process
+
 ## 0.4.0
 - Add `:encoding_replacement_character` option to supply a replacement character when encoding fails
 - Add `:allow_row_overflow` option to `Pdf.table/4` to allow row contents to be split across pages
