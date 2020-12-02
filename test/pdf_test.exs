@@ -174,4 +174,16 @@ defmodule PdfTest do
 
     pdf
   end
+
+  test "exception is passed through" do
+    Pdf.build([size: :a4, compress: false], fn pdf ->
+      assert_raise RuntimeError,
+                   "The supplied text did not fit within the supplied boundary",
+                   fn ->
+                     pdf
+                     |> Pdf.set_font("Helvetica", 12)
+                     |> Pdf.text_wrap!({10, 20}, {200, 10}, "Hello\nworld")
+                   end
+    end)
+  end
 end

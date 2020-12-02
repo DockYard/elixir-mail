@@ -7,11 +7,18 @@ defmodule Pdf.Util.GenServerMacros do
 
     quote do
       def unquote(name)(pid, unquote_splicing(args)) do
-        GenServer.call(pid, {unquote(name), unquote_splicing(args)}, 120_000)
+        case GenServer.call(pid, {unquote(name), unquote_splicing(args)}, 120_000) do
+          {:raise, exception} -> raise exception
+          result -> result
+        end
       end
 
       defp unquote(:"do_#{name}")(unquote_splicing(args), unquote(from), unquote(state)) do
-        unquote(opts[:do])
+        try do
+          unquote(opts[:do])
+        rescue
+          exception -> {:reply, {:raise, exception}, unquote(state)}
+        end
       end
 
       def handle_call({unquote(name), unquote_splicing(args)}, from, state) do
