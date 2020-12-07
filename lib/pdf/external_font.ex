@@ -142,7 +142,7 @@ defmodule Pdf.ExternalFont do
   end
 
   def width(font, char_code) do
-    font.glyph_widths[char_code]
+    font.glyph_widths[char_code] || 0
   end
 
   def kern_text(_font, ""), do: [""]
