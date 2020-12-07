@@ -80,7 +80,12 @@ defmodule Pdf.Font.Metrics do
 
   def process_line(<<"C ", _rest::binary>> = line, %{glyphs: glyphs} = metrics) do
     glyph = parse_glyph(line)
-    %{metrics | glyphs: Map.put(glyphs, glyph.name, glyph)}
+
+    if Pdf.Encoding.WinAnsi.from_name(glyph.name) do
+      %{metrics | glyphs: Map.put(glyphs, glyph.name, glyph)}
+    else
+      metrics
+    end
   end
 
   def process_line(<<"KPX ", data::binary>>, %{kern_pairs: kern_pairs} = metrics) do

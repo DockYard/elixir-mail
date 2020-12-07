@@ -17,6 +17,7 @@ defmodule Pdf.ExternalFont do
             fixed_pitch: false,
             bbox: nil,
             widths: [],
+            glyph_widths: %{},
             glyphs: %{},
             kern_pairs: []
 
@@ -63,6 +64,7 @@ defmodule Pdf.ExternalFont do
       fixed_pitch: font_metrics.fixed_pitch,
       bbox: font_metrics.bbox,
       widths: widths,
+      glyph_widths: map_widths(font_metrics),
       glyphs: font_metrics.glyphs,
       kern_pairs: font_metrics.kern_pairs
     }
@@ -110,6 +112,23 @@ defmodule Pdf.ExternalFont do
     byte_size(to_iolist(font) |> Enum.join())
   end
 
+  defp map_widths(font) do
+    Pdf.Encoding.WinAnsi.characters()
+    |> Enum.map(fn {_, char, name} ->
+      width =
+        case font.glyphs[name] do
+          nil ->
+            0
+
+          %{width: width} ->
+            width
+        end
+
+      {char, width}
+    end)
+    |> Map.new()
+  end
+
   @doc """
   Returns the width of the specific character
 
@@ -123,21 +142,7 @@ defmodule Pdf.ExternalFont do
   end
 
   def width(font, char_code) do
-    Pdf.Encoding.WinAnsi.characters()
-    |> Enum.find(fn {_, char, _} -> char == char_code end)
-    |> case do
-      nil ->
-        0
-
-      {_, _, name} ->
-        case font.glyphs[name] do
-          nil ->
-            0
-
-          %{width: width} ->
-            width
-        end
-    end
+    font.glyph_widths[char_code] || 0
   end
 
   def kern_text(_font, ""), do: [""]

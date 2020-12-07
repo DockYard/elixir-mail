@@ -46,6 +46,7 @@ defmodule Pdf.ExternalFontTest do
 
   test "width/2", %{font: font} do
     assert 684 == ExternalFont.width(font, "A")
+    assert 0 == ExternalFont.width(font, "€")
   end
 
   describe "text_width/3" do
