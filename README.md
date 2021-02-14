@@ -1,4 +1,4 @@
-# Mail [![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](http://travis-ci.org/DockYard/elixir-mail)
+# Mail [![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](https://travis-ci.org/DockYard/elixir-mail)
 
 An RFC2822 implementation in Elixir, built for composability.
 
@@ -8,10 +8,13 @@ An RFC2822 implementation in Elixir, built for composability.
 
 ```elixir
 def deps do
-  # Get from hex
-  [{:mail, "~> 0.2"}]
-  # Or use the latest from master
-  [{:mail, github: "DockYard/elixir-mail"}]
+  [
+    # Get from hex
+    {:mail, "~> 0.2"},
+
+    # Or use the latest from master
+    {:mail, github: "DockYard/elixir-mail"}
+  ]
 end
 ```
 
@@ -33,7 +36,7 @@ message =
 #### Multi-Part
 
 ```elixir
-message = 
+message =
   Mail.build_multipart()
   |> Mail.put_text("Hello there!")
   |> Mail.put_html("<h1>Hello there!</h1>")
@@ -51,32 +54,32 @@ rendered_message = Mail.Renderers.RFC2822.render(message)
 
 ## Parsing
 
-If you'd like to parse an already rendered message back into 
+If you'd like to parse an already rendered message back into
 a data model:
 
 ```elixir
 Mail.Parsers.RFC2822.parse(rendered_message)
 ```
 
-[There are more functions described in the docs](http://hexdocs.pm/mail/Mail.html)
+[There are more functions described in the docs](https://hexdocs.pm/mail/Mail.html)
 
 ## Authors ##
 
-* [Brian Cardarella](http://twitter.com/bcardarella)
+* [Brian Cardarella](https://twitter.com/bcardarella)
 
 [We are very thankful for the many contributors](https://github.com/dockyard/elixir-mail/graphs/contributors)
 
 ## Versioning ##
 
-This library follows [Semantic Versioning](http://semver.org)
+This library follows [Semantic Versioning](https://semver.org)
 
 ## Looking for help with your Elixir project? ##
 
-[At DockYard we are ready to help you build your next Elixir project](https://dockyard.com/phoenix-consulting). We have a unique expertise 
+[At DockYard we are ready to help you build your next Elixir project](https://dockyard.com/phoenix-consulting). We have a unique expertise
 in Elixir and Phoenix development that is unmatched. [Get in touch!](https://dockyard.com/contact/hire-us)
 
 At DockYard we love Elixir! You can [read our Elixir blog posts](https://dockyard.com/blog/categories/elixir)
-or come visit us at [The Boston Elixir Meetup](http://www.meetup.com/Boston-Elixir/) that we organize.
+or come visit us at [The Boston Elixir Meetup](https://www.meetup.com/Boston-Elixir/) that we organize.
 
 ## Want to help? ##
 
@@ -86,8 +89,8 @@ on how to properly submit issues and pull requests.
 
 ## Legal ##
 
-[DockYard](http://dockyard.com/), Inc. &copy; 2015
+[DockYard](https://dockyard.com/), Inc. © 2015
 
-[@dockyard](http://twitter.com/dockyard)
+[@dockyard](https://twitter.com/dockyard)
 
-[Licensed under the MIT license](http://www.opensource.org/licenses/mit-license.php)
+[Licensed under the MIT license](https://www.opensource.org/licenses/mit-license.php)

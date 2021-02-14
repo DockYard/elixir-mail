@@ -23,7 +23,7 @@ that reproduces the error condition.
 
 ## Have a feature request?
 
-Please provide some thoughful commentary and code samples on what this feature
+Please provide some thoughtful commentary and code samples on what this feature
 should do and why it should be added (your use case). The minimal questions you
 should answer when submitting a feature request should be:
 
@@ -51,10 +51,12 @@ First clone this repository:
 
 ```sh
 git clone https://github.com/DockYard/elixir-mail.git
+mix deps
+mix compile
 ```
-
-<!-- Add further details on how to install the project here -->
 
 ## Running tests
 
-<!-- Tell the user how to run the tests of your project -->
+```sh
+mix test
+```

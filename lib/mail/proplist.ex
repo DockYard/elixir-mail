@@ -1,8 +1,8 @@
 defmodule Mail.Proplist do
   @moduledoc """
-  A hybrid of erlang's proplists and lists keystores.
+  A hybrid of Erlang's proplists and lists keystores.
 
-  It acts as a Set for key-value pairs, but stil maintains it's order like a
+  It acts as a Set for key-value pairs, but still maintains it's order like a
   List.
   """
 
@@ -116,7 +116,7 @@ defmodule Mail.Proplist do
   end
 
   @doc """
-  Concatentates the given lists.
+  Concatenates the given lists.
 
   Args:
   * `a` - base list to merge unto
