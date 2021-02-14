@@ -6,8 +6,8 @@ defmodule Mail.Encoders.Base64 do
 
   See the following links for reference:
   - <https://www.ietf.org/rfc/rfc2045.txt>
-  - <http://stackoverflow.com/questions/25710599/content-transfer-encoding-7bit-or-8-bit>
-  - <http://stackoverflow.com/questions/13301708/base64-encode-length-parameter>
+  - <https://stackoverflow.com/questions/25710599/content-transfer-encoding-7bit-or-8-bit>
+  - <https://stackoverflow.com/questions/13301708/base64-encode-length-parameter>
   """
 
   def encode(string),

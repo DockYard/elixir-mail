@@ -113,7 +113,7 @@ defmodule Mail.Message do
   @doc """
   Gets the `content_type` from the header
 
-  Will ensure the `content_type` is always wraped in a `List`
+  Will ensure the `content_type` is always wrapped in a `List`
 
       Mail.Message.get_content_type(%Mail.Message{})
       [""]
@@ -287,7 +287,7 @@ defmodule Mail.Message do
   @doc """
   Adds a new attachment part to the provided message
 
-  The first argument must be a `Mail.Message`. The remaining argument is descibed in `build_attachment/1`
+  The first argument must be a `Mail.Message`. The remaining argument is described in `build_attachment/1`
 
   ## Options
     * `:headers` - Headers to be merged
