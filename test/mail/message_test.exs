@@ -211,4 +211,14 @@ defmodule Mail.MessageTest do
     message = Mail.Message.put_body(%Mail.Message{}, "test body")
     refute Mail.Message.is_attachment?(message)
   end
+
+  test "UTF-8 in subject" do
+    subject = "test üä test"
+    txt = Mail.build()
+      |> Mail.put_subject(subject)
+      |> Mail.render()
+    encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
+
+    assert String.contains?(txt, encoded_subject)
+  end
 end
