@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3 2021-06-28
+
+* Add support for incorrect case in date parsing https://github.com/DockYard/elixir-mail/pull/132
+* Support quoted-printable encoding in message headers https://github.com/DockYard/elixir-mail/pull/131
+
 ## 0.2.2 2020-07-28
 
 * Documentation updates
