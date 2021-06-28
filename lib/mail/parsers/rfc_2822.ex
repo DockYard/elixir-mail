@@ -9,7 +9,7 @@ defmodule Mail.Parsers.RFC2822 do
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
 
-  @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
+  @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
   @spec parse(binary() | nonempty_maybe_improper_list()) :: Mail.Message.t()
   def parse(content)
@@ -84,7 +84,8 @@ defmodule Mail.Parsers.RFC2822 do
           _timezone::binary-size(5), _rest::binary>>
       ) do
     year = year |> String.to_integer()
-    month = Enum.find_index(@months, &(&1 == month)) + 1
+    month_name = String.downcase(month)
+    month = Enum.find_index(@months, &(&1 == month_name)) + 1
     date = date |> String.to_integer()
 
     hour = hour |> String.to_integer()
