@@ -119,7 +119,7 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp render_header_value(_key, [value | subtypes]),
-    do: Enum.join([value | render_subtypes(subtypes)], "; ")
+    do: Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
 
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
@@ -150,6 +150,7 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_subtypes([{key, value} | subtypes]) do
     key = String.replace(key, "_", "-")
+    value = encode_header_value(value, :quoted_printable)
     ["#{key}=#{value}" | render_subtypes(subtypes)]
   end
 
@@ -173,6 +174,13 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.filter(& &1)
     |> Enum.reverse()
     |> Enum.join("\r\n")
+  end
+
+  defp encode_header_value(header_value, :quoted_printable) do
+    case Mail.Encoders.QuotedPrintable.encode(header_value) do
+      ^header_value -> header_value
+      encoded -> <<"=?UTF-8?Q?", encoded::binary, "?=">>
+    end
   end
 
   @doc """

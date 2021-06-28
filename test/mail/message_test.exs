@@ -181,7 +181,11 @@ defmodule Mail.MessageTest do
   end
 
   test "put_attachment when given a path with headers" do
-    part = Mail.Message.put_attachment(%Mail.Message{}, "README.md", headers: [content_id: "attachment-id"])
+    part =
+      Mail.Message.put_attachment(%Mail.Message{}, "README.md",
+        headers: [content_id: "attachment-id"]
+      )
+
     {:ok, file_content} = File.read("README.md")
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
@@ -210,5 +214,37 @@ defmodule Mail.MessageTest do
 
     message = Mail.Message.put_body(%Mail.Message{}, "test body")
     refute Mail.Message.is_attachment?(message)
+  end
+
+  test "UTF-8 in subject" do
+    subject = "test üä test"
+
+    txt =
+      Mail.build()
+      |> Mail.put_subject(subject)
+      |> Mail.render()
+
+    encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
+
+    assert String.contains?(txt, encoded_subject)
+    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  test "UTF-8 in other header" do
+    file_name = "READMEüä.md"
+
+    message =
+      Mail.build()
+      |> Mail.put_attachment({file_name, "data"}, headers: [content_id: "attachment-id"])
+      |> Mail.render()
+
+    encoded_header_value =
+      "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode("READMEüä.md") <> "?="
+
+    assert String.contains?(message, encoded_header_value)
+
+    assert %Mail.Message{
+             headers: %{"content-disposition" => ["attachment", {"filename", ^file_name}]}
+           } = Mail.Parsers.RFC2822.parse(message)
   end
 end
