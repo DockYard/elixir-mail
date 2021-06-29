@@ -6,13 +6,13 @@ Mime-Version: 1.0
 Content-Type: multipart/alternative; boundary="foobar"
 
 --foobar
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 
 Some text
 
 --foobar
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 
 <h1>Some HTML</h1>

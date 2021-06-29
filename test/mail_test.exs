@@ -137,7 +137,7 @@ defmodule MailTest do
 
     assert length(mail.parts) == 0
     assert mail.body == "Some text"
-    assert Mail.Message.get_content_type(mail) == ["text/plain"]
+    assert Mail.Message.get_content_type(mail) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "put_text with a multipart" do
@@ -147,7 +147,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "Some text"
-    assert Mail.Message.get_content_type(part) == ["text/plain"]
+    assert Mail.Message.get_content_type(part) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "put_text replaces existing text part in multipart" do
@@ -159,7 +159,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "Some other text"
-    assert Mail.Message.get_content_type(part) == ["text/plain"]
+    assert Mail.Message.get_content_type(part) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "get_text with singlepart" do
@@ -236,7 +236,7 @@ defmodule MailTest do
 
     assert length(mail.parts) == 0
     assert mail.body == "<h1>Some HTML</h1>"
-    assert Mail.Message.get_content_type(mail) == ["text/html"]
+    assert Mail.Message.get_content_type(mail) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "put_html with a multipart" do
@@ -246,7 +246,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "<h1>Some HTML</h1>"
-    assert Mail.Message.get_content_type(part) == ["text/html"]
+    assert Mail.Message.get_content_type(part) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "put_html replaces existing html part in multipart" do
@@ -258,7 +258,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "<h1>Some other html</h1>"
-    assert Mail.Message.get_content_type(part) == ["text/html"]
+    assert Mail.Message.get_content_type(part) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "get_html with singlepart" do

@@ -203,7 +203,7 @@ defmodule Mail.Message do
           ["text/plain", {"charset", charset}]
 
         _else ->
-          "text/plain"
+          ["text/plain", {"charset", default_charset()}]
       end
 
     put_content_type(%Mail.Message{}, content_type)
@@ -231,12 +231,16 @@ defmodule Mail.Message do
           ["text/html", {"charset", charset}]
 
         _else ->
-          "text/html"
+          ["text/html", {"charset", default_charset()}]
       end
 
     put_content_type(%Mail.Message{}, content_type)
     |> put_header(:content_transfer_encoding, :quoted_printable)
     |> put_body(body)
+  end
+
+  defp default_charset do
+    "UTF-8"
   end
 
   @doc """
