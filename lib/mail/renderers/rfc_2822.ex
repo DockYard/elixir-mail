@@ -255,10 +255,7 @@ defmodule Mail.Renderers.RFC2822 do
     content_type = Mail.Message.get_content_type(message)
 
     if Mail.Message.has_attachment?(message) do
-      text_parts =
-        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
-        |> Enum.sort(&(&1 > &2))
-
+      text_parts = Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
       content_type = List.replace_at(content_type, 0, "multipart/mixed")
       message = Mail.Message.put_content_type(message, content_type)
 
