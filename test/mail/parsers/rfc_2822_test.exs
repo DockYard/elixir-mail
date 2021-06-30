@@ -620,6 +620,17 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "default text/plain & us-ascii when no content-type header is given" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      """)
+
+    assert message.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 

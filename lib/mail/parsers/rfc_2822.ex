@@ -191,9 +191,12 @@ defmodule Mail.Parsers.RFC2822 do
       do: unquote(month_name)
   end)
 
-  defp parse_headers(message, []), do: message
+  defp parse_headers(%Mail.Message{headers: existing_headers} = message, []) do
+    headers = Map.put_new(existing_headers, "content-type", ["text/plain", {"charset", "us-ascii"}])
+    %{message | headers: headers}
+  end
 
-  defp parse_headers(message, [header | tail]) do
+  defp parse_headers(%Mail.Message{} = message, [header | tail]) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
     decoded = parse_encoded_word(body)
