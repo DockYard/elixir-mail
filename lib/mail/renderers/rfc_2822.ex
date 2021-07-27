@@ -176,11 +176,20 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join("\r\n")
   end
 
+  # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
+  # splitted in 76 chars including its surroundings and delimmiters.
+  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max lenght should be 64
   defp encode_header_value(header_value, :quoted_printable) do
-    case Mail.Encoders.QuotedPrintable.encode(header_value) do
+    case Mail.Encoders.QuotedPrintable.encode(header_value, 64) do
       ^header_value -> header_value
-      encoded -> <<"=?UTF-8?Q?", encoded::binary, "?=">>
+      encoded -> wrap_encoded_words(encoded)
     end
+  end
+
+  defp wrap_encoded_words(value) do
+    :binary.split(value, "=\r\n", [:global])
+    |> Enum.map(fn chunk -> <<"=?UTF-8?Q?", chunk::binary, "?=">> end)
+    |> Enum.join()
   end
 
   @doc """
