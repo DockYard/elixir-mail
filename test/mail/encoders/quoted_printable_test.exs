@@ -12,8 +12,12 @@ defmodule Mail.Encoders.QuotedPrintableTest do
     ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     assert Mail.Encoders.QuotedPrintable.encode(ascii_upper) == ascii_upper
 
-    ascii_symbols = "!\"#$%&\'()*+,-./0123456789:;<>?@[\\]^_`{|}~"
+    ascii_symbols = "!\"#$%&\'()*+,-./0123456789:;<>@[\\]^_`{|}~"
     assert Mail.Encoders.QuotedPrintable.encode(ascii_symbols) == ascii_symbols
+  end
+
+  test "encodes question mark sign" do
+    assert Mail.Encoders.QuotedPrintable.encode("hello?goodbye") == "hello=3Fgoodbye"
   end
 
   test "encodes equal sign" do

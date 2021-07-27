@@ -28,8 +28,8 @@ defmodule Mail.Encoders.QuotedPrintable do
   end
 
   # Encode ASCII characters in range 0x20..0x3C.
-  # Encode ASCII characters in range 0x3E..0x7E.
-  def encode(<<char, tail::binary>>, acc, line_length) when char in ?!..?< or char in ?>..?~ do
+  # Encode ASCII characters in range 0x3E..0x7E, except 0x3F (question mark)
+  def encode(<<char, tail::binary>>, acc, line_length) when char in ?!..?< or char in ?@..?~ or char == ?> do
     if line_length < @max_length - 1 do
       encode(tail, [<<char>> | acc], line_length + 1)
     else
