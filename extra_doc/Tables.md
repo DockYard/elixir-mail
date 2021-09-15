@@ -67,7 +67,7 @@ cursor = Pdf.cursor(pdf)
   |> Pdf.table({100, cursor - 20}, {400, 200}, remaining, table_opts)
 
 pdf
-  |> Pdf.delete()
+  |> Pdf.cleanup()
 ```
 
 You can use either `Pdf.table/5` or `Pdf.table!/5` to add a table to your Pdf.
@@ -86,8 +86,8 @@ You can use either `Pdf.table/5` or `Pdf.table!/5` to add a table to your Pdf.
 ### General options
 These options can be applied to the table, rows and columns.
 
-Options |
-:----- | :------
+Options | Explanation
+:-----  | :------
 `:background` | One of the predefined color atomsi (see `Pdf.Color.color/1`), an RGB tuple or a CMYK tuple.
 `:border` | The thickness of the border, see `:padding` below.
 `:color` | The font color, accepts the same options as `:background`.
@@ -99,7 +99,7 @@ Options |
 
 ### Table specific options
 
-Extra Options |
+Extra Options | Explanation
 :------------ | :------
 `:cols` | Definitions for the individual columns.
 `:repeat_header` | The number of rows that make up the header of the table, and that will be repeated when the data overflows the supplied boundary.
@@ -112,17 +112,20 @@ The headers if set will be repeated with each call.
 ### Column specific options
 `:cols` takes a list of column definitions.
 
-Extra Options |
+Extra Options | Explanation
 :----- | :-----
 `:width` | Fixed width
 `:max_width` | The maximum column width
 `:min_width` | The minimum column width
 
 ### Row specific options
-`:rows` takes a map of row numbers and a list of row definitions.
-Valid row numbers are `-number..0..number of rows in data`, eg 0 for the first row, -1 for the last, -2 for the second last, etc.
+`:rows` takes a map of row definitions.
+A row definition is a list of attributes, eg. `[background: :silver]` to apply to the given row(s).
 
+- `<row_number>` Definition for row with this number. Valid row numbers are `-number..0..number of rows in data`, eg 0 for the first row, -1 for the last, -2 for the second last, etc. These will take precedence over `:odd` and `:even`.
+- `:even` Definition for rows with even numbers, 0,2,4, ...
+- `:odd`  Definition for rows with odd numbers, 1,3,5, ...
 
-Extra Options |
+Extra Options | Explanation
 :----- | :-----
 `:cols` | Definitions for the columns in this single row
