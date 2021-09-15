@@ -145,21 +145,16 @@ defmodule Pdf.Color do
     {:black, {0x00, 0x00, 0x00}}
   ]
 
+  @doc """
+  This functions returns the `rgb` tuple for the given color.
+
+  #{Enum.map(@colors, fn {color_name, {r, g, b}} -> "<li style='color: rgb(#{r},#{g},#{b}); margin-right: 6px;'>:#{color_name}</li>" end) |> Enum.join("\n")}
+  """
+
+  @spec color(Pdf.color_name()) :: Pdf.rgb()
   Enum.each(@colors, fn {func_name, {r, g, b}} ->
     def color(unquote(func_name)), do: {unquote(r), unquote(g), unquote(b)}
   end)
 
-  @doc """
-  Possible colors are:
-
-  #{
-    Enum.map(@colors, fn {color_name, {r, g, b}} ->
-      "<span style='color: rgb(#{r},#{g},#{b})'>:#{color_name}</span>"
-    end)
-    |> Enum.join(", ")
-  }
-  """
-
-  @spec color(Pdf.color_name()) :: Pdf.rgb()
   def color(color), do: raise(ArgumentError, "Undefined color #{color}")
 end
