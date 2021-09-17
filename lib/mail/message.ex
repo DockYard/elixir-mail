@@ -4,7 +4,7 @@ defmodule Mail.Message do
             parts: [],
             multipart: false
 
-  @type t :: __MODULE__
+  @type t :: %__MODULE__{}
 
   @doc """
   Add new part
