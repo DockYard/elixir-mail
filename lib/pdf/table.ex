@@ -168,8 +168,11 @@ defmodule Pdf.Table do
   defp chunk_rows([], _row_index, _page, _opts, _row_opts), do: []
 
   defp chunk_rows([row | rows], row_index, page, opts, row_opts) do
-    row =
-      merge_col_opts(row, Keyword.get(opts, :cols, []), opts, Map.get(row_opts, row_index, []))
+    row_even_odd_style = Map.get(row_opts, if(rem(row_index, 2) == 0, do: :even, else: :odd), [])
+    row_index_style = Map.get(row_opts, row_index, [])
+    row_style = Keyword.merge(row_even_odd_style, row_index_style)
+
+    row = merge_col_opts(row, Keyword.get(opts, :cols, []), opts, row_style)
 
     [chunk_cols(row, page) | chunk_rows(rows, row_index + 1, page, opts, row_opts)]
   end

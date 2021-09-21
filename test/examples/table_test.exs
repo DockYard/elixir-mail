@@ -30,7 +30,14 @@ defmodule Pdf.Examples.TableTest do
         [width: 80, align: :right, padding: {2, 4}]
       ],
       rows: %{
+        :odd => [
+          background: :yellow
+        ],
+        :even => [
+          background: :pink
+        ],
         0 => [
+          background: :silver,
           bold: true,
           align: :center,
           kerning: true,
