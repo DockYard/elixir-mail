@@ -36,7 +36,7 @@
 * removed `Mail.Message.has_attachment?` and `Mail.Message.has_text_part?` https://github.com/DockYard/elixir-mail/pull/74
 * added `Mail.has_attachments?` and `Mail.has_text_parts?` https://github.com/DockYard/elixir-mail/pull/74
 * added `Mail.get_attachments` https://github.com/DockYard/elixir-mail/pull/75
-* Allow RFC2822 email regex to be overriden by config https://github.com/DockYard/elixir-mail/pull/73
+* Allow RFC2822 email regex to be overridden by config https://github.com/DockYard/elixir-mail/pull/73
 * Allow `Mail.put_attachment` to use in-memory data in tuple https://github.com/DockYard/elixir-mail/pull/58
 * Support obsolete timestamps https://github.com/DockYard/elixir-mail/pull/70
 * Fix test suite for Elixir 1.4+ https://github.com/DockYard/elixir-mail/pull/67
