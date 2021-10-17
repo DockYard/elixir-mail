@@ -177,8 +177,8 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
-  # splitted in 76 chars including its surroundings and delimmiters.
-  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max lenght should be 64
+  # split in 76 chars including its surroundings and delimmiters.
+  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
   defp encode_header_value(header_value, :quoted_printable) do
     case Mail.Encoders.QuotedPrintable.encode(header_value, 64) do
       ^header_value -> header_value
