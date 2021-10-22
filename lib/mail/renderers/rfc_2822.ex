@@ -244,15 +244,21 @@ defmodule Mail.Renderers.RFC2822 do
 
       if has_text_parts do
         # If any text with attachments, wrap in new part
-        # If any inline attachments, wrap together with text
-        # in a "multipart/related" part
-        inner_content_type = has_inline && "multipart/related" || "multipart/alternative"
-
         body_part =
           Mail.build_multipart()
-          |> Mail.Message.put_content_type(inner_content_type)
+          |> Mail.Message.put_content_type("multipart/alternative")
           |> Mail.Message.put_parts(text_parts)
+
+        # If any inline attachments, wrap together with text
+        # in a "multipart/related" part
+        body_part = if has_inline do
+          Mail.build_multipart()
+          |> Mail.Message.put_content_type("multipart/related")
+          |> Mail.Message.put_part(body_part)
           |> Mail.Message.put_parts(inlines)
+        else
+          body_part
+        end
 
         message
         |> Mail.Message.delete_all_parts()
