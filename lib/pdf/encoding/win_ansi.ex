@@ -300,5 +300,5 @@ defmodule Pdf.Encoding.WinAnsi do
   def encode(_, :raise), do: raise(ArgumentError, "Incompatible with WinAnsi encoding")
 
   def encode(<<_::utf8, rest::binary>>, replace_with) when is_binary(replace_with),
-    do: replace_with <> encode(rest)
+    do: replace_with <> encode(rest, replace_with)
 end
