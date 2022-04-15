@@ -270,8 +270,9 @@ defmodule Mail.Parsers.RFC2822 do
           end
 
         decoded_string <> parse_encoded_word(remainder)
-    else
-      value
+
+      _ ->
+        value
     end
   end
 
