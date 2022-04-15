@@ -430,6 +430,33 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-disposition"]
   end
 
+  # See https://tools.ietf.org/html/rfc2047
+  test "handles URLs as values and not parseable encoded words" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: =?utf-8?Q?=C2=A3?=200.00 =?UTF-8?q?=F0=9F=92=B5?=
+      List-Unsubscribe: https://some-domain.com/te/c/abcdef=?signature=abcdef
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: image/png
+      Content-Disposition: attachment; filename=Emoji =?utf-8?B?8J+YgA==?= Filename.png
+
+      iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    assert message.headers["list-unsubscribe"] == "https://some-domain.com/te/c/abcdef=?signature=abcdef"
+  end
+
   test "parses structured header with extraneous semicolon" do
     message =
       parse_email("""

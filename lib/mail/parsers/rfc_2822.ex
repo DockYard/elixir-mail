@@ -257,27 +257,27 @@ defmodule Mail.Parsers.RFC2822 do
   # See https://tools.ietf.org/html/rfc2047
   defp parse_encoded_word(""), do: ""
 
+  defp parse_encoded_word(<<"http", _value::binary>> = original), do: original
+
   defp parse_encoded_word(<<"=?", value::binary>>) do
-    case String.split(value, "?", parts: 4) do
-      [_charset, encoding, encoded_string, <<"=", remainder::binary>>] ->
-        decoded_string =
-          case String.upcase(encoding) do
-            "Q" ->
-              Mail.Encoders.QuotedPrintable.decode(encoded_string)
+    [_charset, encoding, encoded_string, <<"=", remainder::binary>>] =
+      String.split(value, "?", parts: 4)
 
-            "B" ->
-              Mail.Encoders.Base64.decode(encoded_string)
-          end
+    decoded_string =
+      case String.upcase(encoding) do
+        "Q" ->
+          Mail.Encoders.QuotedPrintable.decode(encoded_string)
 
-        decoded_string <> parse_encoded_word(remainder)
+        "B" ->
+          Mail.Encoders.Base64.decode(encoded_string)
+      end
 
-      _ ->
-        value
-    end
+    decoded_string <> parse_encoded_word(remainder)
   end
 
-  defp parse_encoded_word(<<char::utf8, rest::binary>>),
-    do: <<char::utf8, parse_encoded_word(rest)::binary>>
+  defp parse_encoded_word(<<char::utf8, rest::binary>>) do
+    <<char::utf8, parse_encoded_word(rest)::binary>>
+  end
 
   defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
 
