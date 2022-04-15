@@ -275,9 +275,8 @@ defmodule Mail.Parsers.RFC2822 do
     decoded_string <> parse_encoded_word(remainder)
   end
 
-  defp parse_encoded_word(<<char::utf8, rest::binary>>) do
-    <<char::utf8, parse_encoded_word(rest)::binary>>
-  end
+  defp parse_encoded_word(<<char::utf8, rest::binary>>),
+    do: <<char::utf8, parse_encoded_word(rest)::binary>>
 
   defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
 
