@@ -272,19 +272,23 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(""), do: ""
 
   defp parse_encoded_word(<<"=?", value::binary>>) do
-    [_charset, encoding, encoded_string, <<"=", remainder::binary>>] =
-      String.split(value, "?", parts: 4)
+    case String.split(value, "?", parts: 4) do
+      [_charset, encoding, encoded_string, <<"=", remainder::binary>>] ->
+        decoded_string =
+          case String.upcase(encoding) do
+            "Q" ->
+              Mail.Encoders.QuotedPrintable.decode(encoded_string)
 
-    decoded_string =
-      case String.upcase(encoding) do
-        "Q" ->
-          Mail.Encoders.QuotedPrintable.decode(encoded_string)
+            "B" ->
+              Mail.Encoders.Base64.decode(encoded_string)
+          end
 
-        "B" ->
-          Mail.Encoders.Base64.decode(encoded_string)
-      end
+        decoded_string <> parse_encoded_word(remainder)
 
-    decoded_string <> parse_encoded_word(remainder)
+      _ ->
+        # Not an encoded word, moving on
+        "=?" <> parse_encoded_word(value)
+    end
   end
 
   defp parse_encoded_word(<<char::utf8, rest::binary>>),

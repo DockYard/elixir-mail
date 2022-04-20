@@ -431,6 +431,30 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-disposition"]
   end
 
+  test "parses headers with non-encoded string that looks like encoded word syntax" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Subject that has =? for an unknown reason with =?utf-8?B?8J+YgA==?=
+      List-Unsubscribe: https://some-domain.com/te/c/abcdef=?signature=abcdef
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    assert message.headers["subject"] == "Subject that has =? for an unknown reason with 😀"
+
+    assert message.headers["list-unsubscribe"] ==
+             "https://some-domain.com/te/c/abcdef=?signature=abcdef"
+  end
+
   test "parses structured header with extraneous semicolon" do
     message =
       parse_email("""
