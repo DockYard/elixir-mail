@@ -112,6 +112,16 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
   end
 
+  # This adds support for a now obsolete format (with obsolete timezone, UT)
+  # https://tools.ietf.org/html/rfc2822#section-4.3
+  def erl_from_timestamp(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+          "UT", _rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+  end
+
   # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
   def erl_from_timestamp(
         <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
