@@ -245,8 +245,12 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("Received", value),
     do: parse_received_value(value)
 
-  defp parse_header_value("Content-Type", value),
-    do: parse_structured_header_value(value)
+  defp parse_header_value("Content-Type", value) do
+    case parse_structured_header_value(value) do
+      [_ | _] = header -> header
+      <<value::binary>> -> [value, {"charset", "us-ascii"}]
+    end
+  end
 
   defp parse_header_value("Content-Disposition", value),
     do: parse_structured_header_value(value)

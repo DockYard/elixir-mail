@@ -78,10 +78,10 @@ defmodule Mail.Parsers.RFC2822Test do
 
     [text_part, html_part] = message.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is some HTML</h1>"
   end
 
@@ -116,10 +116,10 @@ defmodule Mail.Parsers.RFC2822Test do
 
     [text_part, html_part, headers_only_part] = message.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is some HTML</h1>"
 
     assert headers_only_part.headers["x-my-header"] == "no body!"
@@ -224,13 +224,13 @@ defmodule Mail.Parsers.RFC2822Test do
     assert alt_part.headers["content-type"] == ["multipart/alternative", {"boundary", "bazqux"}]
     [text_part, html_part] = alt_part.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is the HTML</h1>"
 
-    assert attach_part.headers["content-type"] == "text/markdown"
+    assert attach_part.headers["content-type"] == ["text/markdown", {"charset", "us-ascii"}]
     assert attach_part.headers["content-disposition"] == ["attachment", {"filename", "README.md"}]
     assert attach_part.headers["content-transfer-encoding"] == "base64"
     assert attach_part.body == "Hello world!"
@@ -611,10 +611,19 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == nil
   end
 
-  test "content-type with implicit charset" do
+  test "content-type with explicit charset" do
     message =
       parse_email("""
       Content-Type: text/html; charset=us-ascii
+      """)
+
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "content-type with implicit charset" do
+    message =
+      parse_email("""
+      Content-Type: text/html
       """)
 
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
