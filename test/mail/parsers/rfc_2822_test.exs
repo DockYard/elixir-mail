@@ -139,6 +139,7 @@ defmodule Mail.Parsers.RFC2822Test do
     # The spec specifies that the seconds are optional
     assert erl_from_timestamp("14 Jun 2019 11:24 +0000") == {{2019, 6, 14}, {11, 24, 0}}
     assert erl_from_timestamp("28 JUN 2021 09:10 +0200") == {{2021, 6, 28}, {9, 10, 0}}
+    assert erl_from_timestamp("12 May 2020 12:08:24 UT") == {{2020, 5, 12}, {12, 8, 24}}
   end
 
   test "erl_from_timestamp\1 with invalid RFC2822 timestamps (found in the wild)" do
