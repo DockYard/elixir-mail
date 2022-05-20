@@ -9,6 +9,8 @@ defmodule Mail.Parsers.RFC2822 do
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
 
+  @content_crlf_based ["message/rfc822"]
+
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
   @spec parse(binary() | nonempty_maybe_improper_list()) :: Mail.Message.t()
@@ -473,6 +475,18 @@ defmodule Mail.Parsers.RFC2822 do
   defp decode(body, message) do
     body = String.trim_trailing(body)
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
-    Mail.Encoder.decode(body, transfer_encoding)
+
+    if get_content_type(message) in @content_crlf_based and transfer_encoding in ["7bit", "8bit"] do
+      Mail.Encoder.decode(body, "binary")
+    else
+      Mail.Encoder.decode(body, transfer_encoding)
+    end
+  end
+
+  defp get_content_type(message) do
+    case Mail.Message.get_header(message, "content-type") do
+      [content_type | _] -> content_type
+      _ -> nil
+    end
   end
 end
