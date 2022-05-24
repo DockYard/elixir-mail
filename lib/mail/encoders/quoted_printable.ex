@@ -19,21 +19,18 @@ defmodule Mail.Encoders.QuotedPrintable do
   """
   @spec encode(binary) :: binary
   @spec encode(binary, integer, list, non_neg_integer) :: binary
-  def encode(string, max_length \\ @max_length, acc \\ [], line_length \\ 0)
+  def encode(string, max_length \\ @max_length, acc \\ <<>>, line_length \\ 0)
 
-  def encode(<<>>, _, acc, _) do
-    acc
-    |> Enum.reverse()
-    |> Enum.join()
-  end
+  def encode(<<>>, _, acc, _), do: acc
 
   # Encode ASCII characters in range 0x20..0x3C.
   # Encode ASCII characters in range 0x3E..0x7E, except 0x3F (question mark)
-  def encode(<<char, tail::binary>>, max_length, acc, line_length) when char in ?!..?< or char in ?@..?~ or char == ?> do
+  def encode(<<char, tail::binary>>, max_length, acc, line_length)
+      when char in ?!..?< or char in ?@..?~ or char == ?> do
     if line_length < max_length - 1 do
-      encode(tail, max_length, [<<char>> | acc], line_length + 1)
+      encode(tail, max_length, acc <> <<char>>, line_length + 1)
     else
-      encode(tail, max_length, [<<char>>, @new_line | acc], 1)
+      encode(tail, max_length, acc <> @new_line <> <<char>>, 1)
     end
   end
 
@@ -42,18 +39,18 @@ defmodule Mail.Encoders.QuotedPrintable do
     # if remaining > 0 do
     if byte_size(tail) > 0 do
       if line_length < max_length - 1 do
-        encode(tail, max_length, [<<char>> | acc], line_length + 1)
+        encode(tail, max_length, acc <> <<char>>, line_length + 1)
       else
-        encode(tail, max_length, [<<char>>, @new_line | acc], 1)
+        encode(tail, max_length, acc <> @new_line <> <<char>>, 1)
       end
     else
       escaped = "=" <> Base.encode16(<<char>>)
       line_length = line_length + byte_size(escaped)
 
       if line_length <= max_length do
-        encode(tail, max_length, [escaped | acc], line_length)
+        encode(tail, max_length, acc <> escaped, line_length)
       else
-        encode(tail, max_length, [escaped, @new_line | acc], byte_size(escaped))
+        encode(tail, max_length, acc <> @new_line <> escaped, byte_size(escaped))
       end
     end
   end
@@ -64,9 +61,9 @@ defmodule Mail.Encoders.QuotedPrintable do
     line_length = line_length + byte_size(escaped)
 
     if line_length < max_length do
-      encode(tail, max_length, [escaped | acc], line_length)
+      encode(tail, max_length, acc <> escaped, line_length)
     else
-      encode(tail, max_length, [escaped, @new_line | acc], byte_size(escaped))
+      encode(tail, max_length, acc <> @new_line <> escaped, byte_size(escaped))
     end
   end
 
