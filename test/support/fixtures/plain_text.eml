@@ -1,0 +1,91 @@
+Delivered-To: company@example.com
+Received: by 2002:a05:6520:444e:b0:157:ec88:5685 with SMTP id r14csp829416lkv;
+        Fri, 3 Dec 2021 06:04:11 -0800 (PST)
+X-Google-Smtp-Source: ABdhPJxvvGDBsJSp2cLNnTvKEWwyLjvpBygipO9+jTgXSAfsXOmhGFRYnQ/VeT3IVQpZp+M24Y7M
+X-Received: by 2002:a17:907:3da6:: with SMTP id he38mr22943490ejc.151.1638540250791;
+        Fri, 03 Dec 2021 06:04:10 -0800 (PST)
+ARC-Seal: i=2; a=rsa-sha256; t=1638540250; cv=pass;
+        d=google.com; s=arc-20160816;
+        b=BzKsSgyIjmoDQTu02uo/POebC92rBW7s+RbFUKnxwUVtzG2rUvL5n6UXBBKHS082e2
+         frNr62ktzjYJEo4h7pcWbJedWDxk2ZI+q5WgmAbb4EHCpMYjWyDw3wSZfD6p5uq8qSJt
+         bFJdRn7F4rgmmTnLEdcwAxPkZGouMHue5eG85Boti09loNYE1rsAlhNzD7epeNkJqk2A
+         BqJpTg8YRpGbJIO+duTGi4vpbXiyLaQpQqYI1+kd3PK1HSnSuuaBHc+GswkHLhyDk3Ot
+         KS7c5p4EfumSw8rH4eaNi6plLDOZTnag6mVg7/RpbTEhaYwgMSsnCfqWCYzke2oOCa/y
+         DyUg==
+ARC-Message-Signature: i=2; a=rsa-sha256; c=relaxed/relaxed; d=google.com; s=arc-20160816;
+        h=content-language:content-transfer-encoding:mime-version:user-agent
+         :date:message-id:from:to:subject:dkim-signature;
+        bh=TAurUiZe+nVVcRt+GjldYuGRkfmL3Fb9RGGV10xrvDU=;
+        b=u/RFwjBjuZZdzHZFcSjiQ7AuC5EAsWaEIZVRGqfFsQ0gFDrg81MLnPhJTzvE9xnXFJ
+         lPScAL4AfV50vFli9FJw4oG2FSMMLv8VaSdo9Pz/KJgyKjUe7JPrt0FPCrlcMt6S6+WF
+         +c5gS/sOGpJyRBgMNx6NaRozHA61mcV0x2sxYvINmQv4gKknYFY3u9jDYxEj9KWS9mDT
+         Yol+YhNtfLH6pw386E7uRVan6NtswK+vmJ6eHs6GXZY7vThJGwh6/HoY61n3MZcPMjnB
+         wLck/myPydwHfGpt9j7NRmf6rInxdifaYu07lKWhzh9tHATVaax6P+vAVRViXL/jL9NP
+         GOrQ==
+ARC-Authentication-Results: i=2; mx.google.com;
+       dkim=pass header.i=@example.com header.s=zoho header.b=OnSbq8kl;
+       arc=pass (i=1 spf=pass spfdomain=example.com dkim=pass dkdomain=example.com dmarc=pass fromdomain=example.com>);
+       spf=pass (google.com: domain of customer@example.com designates 31.186.226.225 as permitted sender) smtp.mailfrom=customer@example.com
+Return-Path: <customer@example.com>
+Received: from sender11-op-o11.zoho.eu (sender11-op-o11.zoho.eu. [31.186.226.225])
+        by mx.google.com with ESMTPS id qb34si5113997ejc.731.2021.12.03.06.04.06
+        for <company@example.com>
+        (version=TLS1_2 cipher=ECDHE-ECDSA-AES128-GCM-SHA256 bits=128/128);
+        Fri, 03 Dec 2021 06:04:10 -0800 (PST)
+Received-SPF: pass (google.com: domain of customer@example.com designates 31.186.226.225 as permitted sender) client-ip=31.186.226.225;
+Authentication-Results: mx.google.com;
+       dkim=pass header.i=@example.com header.s=zoho header.b=OnSbq8kl;
+       arc=pass (i=1 spf=pass spfdomain=example.com dkim=pass dkdomain=example.com dmarc=pass fromdomain=example.com>);
+       spf=pass (google.com: domain of customer@example.com designates 31.186.226.225 as permitted sender) smtp.mailfrom=customer@example.com
+ARC-Seal: i=1; a=rsa-sha256; t=1638540245; cv=none; 
+	d=zohomail.eu; s=zohoarc; 
+	b=AYmXQZ2TG5lQ5ztWD1QuuzEtwUziQqv+lb011dtha9FPzKnWyF345t9pZaLvQUh2i3WXew2PFASruxY6Q1nJjc/5PbKSVtIqZbL3mtlNDR3oc0yyLEpfWDb1qAJFcfdPMjRgX2HGDTQQk8zJWTtAhEjHRxK9jPIKv0mRWjYqik0=
+ARC-Message-Signature: i=1; a=rsa-sha256; c=relaxed/relaxed; d=zohomail.eu; s=zohoarc; 
+	t=1638540245; h=Content-Type:Content-Transfer-Encoding:Date:From:MIME-Version:Message-ID:Subject:To; 
+	bh=TAurUiZe+nVVcRt+GjldYuGRkfmL3Fb9RGGV10xrvDU=; 
+	b=Cy5+JdLiw/XjVjJcahY0M5piQlzKg2Eywb9yjiTtLhAFvt41x32MQmD8VlUPSv73CxHMhgrT5BapThZcSBkSVS7AQAA3+8gtCLqEDnxrRo9APrLEJk9gntMrkH71wU5lDNHDTPSalaMMgAGWfjIwhbG2MPHGgSoCO2M1y8zWX3Y=
+ARC-Authentication-Results: i=1; mx.zohomail.eu;
+	dkim=pass  header.i=example.com;
+	spf=pass  smtp.mailfrom=customer@example.com;
+	dmarc=pass header.from=<customer@example.com>
+DKIM-Signature: v=1; a=rsa-sha256; q=dns/txt; c=relaxed/relaxed; t=1638540245;
+	s=zoho; d=example.com; i=customer@example.com;
+	h=Subject:To:From:Message-ID:Date:MIME-Version:Content-Type:Content-Transfer-Encoding;
+	bh=TAurUiZe+nVVcRt+GjldYuGRkfmL3Fb9RGGV10xrvDU=;
+	b=OnSbq8klEFaq4sgSvMgxRfmgtbuZBrUz+jcfweTwTQuMaUWOBn+5bj0zIJGcOMUs
+	qbuDHPzDM71wXMlUw0eGUPLq/2Vx16wG+buOSqGsrUAVkUQR0Z8cpIPz4z5833Bx/9Y
+	EXYuSZxO5wQRKyq0drMV9LEppK4GxpQ5PoPxH6NE=
+Received: from [192.168.88.94] (vsb47.miramo.cz [93.95.33.47]) by mx.zoho.eu
+	with SMTPS id 1638540243215466.6743606893949; Fri, 3 Dec 2021 15:04:03 +0100 (CET)
+Subject: Fwd: Open me
+To: company@example.com
+From: Martin Jahn <customer@example.com>
+X-Forwarded-Message-Id:
+Message-ID: <70bcf7ea-31ca-5017-3966-a079b94299c2@example.com>
+Date: Fri, 3 Dec 2021 15:04:01 +0100
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:78.0) Gecko/20100101
+ Thunderbird/78.14.0
+MIME-Version: 1.0
+Content-Type: text/plain; charset=utf-8; format=flowed
+Content-Transfer-Encoding: 7bit
+Content-Language: en-US
+X-ZohoMailClient: External
+
+Hello Joe
+This is a receipt from ACME incorporated
+
+Date: 10/21/2021
+
+Total: $128.53
+
+Payment Method
+------------------------------------------------------
+Credit Card
+
+Visa 7139
+
+
+Thanks for your purchase Joe
+
+ACME inc.
+

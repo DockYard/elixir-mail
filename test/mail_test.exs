@@ -482,4 +482,13 @@ defmodule MailTest do
 
     assert result == "Test!"
   end
+
+  test "test plain text parsing newline characters" do
+    file = File.read!("./test/support/fixtures/plain_text.eml")
+    parsed = Mail.Parsers.RFC2822.parse(file)
+    text_part = Mail.get_text(parsed)
+
+    len = String.split(text_part.body, "\n")|> length
+    assert 17 == len
+  end
 end
