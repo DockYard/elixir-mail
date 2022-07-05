@@ -9,6 +9,10 @@ defmodule Mail.Parsers.RFC2822 do
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
 
+  alias Mail.Parsers.RFC2822.BodyDecoder
+
+  @body_decoder Application.get_env(:mail, :rfc2822_body_decoder, BodyDecoder.Strict)
+
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
   @spec parse(binary() | nonempty_maybe_improper_list()) :: Mail.Message.t()
@@ -418,7 +422,7 @@ defmodule Mail.Parsers.RFC2822 do
     decoded =
       lines
       |> join_body
-      |> decode(message)
+      |> @body_decoder.decode(message)
 
     Map.put(message, :body, decoded)
   end
@@ -468,11 +472,5 @@ defmodule Mail.Parsers.RFC2822 do
       type when is_binary(type) -> nil
       content_type -> Mail.Proplist.get(content_type, "boundary")
     end
-  end
-
-  defp decode(body, message) do
-    body = String.trim_trailing(body)
-    transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
-    Mail.Encoder.decode(body, transfer_encoding)
   end
 end
