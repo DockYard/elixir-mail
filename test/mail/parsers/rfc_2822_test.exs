@@ -1,6 +1,10 @@
 defmodule Mail.Parsers.RFC2822Test do
   use ExUnit.Case, async: true
 
+  setup do
+    Mail.RFC2822BodyDecoderProxy.strict_impl()
+  end
+
   test "parses a singlepart message" do
     message =
       parse_email("""
@@ -652,6 +656,92 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "strict RFC2822 body decoder should strip CRLF in 7bit-encoded parts" do
+    message =
+      parse_email("""
+      Content-Type: message/rfc822; name="postacert.eml"
+      Content-Disposition: inline; filename="postacert.eml"
+      Content-Transfer-Encoding: 7bit
+
+      Date: Mon, 23 May 2022 17:54:45 +0200
+      Subject: This is some test subject
+
+      hello, everybody
+
+      """)
+
+    assert message.body ==
+             "Date: Mon, 23 May 2022 17:54:45 +0200Subject: This is some test subjecthello, everybody"
+  end
+
+  test "strict RFC2822 body decoder should preserve CRLF when content-transfer-encoding is not specified" do
+    message =
+      parse_email("""
+      Content-Type: message/rfc822; name="postacert.eml"
+      Content-Disposition: inline; filename="postacert.eml"
+
+      Date: Mon, 23 May 2022 17:54:45 +0200
+      Subject: This is some test subject
+
+      hello, everybody
+
+      """)
+
+    assert message.body ==
+             convert_crlf(
+               "Date: Mon, 23 May 2022 17:54:45 +0200\nSubject: This is some test subject\n\nhello, everybody"
+             )
+  end
+
+  test "permissive RFC2822 body decoder should preserve CRLF in message/rfc822 parts" do
+    Mail.RFC2822BodyDecoderProxy.permissive_impl()
+
+    message =
+      parse_email("""
+      Content-Type: message/rfc822; name="postacert.eml"
+      Content-Disposition: inline; filename="postacert.eml"
+      Content-Transfer-Encoding: 7bit
+
+      Date: Mon, 23 May 2022 17:54:45 +0200
+      Subject: This is some test subject
+
+      hello, everybody
+
+      """)
+
+    assert message.body ==
+             convert_crlf("""
+             Date: Mon, 23 May 2022 17:54:45 +0200
+             Subject: This is some test subject
+
+             hello, everybody
+             """)
+  end
+
+  test "permissive RFC2822 body decoder should preserve CRLF when content-transfer-encoding is not specified" do
+    Mail.RFC2822BodyDecoderProxy.permissive_impl()
+
+    message =
+      parse_email("""
+      Content-Type: message/rfc822; name="postacert.eml"
+      Content-Disposition: inline; filename="postacert.eml"
+
+      Date: Mon, 23 May 2022 17:54:45 +0200
+      Subject: This is some test subject
+
+      hello, everybody
+
+      """)
+
+    assert message.body ==
+             convert_crlf("""
+             Date: Mon, 23 May 2022 17:54:45 +0200
+             Subject: This is some test subject
+
+             hello, everybody
+             """)
   end
 
   defp parse_email(email),
