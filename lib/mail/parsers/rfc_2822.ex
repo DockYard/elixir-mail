@@ -7,6 +7,22 @@ defmodule Mail.Parsers.RFC2822 do
 
       Mail.Parsers.RFC2822.parse(message)
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
+
+  Note that 7bit and 8bit decoders by default will remove CRLF
+  line separation sequences. This is the correct behaviour,
+  as stated in [RFC 2045](https://tools.ietf.org/html/rfc2045#section-2.7)
+  "CR and LF octets only occur as part of CRLF line separation sequences".
+
+  Unfortunately there are a lot of broken mail agents that
+  don't produce correct headers, so it's possible to override
+  the body decoder as follows:
+
+      config :mail, rfc2822_body_decoder: CustomRFC2822BodyDecoder
+
+  A more relaxed decoder is also provided that will leave CRLF separator
+  in body parts when there is a `Content-Type: message/rfc822` header:
+
+      config :mail, rfc2822_body_decoder: Mail.Parsers.RFC2822.BodyDecoder.Permissive
   """
 
   alias Mail.Parsers.RFC2822.BodyDecoder
