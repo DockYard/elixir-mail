@@ -149,7 +149,8 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient = "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
+    recipient =
+      "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
 
     retrieved_recipients = [
       {"The Dude", "dude@example.com"},
@@ -652,6 +653,28 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "invalid char" do
+    message =
+      "test/fixtures/invalid-char.eml"
+      |> File.read!()
+      |> parse_email()
+
+    [_, part] = message.parts
+
+    assert part.headers["content-disposition"] == [
+             "attachment",
+             {"filename", "Boleto_Porto_Seguro_Saude_-_31-05-22_-_Ab ril.pdf.jpg"},
+             {"size", "38511"},
+             {"creation_date", "Fri, 29 Jul 2022 20:16:03 GMT"},
+             {"modification_date", "Fri, 29 Jul 2022 20:16:17 GMT"}
+           ]
+
+    assert part.headers["content-type"] == [
+             "image/jpeg",
+             {"name", "Boleto_Porto_Seguro_Saude_-_31-05-22_-_Ab ril.pdf.jpg"}
+           ]
   end
 
   defp parse_email(email),

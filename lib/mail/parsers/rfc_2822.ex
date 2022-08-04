@@ -338,6 +338,9 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_quoted_string(<<char::utf8, rest::binary>>, acc),
     do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
 
+  defp parse_quoted_string(<<_char, rest::binary>>, acc),
+    do: parse_quoted_string(rest, acc)
+
   defp parse_received_value(value) do
     case String.split(value, ";") do
       [value, ""] ->
