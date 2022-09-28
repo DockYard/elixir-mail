@@ -9,7 +9,7 @@ defmodule Mail.Parsers.RFC2822 do
       %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
   """
 
-  @content_crlf_based ["message/rfc822"]
+  @content_crlf_based ["text/plain", "message/rfc822"]
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
