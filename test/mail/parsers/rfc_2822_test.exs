@@ -720,6 +720,23 @@ defmodule Mail.Parsers.RFC2822Test do
     assert first_pec_part.body =~ "PEC Content"
   end
 
+  test "keeps CRLF in plain/text message parts" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: hello, world
+      Content-Type: text/plain
+      Content-Transfer-Encoding: 7bit
+
+      first line
+      second line
+      bye
+      """)
+
+    assert message.body == "first line\r\nsecond line\r\nbye"
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
