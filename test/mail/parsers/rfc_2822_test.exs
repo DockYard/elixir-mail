@@ -149,7 +149,8 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient = "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
+    recipient =
+      "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
 
     retrieved_recipients = [
       {"The Dude", "dude@example.com"},
@@ -652,6 +653,88 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "parses Italian Certified Electronic Mail (RFC6109 §4.3.2)" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: POSTA CERTIFICATA: PEC Subject
+      Content-Type: multipart/signed; protocol="application/x-pkcs7-signature"; micalg="sha1";
+      \tboundary="----9D343FA9E2CB03C0985D4F6ACDB36AD8"
+
+      This is an S/MIME signed message
+
+      ------9D343FA9E2CB03C0985D4F6ACDB36AD8
+      Content-Type: multipart/mixed; boundary="----------=_1653051906-23874-6"
+      Content-Transfer-Encoding: binary
+      MIME-Version: 1.0
+
+      ------------=_1653051906-23874-6
+      Content-Type: message/rfc822; name="postacert.eml"
+      Content-Disposition: inline; filename="postacert.eml"
+      Content-Transfer-Encoding: 7bit
+
+      Date: Fri, 20 May 2022 15:05:06 +0200
+      Subject: PEC Subject
+      MIME-Version: 1.0
+      X-Sensitivity: 3
+      Content-Type: multipart/alternative;
+      \tboundary="_=__=_XaM3_.1653051906.2A.611798.42.1017.52.42.007.1212495733"
+      Reply-To: claims.test@pec.it
+      From: "claims.test@pec.it" <claims.test@pec.it>
+      To: "claims.test" <claims.test@pec.it>
+
+      --_=__=_XaM3_.1653051906.2A.611798.42.1017.52.42.007.1212495733
+      Content-Type: text/plain; charset=utf-8
+      Content-Transfer-Encoding: base64
+
+      CiAgIFBFQyBDb250ZW50Cgo=
+
+
+      --_=__=_XaM3_.1653051906.2A.611798.42.1017.52.42.007.1212495733
+      Content-Type: text/html; charset=utf-8
+      Content-Transfer-Encoding: base64
+
+      PHNwYW4gc3R5bGU9ImZvbnQtZmFtaWx5OiBBcmlhbDsgZm9udC1zaXplOiBtZWRpdW07IiB4
+      YW0tZWRpdG9yLWNvbnRhaW5lcj0idHJ1ZSI+PGRpdj5QRUMgQ29udGVudDxiciAvPjwvZGl2
+      Pjwvc3Bhbj4=
+
+
+      --_=__=_XaM3_.1653051906.2A.611798.42.1017.52.42.007.1212495733--
+
+
+      ------------=_1653051906-23874-6--
+
+
+      ------9D343FA9E2CB03C0985D4F6ACDB36AD8--
+
+
+      """)
+
+    [root_part] = message.parts
+    %Mail.Message{parts: [postacert]} = root_part
+    %Mail.Message{parts: [first_pec_part | _]} = Mail.Parsers.RFC2822.parse(postacert.body)
+
+    assert first_pec_part.body =~ "PEC Content"
+  end
+
+  test "keeps CRLF in plain/text message parts" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: hello, world
+      Content-Type: text/plain
+      Content-Transfer-Encoding: 7bit
+
+      first line
+      second line
+      bye
+      """)
+
+    assert message.body == "first line\r\nsecond line\r\nbye"
   end
 
   defp parse_email(email),
