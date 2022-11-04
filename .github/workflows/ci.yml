@@ -1,0 +1,13 @@
+name: tests
+
+on: push
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    container: elixir:1.14
+    steps:
+      - uses: actions/checkout@v2
+      - run: mix local.hex --force
+      - run: mix deps.get
+      - run: mix test
