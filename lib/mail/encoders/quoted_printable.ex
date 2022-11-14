@@ -18,7 +18,7 @@ defmodule Mail.Encoders.QuotedPrintable do
       "fa=C3=A7ade"
   """
   @spec encode(binary) :: binary
-  @spec encode(binary, integer, list, non_neg_integer) :: binary
+  @spec encode(binary, integer, binary, non_neg_integer) :: binary
   def encode(string, max_length \\ @max_length, acc \\ <<>>, line_length \\ 0)
 
   def encode(<<>>, _, acc, _), do: acc
