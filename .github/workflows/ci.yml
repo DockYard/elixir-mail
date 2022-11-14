@@ -1,13 +1,21 @@
-name: tests
+name: CI
 
 on: push
 
 jobs:
-  tests:
+  checks:
     runs-on: ubuntu-latest
     container: elixir:1.14
     steps:
-      - uses: actions/checkout@v2
-      - run: mix local.hex --force
-      - run: mix deps.get
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/rebar3
+            _build
+          key: ${{ runner.os }}-erlang-${{ env.OTP_VERSION }}-${{ hashFiles('**/*rebar.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-erlang-${{ env.OTP_VERSION }}-
+      - run: mix do local.hex --force, deps.get
       - run: mix test
+      - run: mix dialyzer
