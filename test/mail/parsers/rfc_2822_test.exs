@@ -23,6 +23,25 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
+  test "supports multi casing content-type" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Reply-To: otherme@example.com
+      Subject: Test Email
+      Content-type: Multipart/mixed; boundary="772F8C8E_76CCB30F_Synapse_boundary"
+
+      This is the body!
+      It has more than one line
+      """)
+
+    assert message.headers["content-type"] == [
+             "Multipart/mixed",
+             {"boundary", "772F8C8E_76CCB30F_Synapse_boundary"}
+           ]
+  end
+
   test "parses a singlepart message with no body" do
     message =
       parse_email("""
