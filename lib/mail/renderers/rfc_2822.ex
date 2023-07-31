@@ -22,7 +22,7 @@ defmodule Mail.Renderers.RFC2822 do
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex Application.get_env(
+  @email_validation_regex Application.compile_env(
                             :mail,
                             :email_regex,
                             ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
@@ -119,7 +119,8 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp render_header_value(_key, [value | subtypes]),
-    do: Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
+    do:
+      Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
 
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
