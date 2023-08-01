@@ -482,4 +482,10 @@ defmodule MailTest do
 
     assert result == "Test!"
   end
+
+  test "parse with default parser" do
+    assert %Mail.Message{} = message = Mail.parse("Subject: Test\r\nContent-Type: text/plain\r\n\r\nHello world\r\n")
+    assert Mail.get_subject(message) == "Test"
+    assert message.body == "Hello world"
+  end
 end
