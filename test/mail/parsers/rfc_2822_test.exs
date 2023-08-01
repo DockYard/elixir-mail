@@ -126,30 +126,72 @@ defmodule Mail.Parsers.RFC2822Test do
     assert headers_only_part.body == nil
   end
 
-  test "erl_from_timestamp\1" do
-    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
+  test "to_datetime/1" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
-    assert erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000") == {{2016, 1, 1}, {0, 0, 0}}
-    assert erl_from_timestamp("1 Feb 2016 01:02:03 +0000") == {{2016, 2, 1}, {1, 2, 3}}
-    assert erl_from_timestamp(" 1 Mar 2016 11:12:13 +0000") == {{2016, 3, 1}, {11, 12, 13}}
-    assert erl_from_timestamp("\t1 Apr 2016 22:33:44 +0000") == {{2016, 4, 1}, {22, 33, 44}}
-    assert erl_from_timestamp("12 Jan 2016 00:00:00 +0000") == {{2016, 1, 12}, {0, 0, 0}}
-    assert erl_from_timestamp("25 Dec 2016 00:00:00 +0000 (UTC)") == {{2016, 12, 25}, {0, 0, 0}}
-    assert erl_from_timestamp("03 Apr 2017 12:30:55 GMT") == {{2017, 4, 3}, {12, 30, 55}}
+    assert to_datetime("Fri, 1 Jan 2016 00:00:00 +0000") == ~U"2016-01-01 00:00:00Z"
+    assert to_datetime("1 Feb 2016 01:02:03 +0000") == ~U"2016-02-01 01:02:03Z"
+    assert to_datetime(" 1 Mar 2016 11:12:13 +0000") == ~U"2016-03-01 11:12:13Z"
+    assert to_datetime("\t1 Apr 2016 22:33:44 +0000") == ~U"2016-04-01 22:33:44Z"
+    assert to_datetime("12 Jan 2016 00:00:00 +0000") == ~U"2016-01-12 00:00:00Z"
+    assert to_datetime("25 Dec 2016 00:00:00 +0000 (UTC)") == ~U"2016-12-25 00:00:00Z"
     # The spec specifies that the seconds are optional
-    assert erl_from_timestamp("14 Jun 2019 11:24 +0000") == {{2019, 6, 14}, {11, 24, 0}}
-    assert erl_from_timestamp("28 JUN 2021 09:10 +0200") == {{2021, 6, 28}, {9, 10, 0}}
-    assert erl_from_timestamp("12 May 2020 12:08:24 UT") == {{2020, 5, 12}, {12, 8, 24}}
+    assert to_datetime("14 Jun 2019 11:24 +0000") == ~U"2019-06-14 11:24:00Z"
+    assert to_datetime("28 JUN 2021 09:10 +0200") == ~U"2021-06-28 07:10:00Z"
+    assert to_datetime("12 May 2020 12:08:24 UT") == ~U"2020-05-12 12:08:24Z"
   end
 
-  test "erl_from_timestamp\1 with invalid RFC2822 timestamps (found in the wild)" do
-    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
+  # Handle obsolute date time https://datatracker.ietf.org/doc/html/rfc2822#section-4.3
+  test "to_datetime/1 with obsolete information" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
-    assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
+    # Two-digit year
+    assert to_datetime("12 May 50 12:08:24 +0000") == ~U"1950-05-12 12:08:24Z"
+    assert to_datetime("12 May 49 12:08:24 +0000") == ~U"2049-05-12 12:08:24Z"
+
+    # Digit month
+    assert to_datetime("01 08 2023 08:59:03 +0000") == ~U"2023-08-01 08:59:03Z"
+
+    # Obsolete time zones
+    assert to_datetime("01 Aug 2023 08:59:03 UT") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("03 Apr 2017 12:30:55 UTC") == ~U"2017-04-03 12:30:55Z"
+    assert to_datetime("01 Aug 2023 08:59:03 GMT") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 EDT") == ~U"2023-08-01 12:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 EST") == ~U"2023-08-01 13:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 CDT") == ~U"2023-08-01 13:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 CST") == ~U"2023-08-01 14:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 MDT") == ~U"2023-08-01 14:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 MST") == ~U"2023-08-01 15:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 PDT") == ~U"2023-08-01 15:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 PST") == ~U"2023-08-01 16:59:03Z"
+
+    assert to_datetime("01 Aug 2023 08:59:03 A") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 B") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 C") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 D") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 E") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 F") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 G") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 H") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 I") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 K") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 Z") == ~U"2023-08-01 08:59:03Z"
+  end
+
+  test "to_datetime/1 with invalid RFC2822 timestamps (found in the wild)" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
+
+    assert to_datetime("Thu, 16 May 2019 5:50:53 +0700") == ~U"2019-05-15 22:50:53Z"
+    assert to_datetime("Tue May 30 15:29:15 2017") == ~U"2017-05-30 15:29:15Z"
+    assert to_datetime("Tue May 3 15:29:15 2017") == ~U"2017-05-03 15:29:15Z"
+    assert to_datetime("Wed, 14 05 2015 12:34:17") == ~U"2015-05-14 12:34:17Z"
+    assert to_datetime("Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)") == ~U"2017-06-20 09:44:58Z"
+    assert to_datetime("Fri Apr 15 17:22:55 CAT 2016") == ~U"2016-04-15 17:22:55Z"
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient = "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
+    recipient =
+      "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
 
     retrieved_recipients = [
       {"The Dude", "dude@example.com"},
@@ -218,7 +260,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["from"] == {"Me", "me@example.com"}
     assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "foobar"}]
-    assert message.headers["date"] == {{2016, 1, 1}, {0, 0, 0}}
+    assert message.headers["date"] == ~U"2016-01-01 00:00:00Z"
 
     [alt_part, attach_part] = message.parts
 
@@ -266,7 +308,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "by 101.102.103.104 with SMTP id abcdefg",
-               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+               {"date", ~U"2016-04-01 18:08:31Z"}
              ]
            ]
 
@@ -297,15 +339,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
-               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+               {"date", ~U"2016-04-01 18:08:31Z"}
              ],
              [
                "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
-               {"date", {{2016, 4, 1}, {11, 8, 35}}}
+               {"date", ~U"2016-04-01 18:08:35Z"}
              ],
              [
                "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
-               {"date", {{2016, 4, 1}, {11, 9, 7}}}
+               {"date", ~U"2016-04-01 18:09:07Z"}
              ]
            ]
   end
@@ -490,7 +532,7 @@ defmodule Mail.Parsers.RFC2822Test do
              ],
              [
                "by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb",
-               {"date", {{2019, 6, 22}, {17, 59, 49}}}
+               {"date", ~U"2019-06-23 00:59:49Z"}
              ]
            ]
   end
@@ -511,11 +553,11 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from EUR01-HE1-obe.outbound.protection.outlook.com\t (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer\t Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
-               {"date", {{2018, 8, 6}, {7, 23, 18}}}
+               {"date", ~U"2018-08-06 07:23:18Z"}
              ],
              [
                "from EUR01-HE1-obe.outbound.protection.outlook.com         (213.199.154.213) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer         Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
-               {"date", {{2018, 8, 1}, {9, 49, 43}}}
+               {"date", ~U"2018-08-01 09:49:43Z"}
              ]
            ]
   end
@@ -540,23 +582,23 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite",
-               {"date", {{2019, 11, 25}, {13, 0, 46}}}
+               {"date", ~U"2019-11-25 11:00:46Z"}
              ],
              [
                "from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>",
-               {"date", {{2016, 4, 15}, {17, 22, 55}}}
+               {"date", ~U"2016-04-15 17:22:55Z"}
              ],
              ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
              [
                "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
-               {"date", {{2017, 8, 8}, {12, 5, 31}}}
+               {"date", ~U"2017-08-08 12:05:31Z"}
              ],
              [
                "from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])\tby x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw\tfor <x@example.com>",
-               {"date", {{2017, 6, 20}, {9, 44, 58}}}
+               {"date", ~U"2017-06-20 09:44:58Z"}
              ],
-             ["from trusted client by mx4.sika.com", {"date", {{2017, 5, 30}, {15, 29, 15}}}],
-             ["from local-ip[x.x.x.x] by FTGS", {"date", {{2014, 12, 28}, {20, 4, 31}}}]
+             ["from trusted client by mx4.sika.com", {"date", ~U"2017-05-30 15:29:15Z"}],
+             ["from local-ip[x.x.x.x] by FTGS", {"date", ~U"2014-12-28 18:04:31Z"}]
            ]
   end
 
@@ -566,7 +608,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Date: Wed, 14 05 2015 12:34:17
       """)
 
-    assert message.headers["date"] == {{2015, 5, 14}, {12, 34, 17}}
+    assert message.headers["date"] == ~U"2015-05-14 12:34:17Z"
   end
 
   test "handle comment after semi-colon in received header value" do
@@ -581,7 +623,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
-               {"date", {{2017, 6, 8}, {4, 22, 53}}}
+               {"date", ~U"2017-06-08 08:22:53Z"}
              ]
            ]
   end
