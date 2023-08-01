@@ -25,6 +25,14 @@ defmodule Mail do
   def build_multipart,
     do: %Mail.Message{multipart: true}
 
+  @doc """
+  Primary hook for parsing
+
+  You can pass in your own custom parse module. That module
+  must have a `parse/1` function that accepts a string or list of lines
+
+  By default the `parser` will be `Mail.Parsers.RFC2822`
+  """
   def parse(message, parser \\ Mail.Parsers.RFC2822) do
     parser.parse(message)
   end
