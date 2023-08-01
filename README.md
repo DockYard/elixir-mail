@@ -51,7 +51,7 @@ message =
 After you have built your message you can render it:
 
 ```elixir
-rendered_message = Mail.Renderers.RFC2822.render(message)
+rendered_message = Mail.render(message)
 ```
 
 ## Parsing
@@ -60,7 +60,7 @@ If you'd like to parse an already rendered message back into
 a data model:
 
 ```elixir
-Mail.Parsers.RFC2822.parse(rendered_message)
+%Mail.Message{} = message = Mail.parse(rendered_message)
 ```
 
 [There are more functions described in the docs](https://hexdocs.pm/mail/Mail.html)

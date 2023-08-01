@@ -1,9 +1,14 @@
 # Changelog
 
-## Master
+## 0.3.0 2023-08-01
 
 * Add DateTime and time zone support to date parsing/rendering
-* Fix compile warnings
+* Add Mail.parse/2 with default RFC2822 parser
+* Use a binary accumulator in QuotedPrintable encoder to reduce memory https://github.com/DockYard/elixir-mail/pull/145
+* Handle strings that appear to be quoted printable but are not https://github.com/DockYard/elixir-mail/pull/141
+* Provide default charset when no charset specified https://github.com/DockYard/elixir-mail/pull/144
+* Fix handling obsolete timezone (UT) in obsolete date/time format https://github.com/DockYard/elixir-mail/pull/143
+* Split encoded words on headers https://github.com/DockYard/elixir-mail/pull/134
 
 ## 0.2.3 2021-06-28
 
