@@ -8,7 +8,7 @@ defmodule Mail.Mixfile do
     [
       app: :mail,
       version: @version,
-      elixir: "~> 1.3",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,

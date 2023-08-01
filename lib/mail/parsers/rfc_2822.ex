@@ -41,131 +41,189 @@ defmodule Mail.Parsers.RFC2822 do
     do: extract_headers(tail, [header | headers])
 
   @doc """
-  Parses a RFC2822 timestamp to an Erlang timestamp
+  Parses a RFC2822 timestamp to a DateTime with timezone
 
   [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
-
-  Timezone information is ignored
   """
-  def erl_from_timestamp(<<" ", rest::binary>>), do: erl_from_timestamp(rest)
-  def erl_from_timestamp(<<"\t", rest::binary>>), do: erl_from_timestamp(rest)
+  def to_datetime(<<" ", rest::binary>>), do: to_datetime(rest)
+  def to_datetime(<<"\t", rest::binary>>), do: to_datetime(rest)
+  def to_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: to_datetime(rest)
 
-  def erl_from_timestamp(<<_day::binary-size(3), ", ", rest::binary>>) do
-    erl_from_timestamp(rest)
-  end
-
-  def erl_from_timestamp(<<date::binary-size(1), " ", rest::binary>>) do
-    erl_from_timestamp("0" <> date <> " " <> rest)
-  end
+  def to_datetime(<<date::binary-size(1), " ", rest::binary>>),
+    do: to_datetime("0" <> date <> " " <> rest)
 
   # This caters for an invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
-  def erl_from_timestamp(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
-    erl_from_timestamp("#{date} 0#{hour}:#{rest}")
+  def to_datetime(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
+    to_datetime("#{date} 0#{hour}:#{rest}")
   end
 
   # This caters for an invalid date with dashes between the date/month/year parts
-  def erl_from_timestamp(
+  def to_datetime(
         <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
           rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year}#{rest}")
+    to_datetime("#{date} #{month} #{year}#{rest}")
   end
 
-  def erl_from_timestamp(
+  # This caters for an invalid two-digit year
+  def to_datetime(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(2), " ",
+          rest::binary>>
+      ) do
+    year = year |> String.to_integer() |> to_four_digit_year()
+    to_datetime("#{date} #{month} #{year} #{rest}")
+  end
+
+  # This caters for missing seconds
+  def to_datetime(
         <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
           rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{hour}:#{minute}:00 #{rest}")
+    to_datetime("#{date} #{hour}:#{minute}:00 #{rest}")
   end
 
-  def erl_from_timestamp(
+  # Fixes invalid value: Wed, 14 10 2015 12:34:17
+  def to_datetime(
+        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+          rest::binary>>
+      ) do
+    month_name = get_month_name(month_digits)
+    to_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+  end
+
+  def to_datetime(
         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          _timezone::binary-size(5), _rest::binary>>
+          time_zone::binary>>
       ) do
     year = year |> String.to_integer()
-    month_name = String.downcase(month)
-    month = Enum.find_index(@months, &(&1 == month_name)) + 1
+    month = get_month(String.downcase(month))
     date = date |> String.to_integer()
 
     hour = hour |> String.to_integer()
     minute = minute |> String.to_integer()
     second = second |> String.to_integer()
 
-    {{year, month, date}, {hour, minute, second}}
-  end
+    time_zone = parse_time_zone(time_zone)
 
-  def erl_from_timestamp(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
-      ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+    date_string =
+      "#{year}-#{date_pad(month)}-#{date_pad(date)}T#{date_pad(hour)}:#{date_pad(minute)}:#{date_pad(second)}#{time_zone}"
+
+    {:ok, datetime, _offset} = DateTime.from_iso8601(date_string)
+    datetime
   end
 
   # This adds support for a now obsolete format
   # https://tools.ietf.org/html/rfc2822#section-4.3
-  def erl_from_timestamp(
+  def to_datetime(
         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           timezone::binary-size(3), _rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
-  end
-
-  # This adds support for a now obsolete format (with obsolete timezone, UT)
-  # https://tools.ietf.org/html/rfc2822#section-4.3
-  def erl_from_timestamp(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          "UT", _rest::binary>>
-      ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
-  def erl_from_timestamp(
+  def to_datetime(
         <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           _tz::binary-size(3), " ", year::binary-size(4), _rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}")
   end
 
   # Fixes invalid value with milliseconds Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
-  def erl_from_timestamp(
+  def to_datetime(
         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
           _milliseconds::binary-size(3), rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
   end
 
   # Fixes invalid value: Tue May 30 15:29:15 2017
-  def erl_from_timestamp(
+  def to_datetime(
         <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           year::binary-size(4), _rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 2017
-  def erl_from_timestamp(
+  def to_datetime(
         <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(1), " ",
           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
           year::binary-size(4), _rest::binary>>
       ) do
-    erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
-  # Fixes invalid value: Wed, 14 10 2015 12:34:17
-  def erl_from_timestamp(
-        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
-          rest::binary>>
+  # Fixes missing time zone
+  def to_datetime(
+        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
       ) do
-    month_name = get_month_name(month_digits)
-    erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  end
+
+  # # Fixes invalid value: Wed, 14 10 2015 12:34:17
+  # def to_datetime(
+  #       <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
+  #         hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+  #         rest::binary>>
+  #     ) do
+  #   month_name = get_month_name(month_digits)
+  #   to_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+  # end
+
+  defp to_four_digit_year(year) when year >= 0 and year < 50, do: 2000 + year
+  defp to_four_digit_year(year) when year < 100 and year >= 50, do: 1900 + year
+
+  defp date_pad(number) when number < 10, do: "0" <> Integer.to_string(number)
+  defp date_pad(number), do: Integer.to_string(number)
+
+  defp parse_time_zone(<<"(", time_zone::binary>>) do
+    time_zone
+    |> String.trim_trailing(")")
+    |> parse_time_zone()
+  end
+
+  @months
+  |> Enum.with_index(1)
+  |> Enum.each(fn {month_name, month_number} ->
+    defp get_month(unquote(month_name)), do: unquote(month_number)
+
+    defp get_month_name(unquote(String.pad_leading(to_string(month_number), 2, "0"))),
+      do: unquote(month_name)
+  end)
+
+  # Greenwich Mean Time
+  defp parse_time_zone("GMT"), do: "+0000"
+  # Universal Time
+  defp parse_time_zone("UTC"), do: "+0000"
+  defp parse_time_zone("UT"), do: "+0000"
+
+  # US
+  defp parse_time_zone("EDT"), do: "-0400"
+  defp parse_time_zone("EST"), do: "-0500"
+  defp parse_time_zone("CDT"), do: "-0500"
+  defp parse_time_zone("CST"), do: "-0600"
+  defp parse_time_zone("MDT"), do: "-0600"
+  defp parse_time_zone("MST"), do: "-0700"
+  defp parse_time_zone("PDT"), do: "-0700"
+  defp parse_time_zone("PST"), do: "-0800"
+  # Military A-Z
+  defp parse_time_zone(<<_zone_letter::binary-size(1)>>), do: "-0000"
+
+  defp parse_time_zone(<<"+", offset::binary-size(4), _rest::binary>>), do: "+#{offset}"
+  defp parse_time_zone(<<"-", offset::binary-size(4), _rest::binary>>), do: "-#{offset}"
+
+  defp parse_time_zone(time_zone) do
+    time_zone
+    |> String.trim_leading("(")
+    |> String.trim_trailing(")")
   end
 
   @doc """
@@ -193,13 +251,6 @@ defmodule Mail.Parsers.RFC2822 do
       [_, _, name, address] -> {name, address}
     end)
   end
-
-  @months
-  |> Enum.with_index(1)
-  |> Enum.each(fn {month_name, number} ->
-    defp get_month_name(unquote(String.pad_leading(to_string(number), 2, "0"))),
-      do: unquote(month_name)
-  end)
 
   defp parse_headers(message, []), do: message
 
@@ -250,7 +301,7 @@ defmodule Mail.Parsers.RFC2822 do
       |> List.first()
 
   defp parse_header_value("Date", timestamp),
-    do: erl_from_timestamp(timestamp)
+    do: to_datetime(timestamp)
 
   defp parse_header_value("Received", value),
     do: parse_received_value(value)
@@ -350,7 +401,7 @@ defmodule Mail.Parsers.RFC2822 do
             {date, comment} -> {"#{value} #{comment}", date}
           end
 
-        [value, {"date", erl_from_timestamp(remove_excess_whitespace(date))}]
+        [value, {"date", to_datetime(remove_excess_whitespace(date))}]
 
       value ->
         value
