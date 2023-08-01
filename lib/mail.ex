@@ -25,6 +25,10 @@ defmodule Mail do
   def build_multipart,
     do: %Mail.Message{multipart: true}
 
+  def parse(message, parser \\ Mail.Parsers.RFC2822) do
+    parser.parse(message)
+  end
+
   @doc """
   Add a plaintext part to the message
 
