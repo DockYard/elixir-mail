@@ -249,14 +249,16 @@ defmodule Mail.MessageTest do
   end
 
   test "long UTF-8 in subject" do
-    subject = "über alles\nnew ?= line some очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень long line"
+    subject =
+      "über alles\nnew ?= line some очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень long line"
 
     txt =
       Mail.build()
       |> Mail.put_subject(subject)
       |> Mail.render()
 
-    encoded_subject = "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
+    encoded_subject =
+      "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
