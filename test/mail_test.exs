@@ -187,6 +187,7 @@ defmodule MailTest do
 
   test "get_text with multipart and multiple values" do
     text = "I am the body!"
+
     mail =
       Mail.Message.put_part(
         Mail.build_multipart(),
@@ -474,6 +475,21 @@ defmodule MailTest do
     assert attachment == file
   end
 
+  test "get_attachments handles content disposition header withot filename property" do
+    {_, data} = file = {"Unknown", File.read!("README.md")}
+
+    mail =
+      Mail.build()
+      |> Mail.Message.put_body(data)
+      |> Mail.Message.put_header(:content_disposition, [
+        "attachment"
+      ])
+      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+
+    [attachment | _] = Mail.get_attachments(mail)
+    assert attachment == file
+  end
+
   test "renders with the given renderer" do
     result =
       Mail.build()
@@ -484,7 +500,10 @@ defmodule MailTest do
   end
 
   test "parse with default parser" do
-    assert %Mail.Message{} = message = Mail.parse("Subject: Test\r\nContent-Type: text/plain\r\n\r\nHello world\r\n")
+    assert %Mail.Message{} =
+             message =
+             Mail.parse("Subject: Test\r\nContent-Type: text/plain\r\n\r\nHello world\r\n")
+
     assert Mail.get_subject(message) == "Test"
     assert message.body == "Hello world"
   end
