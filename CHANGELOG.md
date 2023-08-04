@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1 2023-08-04
+
+* Fix get_attachments/1 for attachments without filename prop https://github.com/DockYard/elixir-mail/pull/154
+
 ## 0.3.0 2023-08-01
 
 * Add DateTime and time zone support to date parsing/rendering
