@@ -485,6 +485,9 @@ defmodule MailTest do
         "attachment"
       ])
       |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+      # We render and parse so we have the attachment with no properties
+      |> Mail.render()
+      |> Mail.parse()
 
     [attachment | _] = Mail.get_attachments(mail)
     assert attachment == file

@@ -225,7 +225,7 @@ defmodule Mail do
       case Mail.Message.is_attachment?(message) do
         true ->
           filename =
-            case Mail.Message.get_header(message, :content_disposition) do
+            case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
               ["attachment" | properties] ->
                 Enum.find_value(properties, "Unknown", fn {key, value} ->
                   key == "filename" && value
