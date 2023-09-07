@@ -165,6 +165,7 @@ defmodule Mail.Parsers.RFC2822Test do
     import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
 
     assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
+    assert erl_from_timestamp("28/08/2023 20:20:02") == {{2023, 8, 28}, {20, 20, 2}}
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do

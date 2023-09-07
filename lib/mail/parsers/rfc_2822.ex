@@ -168,6 +168,16 @@ defmodule Mail.Parsers.RFC2822 do
     erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
+  # Fixes invalid value: 14/10/2015 12:34:17
+  def erl_from_timestamp(
+        <<date::binary-size(2), "/", month_digits::binary-size(2), "/", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+          rest::binary>>
+      ) do
+    month_name = get_month_name(month_digits)
+    erl_from_timestamp("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+  end
+
   @doc """
   Retrieves the "name" and "address" parts from an email message recipient
   (To, CC, etc.). The following is an example of recipient value:
@@ -465,6 +475,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp multipart?(headers) do
     content_type = headers["content-type"]
+
     !!case content_type do
       nil -> nil
       type when is_binary(type) -> nil
