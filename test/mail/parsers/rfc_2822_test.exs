@@ -696,6 +696,28 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "parses mail with LF instead of CRLF characters" do
+    message =
+      Mail.Parsers.RFC2822.parse("""
+      To: user@example.com
+      From: me@example.com
+      Reply-To: otherme@example.com
+      Subject: Test Email
+      Content-Type: text/plain; foo=bar;
+        baz=qux;
+
+      This is the body!
+      It has more than one line
+      """)
+
+    assert message.headers["to"] == ["user@example.com"]
+    assert message.headers["from"] == "me@example.com"
+    assert message.headers["reply-to"] == "otherme@example.com"
+    assert message.headers["subject"] == "Test Email"
+    assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
+    assert message.body == "This is the body!\r\nIt has more than one line"
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 

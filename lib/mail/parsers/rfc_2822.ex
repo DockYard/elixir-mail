@@ -24,7 +24,7 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   def parse(content),
-    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse
+    do: content |> String.split(~r/(\r\n|\n)/) |> Enum.map(&String.trim_trailing/1) |> parse
 
   defp extract_headers(list, headers \\ [])
 
