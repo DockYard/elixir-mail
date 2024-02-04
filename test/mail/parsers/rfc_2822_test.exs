@@ -687,6 +687,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "content-type with atypical casing" do
+    message =
+      parse_email("""
+      Content-type: text/html; charset=us-ascii
+      """)
+
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
   test "content-type with implicit charset" do
     message =
       parse_email("""
