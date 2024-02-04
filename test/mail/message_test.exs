@@ -108,28 +108,28 @@ defmodule Mail.MessageTest do
 
   test "build_text" do
     message = Mail.Message.build_text("Some text")
-    assert Mail.Message.get_content_type(message) == ["text/plain"]
+    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_text when given charset" do
-    message = Mail.Message.build_text("Some text", charset: "UTF-8")
-    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}]
+    message = Mail.Message.build_text("Some text", charset: "US-ASCII")
+    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "US-ASCII"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
-    assert Mail.Message.get_content_type(message) == ["text/html"]
+    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "UTF-8"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
 
   test "build_html when given charset" do
-    message = Mail.Message.build_html("<h1>Some HTML</h1>", charset: "UTF-8")
-    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "UTF-8"}]
+    message = Mail.Message.build_html("<h1>Some HTML</h1>", charset: "US-ASCII")
+    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "US-ASCII"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end

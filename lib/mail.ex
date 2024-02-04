@@ -70,7 +70,7 @@ defmodule Mail do
           ["text/plain", {"charset", charset}]
 
         _else ->
-          "text/plain"
+          ["text/plain", {"charset", default_charset()}]
       end
 
     Mail.Message.put_body(message, body)
@@ -132,7 +132,7 @@ defmodule Mail do
           ["text/html", {"charset", charset}]
 
         _else ->
-          "text/html"
+          ["text/html", {"charset", default_charset()}]
       end
 
     Mail.Message.put_body(message, body)
@@ -161,6 +161,10 @@ defmodule Mail do
     do: message
 
   def get_html(%Mail.Message{}), do: nil
+
+  defp default_charset do
+    "UTF-8"
+  end
 
   @doc """
   Add an attachment part to the message
