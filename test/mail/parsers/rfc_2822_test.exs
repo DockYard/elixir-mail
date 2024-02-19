@@ -159,7 +159,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert erl_from_timestamp("14 Jun 2019 11:24 +0000") == {{2019, 6, 14}, {11, 24, 0}}
     assert erl_from_timestamp("28 JUN 2021 09:10 +0200") == {{2021, 6, 28}, {9, 10, 0}}
     assert erl_from_timestamp("12 May 2020 12:08:24 UT") == {{2020, 5, 12}, {12, 8, 24}}
-
+    assert erl_from_timestamp("15 Feb 24 11:10:55 +0000") == {{2024, 2, 15}, {11, 10, 55}}
   end
 
   test "erl_from_timestamp\1 with invalid RFC2822 timestamps (found in the wild)" do
@@ -167,7 +167,9 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
     assert erl_from_timestamp("28/08/2023 20:20:02") == {{2023, 8, 28}, {20, 20, 2}}
-    assert erl_from_timestamp("Fri, 15 September 2023 02:16:52 +0000 (UTC)") == {{2023, 9, 15}, {2, 16, 52}}
+
+    assert erl_from_timestamp("Fri, 15 September 2023 02:16:52 +0000 (UTC)") ==
+             {{2023, 9, 15}, {2, 16, 52}}
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do

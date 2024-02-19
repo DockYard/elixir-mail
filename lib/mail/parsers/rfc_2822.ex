@@ -75,6 +75,13 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   def erl_from_timestamp(
+        <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(2),
+          rest::binary>>
+      ) do
+    erl_from_timestamp("#{date} #{month} #{year}#{rest}")
+  end
+
+  def erl_from_timestamp(
         <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
           rest::binary>>
       ) do
@@ -86,6 +93,8 @@ defmodule Mail.Parsers.RFC2822 do
   |> Enum.map(&String.length/1)
   |> Enum.uniq()
   |> Enum.each(fn month_size ->
+    nil
+
     def erl_from_timestamp(
           <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ",
             year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
@@ -103,9 +112,28 @@ defmodule Mail.Parsers.RFC2822 do
       {{year, month, date}, {hour, minute, second}}
     end
 
+    # Example: 15 Feb 24 11:10:55 +0000
     def erl_from_timestamp(
-          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ", year::binary-size(4), " ",
-            hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
+          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ",
+            year::binary-size(2), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+            second::binary-size(2), " ", _timezone::binary-size(5), _rest::binary>>
+        ) do
+      year = "20#{year}" |> String.to_integer()
+      month_name = String.downcase(month)
+      month = get_month_number(month_name)
+      date = date |> String.to_integer()
+
+      hour = hour |> String.to_integer()
+      minute = minute |> String.to_integer()
+      second = second |> String.to_integer()
+
+      {{year, month, date}, {hour, minute, second}}
+    end
+
+    def erl_from_timestamp(
+          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ",
+            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+            second::binary-size(2)>>
         ) do
       erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
     end
@@ -113,9 +141,9 @@ defmodule Mail.Parsers.RFC2822 do
     # This adds support for a now obsolete format
     # https://tools.ietf.org/html/rfc2822#section-4.3
     def erl_from_timestamp(
-          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ", year::binary-size(4), " ",
-            hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-            timezone::binary-size(3), _rest::binary>>
+          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ",
+            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+            second::binary-size(2), " ", timezone::binary-size(3), _rest::binary>>
         ) do
       erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
     end
@@ -123,9 +151,9 @@ defmodule Mail.Parsers.RFC2822 do
     # This adds support for a now obsolete format (with obsolete timezone, UT)
     # https://tools.ietf.org/html/rfc2822#section-4.3
     def erl_from_timestamp(
-          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ", year::binary-size(4), " ",
-            hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-            "UT", _rest::binary>>
+          <<date::binary-size(2), " ", month::binary-size(unquote(month_size)), " ",
+            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+            second::binary-size(2), " ", "UT", _rest::binary>>
         ) do
       erl_from_timestamp("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (+00:00)")
     end
