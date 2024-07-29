@@ -328,7 +328,7 @@ defmodule Mail.Parsers.RFC2822 do
         decoded_string =
           case String.upcase(encoding) do
             "Q" ->
-              Mail.Encoders.QuotedPrintable.decode(encoded_string)
+              Mail.Encoders.QuotedPrintable.decode(String.replace(encoded_string, "_", " "))
 
             "B" ->
               Mail.Encoders.Base64.decode(encoded_string)

@@ -449,7 +449,7 @@ defmodule Mail.Parsers.RFC2822Test do
       parse_email("""
       To: user@example.com
       From: me@example.com
-      Subject: =?utf-8?Q?=C2=A3?=200.00 =?UTF-8?q?=F0=9F=92=B5?=
+      Subject: =?utf-8?Q?=C2=A3?=200.00=?UTF-8?q?_=F0=9F=92=B5?=
       Content-Type: multipart/mixed;
       	boundary="----=_Part_295474_20544590.1456382229928"
 
