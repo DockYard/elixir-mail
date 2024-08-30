@@ -126,6 +126,71 @@ defmodule Mail.Parsers.RFC2822Test do
     assert headers_only_part.body == nil
   end
 
+  # A reproduction of an email found in the wild.
+  test "parses a multipart message with a body with two html parts" do
+    message =
+      parse_email("""
+      To: Test User <user@example.com>, Other User <other@example.com>
+      CC: The Dude <dude@example.com>, Batman <batman@example.com>
+      From: Me <me@example.com>
+      Subject: Test email
+      Mime-Version: 1.0
+      Content-Type: multipart/alternative; boundary=Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Transfer-Encoding: 7bit
+
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Type: text/plain; charset=utf-8
+      Content-Transfer-Encoding: quoted-printable
+
+      Text part
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Type: multipart/mixed;
+        boundary=Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Transfer-Encoding: 7bit
+
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: text/html; charset=us-ascii
+      Content-Transfer-Encoding: 7bit
+
+      <html></html>
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: application/pdf; name=Payment.pdf; x-apple-part-url=45B14A08-AD6D-4298-9E0D-D71498E7112E
+      Content-Disposition: inline; filename=Payment.pdf
+      Content-Transfer-Encoding: base64
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: text/html; charset=utf-8
+      Content-Transfer-Encoding: quoted-printable
+
+      <html>Non empty part</html>
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1--
+
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1--
+      """)
+
+    assert message.body == nil
+
+    [text_part, html_part] = message.parts
+
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "utf-8"}]
+    assert text_part.body == "Text part"
+
+    assert html_part.headers["content-type"] == [
+             "multipart/mixed",
+             {"boundary", "Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1"}
+           ]
+
+    [html_part, _pdf_part, html_part2] = html_part.parts
+
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+    assert html_part.body == "<html></html>"
+
+    assert html_part2.body == "<html>Non empty part</html>"
+
+    assert Mail.get_html(message) == html_part2
+  end
+
   test "to_datetime/1" do
     import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 

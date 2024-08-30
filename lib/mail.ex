@@ -79,7 +79,9 @@ defmodule Mail do
   end
 
   @doc """
-  Find the text part of a given mail
+  Find the last text part of a given mail
+
+  RFC 2046, §5.1.4 “In general, the best choice is the LAST part of a type supported by the recipient system's local environment.”
 
   If single part with `content-type` "text/plain", returns itself
   If single part without `content-type` "text/plain", returns `nil`
@@ -87,7 +89,7 @@ defmodule Mail do
   If multipart without part having `content-type` "text/plain" will return `nil`
   """
   def get_text(%Mail.Message{multipart: true} = message) do
-    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+    Enum.reduce_while(Enum.reverse(message.parts), nil, fn sub_message, acc ->
       text_part = get_text(sub_message)
       if text_part, do: {:halt, text_part}, else: {:cont, acc}
     end)
@@ -141,7 +143,9 @@ defmodule Mail do
   end
 
   @doc """
-  Find the html part of a given mail
+  Find the last html part of a given mail
+
+  RFC 2046, §5.1.4 “In general, the best choice is the LAST part of a type supported by the recipient system's local environment.”
 
   If single part with `content-type` "text/html", returns itself
   If single part without `content-type` "text/html", returns `nil`
@@ -149,7 +153,7 @@ defmodule Mail do
   If multipart without part having `content-type` "text/html" will return `nil`
   """
   def get_html(%Mail.Message{multipart: true} = message) do
-    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+    Enum.reduce_while(Enum.reverse(message.parts), nil, fn sub_message, acc ->
       html_part = get_html(sub_message)
       if html_part, do: {:halt, html_part}, else: {:cont, acc}
     end)
