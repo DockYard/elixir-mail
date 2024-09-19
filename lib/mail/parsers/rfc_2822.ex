@@ -377,6 +377,9 @@ defmodule Mail.Parsers.RFC2822 do
               Mail.Encoders.Base64.decode(encoded_string)
           end
 
+        # Remove space if immediately followed by another encoded word string
+        remainder = Regex.replace(~r/\s+\=\?/, remainder, "=?")
+
         decoded_string <> parse_encoded_word(remainder)
 
       _ ->
