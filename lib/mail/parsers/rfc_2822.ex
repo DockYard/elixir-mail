@@ -258,7 +258,10 @@ defmodule Mail.Parsers.RFC2822 do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
     decoded = parse_encoded_word(body)
-    headers = put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
+
+    headers =
+      put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
+
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
@@ -333,6 +336,9 @@ defmodule Mail.Parsers.RFC2822 do
             "B" ->
               Mail.Encoders.Base64.decode(encoded_string)
           end
+
+        # Remove space if immediately followed by another encoded word string
+        remainder = Regex.replace(~r/\s+\=\?/, remainder, "=?")
 
         decoded_string <> parse_encoded_word(remainder)
 

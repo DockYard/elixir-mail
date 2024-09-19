@@ -457,6 +457,19 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["x-reallylongheadernamethatcausesbodytowrap"] == "BodyOnNewLine"
   end
 
+  test "parse header with folded encoded word" do
+    # This is seen in the examples in https://www.rfc-editor.org/rfc/rfc2047.html#section-8
+    message =
+      parse_email("""
+      X-Encoded-Word: =?utf-8?Q?h=CE=B5=C5=82=C5=82=C3=B8=20w=C3=B8?=
+        =?utf-8?Q?r=C5=82d?=
+
+      Body
+      """)
+
+    assert message.headers["x-encoded-word"] == "hεłłø wørłd"
+  end
+
   test "allow empty body (RFC2822 §3.5)" do
     message =
       parse_email("""
