@@ -252,6 +252,33 @@ defmodule Mail.Parsers.RFC2822Test do
     assert to_datetime("Wed, 14 05 2015 12:34:17") == ~U"2015-05-14 12:34:17Z"
     assert to_datetime("Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)") == ~U"2017-06-20 09:44:58Z"
     assert to_datetime("Fri Apr 15 17:22:55 CAT 2016") == ~U"2016-04-15 17:22:55Z"
+
+    [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ]
+    |> Enum.with_index(1)
+    |> Enum.each(fn {long_month, idx} ->
+      idx =
+        if idx < 10 do
+          "0#{idx}"
+        else
+          idx
+        end
+
+      {:ok, datetime, 0} = DateTime.from_iso8601("2024-#{idx}-13 18:29:58Z")
+      assert to_datetime("13 #{long_month} 2024 18:29:58 +0000") == datetime
+    end)
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
