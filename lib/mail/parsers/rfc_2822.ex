@@ -11,6 +11,21 @@ defmodule Mail.Parsers.RFC2822 do
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
 
+  @long_months %{
+    "january" => "jan",
+    "february" => "feb",
+    "march" => "mar",
+    "april" => "apr",
+    "may" => "may",
+    "june" => "jun",
+    "july" => "jul",
+    "august" => "aug",
+    "september" => "sep",
+    "october" => "oct",
+    "november" => "nov",
+    "december" => "dec"
+  }
+
   @spec parse(binary() | nonempty_maybe_improper_list()) :: Mail.Message.t()
   def parse(content)
 
@@ -168,6 +183,20 @@ defmodule Mail.Parsers.RFC2822 do
     to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
+  # Fixes invalid value with long months: 13 September 2024 18:29:58 +0000
+  lm_sizes = Map.keys(@long_months) |> Enum.map(&byte_size/1) |> Enum.uniq()
+
+  for month_size <- lm_sizes do
+    def to_datetime(
+          <<date::binary-size(2), " ", long_month::binary-size(unquote(month_size)), " ",
+            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+            second::binary-size(2), rest::binary>>
+        ) do
+      month = long_month |> String.downcase() |> get_month_name()
+      to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
+    end
+  end
+
   # # Fixes invalid value: Wed, 14 10 2015 12:34:17
   # def to_datetime(
   #       <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
@@ -188,6 +217,10 @@ defmodule Mail.Parsers.RFC2822 do
     time_zone
     |> String.trim_trailing(")")
     |> parse_time_zone()
+  end
+
+  for {long_name, short_name} <- @long_months do
+    defp get_month_name(unquote(long_name)), do: unquote(short_name)
   end
 
   @months
@@ -258,7 +291,10 @@ defmodule Mail.Parsers.RFC2822 do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
     decoded = parse_encoded_word(body)
-    headers = put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
+
+    headers =
+      put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
+
     message = %{message | headers: headers}
     parse_headers(message, tail)
   end
