@@ -267,7 +267,7 @@ defmodule MailTest do
     assert Mail.get_html(mail) == mail
   end
 
-  test "get_html with singlepart and content-type" do
+  test "get_html with singlepart and content-type with inline charset spec" do
     mail =
       Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
       |> Mail.Message.put_content_type("text/html; charset=UTF-8")
