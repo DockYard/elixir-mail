@@ -59,7 +59,12 @@ defmodule Mail.Parsers.RFC2822 do
   Parses a RFC2822 timestamp to a DateTime with timezone
 
   [RFC2822 3.3 - Date and Time Specification](https://tools.ietf.org/html/rfc2822#section-3.3)
+
+  Also supports obsolete format described in [RFC2822 4.3](https://datatracker.ietf.org/doc/html/rfc2822#section-4.3)
+  and invalid timestamps encountered in the wild. The return value will be either a UTC DateTime, or an error tuple
+  returning the invalid date string.
   """
+  @spec to_datetime(binary()) :: DateTime.t() | {:error, binary()}
   def to_datetime(<<" ", rest::binary>>), do: to_datetime(rest)
   def to_datetime(<<"\t", rest::binary>>), do: to_datetime(rest)
   def to_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: to_datetime(rest)
@@ -196,6 +201,8 @@ defmodule Mail.Parsers.RFC2822 do
       to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
     end
   end
+
+  def to_datetime(invalid_datetime), do: {:error, invalid_datetime}
 
   # # Fixes invalid value: Wed, 14 10 2015 12:34:17
   # def to_datetime(

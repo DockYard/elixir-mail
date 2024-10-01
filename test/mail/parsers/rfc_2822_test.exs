@@ -279,6 +279,8 @@ defmodule Mail.Parsers.RFC2822Test do
       {:ok, datetime, 0} = DateTime.from_iso8601("2024-#{idx}-13 18:29:58Z")
       assert to_datetime("13 #{long_month} 2024 18:29:58 +0000") == datetime
     end)
+
+    assert to_datetime("invalid date string") == {:error, "invalid date string"}
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
