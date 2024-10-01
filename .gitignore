@@ -24,3 +24,6 @@ mail-*.tar
 
 # Temporary files for e.g. tests
 /tmp
+
+# ASDF tool specifications
+.tool-versions
