@@ -267,6 +267,14 @@ defmodule MailTest do
     assert Mail.get_html(mail) == mail
   end
 
+  test "get_html with singlepart and content-type" do
+    mail =
+      Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
+      |> Mail.Message.put_content_type("text/html; charset=UTF-8")
+
+    assert Mail.get_html(mail) == mail
+  end
+
   test "get_html with singlepart not html" do
     mail = Mail.put_text(Mail.build(), "Some text")
     assert is_nil(Mail.get_html(mail))
