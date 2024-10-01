@@ -279,6 +279,10 @@ defmodule Mail.Parsers.RFC2822Test do
       {:ok, datetime, 0} = DateTime.from_iso8601("2024-#{idx}-13 18:29:58Z")
       assert to_datetime("13 #{long_month} 2024 18:29:58 +0000") == datetime
     end)
+  end
+
+  test "to_datetime/1 when the timestamp is unsupported" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
     assert to_datetime("invalid date string") == {:error, "invalid date string"}
   end
