@@ -1,5 +1,6 @@
 defmodule Mail.MessageTest do
   use ExUnit.Case, async: true
+  doctest Mail.Message
 
   test "put_part" do
     part = %Mail.Message{body: "new part"}
@@ -51,7 +52,7 @@ defmodule Mail.MessageTest do
 
   test "put_content_type" do
     message = Mail.Message.put_content_type(%Mail.Message{}, "multipart/mixed")
-    assert Mail.Message.get_header(message, :content_type) == "multipart/mixed"
+    assert Mail.Message.get_header(message, :content_type) == ["multipart/mixed"]
   end
 
   test "get_content_type" do

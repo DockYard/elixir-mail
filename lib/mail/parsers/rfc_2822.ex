@@ -1,12 +1,24 @@
 defmodule Mail.Parsers.RFC2822 do
-  @moduledoc """
+  @moduledoc ~S"""
   RFC2822 Parser
 
   Will attempt to parse a valid RFC2822 message back into
   a `%Mail.Message{}` data model.
 
-      Mail.Parsers.RFC2822.parse(message)
-      %Mail.Message{body: "Some message", headers: %{to: ["user@example.com"], from: "other@example.com", subject: "Read this!"}}
+  ## Examples
+
+      iex> message = \"""
+      ...> To: user@example.com\r
+      ...> From: me@example.com\r
+      ...> Subject: Test Email\r
+      ...> Content-Type: text/plain; foo=bar;\r
+      ...>   baz=qux;\r
+      ...> \r
+      ...> This is the body!\r
+      ...> It has more than one line\r
+      ...> \"""
+      iex> Mail.Parsers.RFC2822.parse(message)
+      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => "me@example.com", "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
   """
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
@@ -203,16 +215,6 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   def to_datetime(invalid_datetime), do: {:error, invalid_datetime}
-
-  # # Fixes invalid value: Wed, 14 10 2015 12:34:17
-  # def to_datetime(
-  #       <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
-  #         hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
-  #         rest::binary>>
-  #     ) do
-  #   month_name = get_month_name(month_digits)
-  #   to_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
-  # end
 
   defp to_four_digit_year(year) when year >= 0 and year < 50, do: 2000 + year
   defp to_four_digit_year(year) when year < 100 and year >= 50, do: 1900 + year
