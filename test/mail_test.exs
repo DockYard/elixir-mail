@@ -1,5 +1,6 @@
 defmodule MailTest do
   use ExUnit.Case, async: true
+  doctest Mail
 
   defmodule TestRenderer do
     def render(message) do
@@ -191,7 +192,11 @@ defmodule MailTest do
     mail =
       Mail.Message.put_part(
         Mail.build_multipart(),
-        Mail.Message.put_content_type(%Mail.Message{}, "text/plain; charset=UTF-8; format=flowed")
+        Mail.Message.put_content_type(%Mail.Message{}, [
+          "text/plain",
+          {"charset", "UTF-8"},
+          {"format", "flowed"}
+        ])
         |> Mail.Message.put_header(:content_transfer_encoding, :"8bit")
         |> Mail.Message.put_body(text)
       )

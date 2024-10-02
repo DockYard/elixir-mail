@@ -95,9 +95,6 @@ defmodule Mail do
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message),
-    do: message
-
   def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
     do: message
 
@@ -261,8 +258,10 @@ defmodule Mail do
   @doc """
   Add a new `subject` header
 
-      Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
-      %Mail.Message{headers: %{subject: "Welcome to DockYard!"}}
+  ## Examples
+
+      iex> Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
+      %Mail.Message{headers: %{"subject" => "Welcome to DockYard!"}}
   """
   def put_subject(message, subject),
     do: Mail.Message.put_header(message, "subject", subject)
@@ -279,15 +278,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_to(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{to: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_to(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"to" => ["one@example.com"]}}
 
-      Mail.put_to(%Mail.Message{}, "one@example.com")
-      |> Mail.put_to(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_to(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_to(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -319,15 +320,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_cc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{cc: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"cc" => ["one@example.com"]}}
 
-      Mail.put_cc(%Mail.Message{}, "one@example.com")
-      |> Mail.put_cc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_cc(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -359,15 +362,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_bcc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{bcc: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"bcc" => ["one@example.com"]}}
 
-      Mail.put_bcc(%Mail.Message{}, "one@example.com")
-      |> Mail.put_bcc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_bcc(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -396,8 +401,10 @@ defmodule Mail do
   @doc """
   Add a new `from` header
 
-      Mail.put_from(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{from: "user@example.com"}}
+  ## Examples
+
+      iex> Mail.put_from(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{"from" => "user@example.com"}}
   """
   def put_from(message, sender),
     do: Mail.Message.put_header(message, "from", sender)
@@ -411,8 +418,10 @@ defmodule Mail do
   @doc """
   Add a new `reply-to` header
 
-      Mail.put_reply_to(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{reply_to: "user@example.com"}}
+  ## Examples
+
+      iex> Mail.put_reply_to(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{"reply-to" => "user@example.com"}}
   """
   def put_reply_to(message, reply_address),
     do: Mail.Message.put_header(message, "reply-to", reply_address)
