@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0 2024-10-02
+
+* Change date parser to return {:error, date_text} when date is unparsable https://github.com/DockYard/elixir-mail/pull/169
+* Ignore space between two encoded words (as per RFC 2047) https://github.com/DockYard/elixir-mail/pull/168
+* Change order of part lookup to match RFC 2046, §5.1.4 https://github.com/DockYard/elixir-mail/pull/167
+* Fix 8-bit decoding to preserve line breaks but restore wrapping https://github.com/DockYard/elixir-mail/pull/166
+* Fix 7-bit decoding to preserve line breaks but restore wrapping https://github.com/DockYard/elixir-mail/pull/164
+* Fix decoding of encoded words with spaces https://github.com/DockYard/elixir-mail/pull/160
+* Default to UTF-8 charset https://github.com/DockYard/elixir-mail/pull/162
+* Add support for case insensitive headers https://github.com/DockYard/elixir-mail/pull/161
+
 ## 0.3.1 2023-08-04
 
 * Fix get_attachments/1 for attachments without filename prop https://github.com/DockYard/elixir-mail/pull/154
