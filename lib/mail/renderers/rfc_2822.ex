@@ -251,30 +251,59 @@ defmodule Mail.Renderers.RFC2822 do
     |> String.pad_leading(2, "0")
   end
 
+  defp split_attachment_parts(message) do
+    Enum.reduce(message.parts, [[], [], []], fn part, [texts, mixed, inlines] ->
+      cond do
+        match_content_type?(part, ~r/text\/(plain|html)/) ->
+          [[part | texts], mixed, inlines]
+
+        Mail.Message.is_inline_attachment?(part) ->
+          [texts, mixed, [part | inlines]]
+
+        # a mixed part - most likely an attachment
+        true ->
+          [texts, [part | mixed], inlines]
+      end
+    end)
+    # retain ordering
+    |> Enum.map(&Enum.reverse/1)
+  end
+
   defp reorganize(%Mail.Message{multipart: true} = message) do
     content_type = Mail.Message.get_content_type(message)
 
-    if Mail.Message.has_attachment?(message) do
-      text_parts =
-        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
-        |> Enum.sort(&(&1 > &2))
+    [text_parts, mixed, inlines] = split_attachment_parts(message)
+    has_inline = Enum.any?(inlines)
+    has_mixed_parts = Enum.any?(mixed)
+    has_text_parts = Enum.any?(text_parts)
 
+    if has_inline || has_mixed_parts do
+      # If any attaching, change content type to mixed
       content_type = List.replace_at(content_type, 0, "multipart/mixed")
       message = Mail.Message.put_content_type(message, content_type)
 
-      if Enum.any?(text_parts) do
-        message = Enum.reduce(text_parts, message, &Mail.Message.delete_part(&2, &1))
+      if has_text_parts do
+        # If any text with attachments, wrap in new part
+        # If any inline attachments, wrap together with text
+        # in a "multipart/related" part
+        inner_content_type = (has_inline && "multipart/related") || "multipart/alternative"
 
-        mixed_part =
+        body_part =
           Mail.build_multipart()
-          |> Mail.Message.put_content_type("multipart/alternative")
+          |> Mail.Message.put_content_type(inner_content_type)
+          |> Mail.Message.put_parts(text_parts)
+          |> Mail.Message.put_parts(inlines)
 
-        mixed_part = Enum.reduce(text_parts, mixed_part, &Mail.Message.put_part(&2, &1))
-        put_in(message.parts, List.insert_at(message.parts, 0, mixed_part))
+        message
+        |> Mail.Message.delete_all_parts()
+        |> Mail.Message.put_part(body_part)
+        |> Mail.Message.put_parts(mixed)
       else
+        # If not text sections, leave all parts as is
         message
       end
     else
+      # If only text, change content type to alternative
       content_type = List.replace_at(content_type, 0, "multipart/alternative")
       Mail.Message.put_content_type(message, content_type)
     end

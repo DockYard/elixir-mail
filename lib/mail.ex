@@ -194,18 +194,28 @@ defmodule Mail do
     do: Mail.Message.put_attachment(message, {filename, data}, opts)
 
   @doc """
-  Determines the message has any attachment parts
+  Determines the message has any non-inline attachment parts
 
   Returns a `Boolean`
   """
   def has_attachments?(%Mail.Message{} = message) do
-    walk_parts([message], {:cont, false}, fn message, _acc ->
-      case Mail.Message.is_attachment?(message) do
-        true -> {:halt, true}
-        false -> {:cont, false}
-      end
-    end)
-    |> elem(1)
+    has_message?(message, &Mail.Message.is_attachment?/1)
+  end
+
+  @doc """
+  Determines the message has any inline attachment parts
+  Returns a `Boolean`
+  """
+  def has_inline_attachments?(%Mail.Message{} = message) do
+    has_message?(message, &Mail.Message.is_inline_attachment?/1)
+  end
+
+  @doc """
+  Determines the message has any inline attachment parts
+  Returns a `Boolean`
+  """
+  def has_any_attachments?(%Mail.Message{} = message) do
+    has_message?(message, &Mail.Message.is_any_attachment?/1)
   end
 
   @doc """
@@ -214,8 +224,12 @@ defmodule Mail do
   Returns a `Boolean`
   """
   def has_text_parts?(%Mail.Message{} = message) do
+    has_message?(message, &Mail.Message.is_text_part?/1)
+  end
+
+  defp has_message?(%Mail.Message{} = message, condition) do
     walk_parts([message], {:cont, false}, fn message, _acc ->
-      case Mail.Message.is_text_part?(message) do
+      case condition.(message) do
         true -> {:halt, true}
         false -> {:cont, false}
       end
@@ -230,11 +244,16 @@ defmodule Mail do
   """
   def get_attachments(%Mail.Message{} = message) do
     walk_parts([message], {:cont, []}, fn message, acc ->
-      case Mail.Message.is_attachment?(message) do
+      case Mail.Message.is_any_attachment?(message) do
         true ->
           filename =
             case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
               ["attachment" | properties] ->
+                Enum.find_value(properties, "Unknown", fn {key, value} ->
+                  key == "filename" && value
+                end)
+
+              ["inline" | properties] ->
                 Enum.find_value(properties, "Unknown", fn {key, value} ->
                   key == "filename" && value
                 end)
