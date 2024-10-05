@@ -11,9 +11,15 @@ defmodule Mail.Message do
 
       Mail.Message.put_part(%Mail.Message{}, %Mail.Message{})
   """
-  def put_part(message, %Mail.Message{} = part) do
-    put_in(message.parts, message.parts ++ [part])
-  end
+  def put_part(message, %Mail.Message{} = part),
+    do: put_in(message.parts, message.parts ++ [part])
+
+  @doc """
+  Add an arbitrary amount of parts
+    Mail.Message.put_parts(%Mail.Message{}, [%Mail.Message{}, %Mail.Message{}])
+  """
+  def put_parts(message, parts) when is_list(parts),
+    do: put_in(message.parts, message.parts ++ parts)
 
   @doc """
   Delete a matching part
@@ -23,6 +29,13 @@ defmodule Mail.Message do
   """
   def delete_part(message, part),
     do: put_in(message.parts, List.delete(message.parts, part))
+
+  @doc """
+  Delete a matching part
+  Will remove all parts from message.
+  """
+  def delete_all_parts(message),
+    do: put_in(message.parts, [])
 
   @doc """
   Will match on a full or partial content type
@@ -334,7 +347,7 @@ defmodule Mail.Message do
   end
 
   @doc """
-  Is the part an attachment or not
+  Is the part a non-inline attachment or not
 
   Returns `Boolean`
   """
@@ -342,7 +355,7 @@ defmodule Mail.Message do
     do: Enum.member?(List.wrap(get_header(message, :content_disposition)), "attachment")
 
   @doc """
-  Determines the message has any attachment parts
+  Determines the message has any non-inline attachment parts
 
   Returns a `Boolean`
   """
@@ -351,6 +364,30 @@ defmodule Mail.Message do
 
   def has_attachment?(message),
     do: has_attachment?(message.parts)
+
+  @doc """
+  Is the part an inline attachment or not
+  Returns `Boolean`
+  """
+  def is_inline_attachment?(message),
+    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), "inline")
+
+  @doc """
+  Determines the message has any inline attachment parts
+  Returns a `Boolean`
+  """
+  def has_inline_attachment?(parts) when is_list(parts),
+    do: has_part?(parts, &is_inline_attachment?/1)
+
+  def has_inline_attachment?(message),
+    do: has_inline_attachment?(message.parts)
+
+  @doc """
+  Is the part any kind of attachment or not
+  Returns `Boolean`
+  """
+  def is_any_attachment?(message),
+    do: is_inline_attachment?(message) || is_attachment?(message)
 
   @doc """
   Is the message text based or not
