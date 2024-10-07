@@ -240,6 +240,16 @@ defmodule Mail.MessageTest do
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(mail)
   end
 
+    test "UTF-8 with underscore in other header (quoted printable with spaces, RFC 2047§4.2 (2)" do
+      header_value = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbXBsb3llZV9pZCI6IjFjNGU3YjU5LWUyNmQtNGJiZC05NmM5LTRjYmEzMzZmZWE4NSIsImF0dGFja19pZCI6IjIwMWNmMzk3LTJmNGYtNDU4Yi1hMTIwLTg3YWI0MzMzNTM1OSIsImV4cCI6MTcyODg5ODcwN30.aWOJ4dPh42FL7eurQetjC1b7fCxVB_BsVVNyUcyYjNI"
+
+      mail = Mail.build_multipart() |> Mail.Message.put_header("X-Custom-Header", header_value)
+      message = mail |> Mail.Renderers.RFC2822.render()
+      assert %Mail.Message{
+            headers: %{"x-custom-header" => ^header_value}
+          } = Mail.Parsers.RFC2822.parse(message)
+  end
+
   test "UTF-8 in other header" do
     file_name = "READMEüä.md"
 
