@@ -8,6 +8,7 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   @new_line "=\r\n"
   @max_length 76
+  @reserved_chars [?=, ??, ?_]
 
   @doc """
   Encodes a string into a quoted-printable encoded string.
@@ -23,10 +24,9 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   def encode(<<>>, _, acc, _), do: acc
 
-  # Encode ASCII characters in range 0x20..0x3C.
-  # Encode ASCII characters in range 0x3E..0x7E, except 0x3F (question mark)
+  # Encode ASCII characters in range 0x20..0x7E, except reserved symbols: 0x3F (question mark), 0x3D (equal sign) and 0x5F (underscore)
   def encode(<<char, tail::binary>>, max_length, acc, line_length)
-      when char in ?!..?< or char in ?@..?~ or char == ?> do
+      when char in ?!..?~ and char not in @reserved_chars do
     if line_length < max_length - 1 do
       encode(tail, max_length, acc <> <<char>>, line_length + 1)
     else
