@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.1 2024-10-09
+
+* Fix quoted-printable encoding of reserved characters https://github.com/DockYard/elixir-mail/pull/176
+* Updates to documentation with doctests
+
 ## 0.4.0 2024-10-02
 
 * Change date parser to return {:error, date_text} when date is unparsable https://github.com/DockYard/elixir-mail/pull/169
