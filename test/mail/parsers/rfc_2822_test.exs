@@ -800,7 +800,34 @@ defmodule Mail.Parsers.RFC2822Test do
       Content-Transfer-Encoding: base64
 
       JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
-      ------=_Part_295474_20544590.1456382229928--
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: application/pdf;
+        name="=?windows-1258?Q?Pre=ECsentation.pdf?="
+      Content-Description: =?windows-1258?Q?Pre=ECsentation.pdf?=
+      Content-Disposition: attachment;
+        filename="=?windows-1258?Q?Pre=ECsentation.pdf?="; size=3827236;
+        creation-date="Wed, 11 Sep 2024 09:27:41 GMT";
+        modification-date="Wed, 09 Oct 2024 08:27:14 GMT"
+      Content-ID: <f_m0xno2c63>
+      Content-Transfer-Encoding: base64
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: application/octet-stream;
+        name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
+      Content-Description:
+      =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
+      Content-Disposition: attachment;
+        filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
+        size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
+        modification-date="Tue, 08 Oct 2024 14:16:55 GMT"
+      Content-Transfer-Encoding: base64
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+      ------=_Part_295474_20544590.1456382229928
       """)
 
     assert parts = message.parts
