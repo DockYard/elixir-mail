@@ -776,65 +776,118 @@ defmodule Mail.Parsers.RFC2822Test do
   end
 
   test "parses Windows-1252 encoded filenames" do
-    message =
-      parse_email("""
-      To: user@example.com
-      From: me@example.com
-      Subject: Test
-      Content-Type: multipart/mixed;
-      	boundary="----=_Part_295474_20544590.1456382229928"
+    email = """
+    To: user@example.com
+    From: me@example.com
+    Subject: Test
+    Content-Type: multipart/mixed;
+    	boundary="----=_Part_295474_20544590.1456382229928"
 
-      ------=_Part_295474_20544590.1456382229928
-      Content-Type: text/plain
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: text/plain
 
-      This is some text
+    This is some text
 
-      ------=_Part_295474_20544590.1456382229928
-      Content-Type: application/octet-stream;
-        name="=?Windows-1252?Q?Imagin=E9.pdf?="
-      Content-Description: =?Windows-1252?Q?Imagine=E9.pdf?=
-      Content-Disposition: attachment;
-        filename="=?Windows-1252?Q?Imagine=E9.pdf?="; size=864872;
-        creation-date="Tue, 08 Oct 2024 14:16:59 GMT";
-        modification-date="Tue, 08 Oct 2024 14:16:59 GMT"
-      Content-Transfer-Encoding: base64
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?Imagin=E9.pdf?="
+    Content-Description: =?Windows-1252?Q?Imagine=E9.pdf?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?Imagine=E9.pdf?="; size=864872;
+      creation-date="Tue, 08 Oct 2024 14:16:59 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:59 GMT"
+    Content-Transfer-Encoding: base64
 
-      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
 
-      ------=_Part_295474_20544590.1456382229928
-      Content-Type: application/pdf;
-        name="=?windows-1258?Q?Pre=ECsentation.pdf?="
-      Content-Description: =?windows-1258?Q?Pre=ECsentation.pdf?=
-      Content-Disposition: attachment;
-        filename="=?windows-1258?Q?Pre=ECsentation.pdf?="; size=3827236;
-        creation-date="Wed, 11 Sep 2024 09:27:41 GMT";
-        modification-date="Wed, 09 Oct 2024 08:27:14 GMT"
-      Content-ID: <f_m0xno2c63>
-      Content-Transfer-Encoding: base64
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/pdf;
+      name="=?windows-1258?Q?Pre=ECsentation.pdf?="
+    Content-Description: =?windows-1258?Q?Pre=ECsentation.pdf?=
+    Content-Disposition: attachment;
+      filename="=?windows-1258?Q?Pre=ECsentation.pdf?="; size=3827236;
+      creation-date="Wed, 11 Sep 2024 09:27:41 GMT";
+      modification-date="Wed, 09 Oct 2024 08:27:14 GMT"
+    Content-ID: <f_m0xno2c63>
+    Content-Transfer-Encoding: base64
 
-      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
 
-      ------=_Part_295474_20544590.1456382229928
-      Content-Type: application/octet-stream;
-        name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
-      Content-Description: =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
-      Content-Disposition: attachment;
-        filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
-        size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
-        modification-date="Tue, 08 Oct 2024 14:16:55 GMT"
-      Content-Transfer-Encoding: base64
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
+    Content-Description: =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
+      size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:55 GMT"
+    Content-Transfer-Encoding: base64
 
-      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
 
-      ------=_Part_295474_20544590.1456382229928
-      """)
+    ------=_Part_295474_20544590.1456382229928
+    """
 
+    message = parse_email(email)
     assert [part1, part2, part3, part4] = message.parts
 
     assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
-    assert %{headers: %{"content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]}} = part2
-    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} = part3
-    assert %{headers: %{"content-type" => ["application/octet-stream", {"name", "ID S\xE9 - Liste inscrits.xlsx"}]}} = part4
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID S\xE9 - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
+
+    # This is a simple character replacement function that simulates charset change from Windows-1252/1258 to UTF-8
+    message =
+      parse_email(email,
+        charset_handler: fn _charset, string ->
+          string
+          |> String.graphemes()
+          |> Enum.map(fn
+            # Windows-1252
+            <<233>> -> "é"
+            # Windows-1258
+            <<236>> -> "\u0301"
+            char -> char
+          end)
+          |> Enum.join()
+        end
+      )
+
+    assert [part1, part2, part3, part4] = message.parts
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imaginé.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Présentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID Sé - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
   end
 
   test "content-type mixed with no body" do
@@ -879,8 +932,8 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
-  defp parse_email(email),
-    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
+  defp parse_email(email, opts \\ []),
+    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
   defp parse_recipient(recipient),
     do: Mail.Parsers.RFC2822.parse_recipient_value(recipient)

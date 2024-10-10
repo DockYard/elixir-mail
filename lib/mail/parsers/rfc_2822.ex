@@ -38,20 +38,28 @@ defmodule Mail.Parsers.RFC2822 do
     "december" => "dec"
   }
 
-  @spec parse(binary() | nonempty_maybe_improper_list()) :: Mail.Message.t()
-  def parse(content)
+  @doc """
+  Parses a RFC2822 message back into a `%Mail.Message{}` data model.
 
-  def parse([_ | _] = lines) do
+  ## Options
+
+    * `:charset_handler` - A function that takes a charset and binary and returns a binary. Defaults to return the string as is.
+
+  """
+  @spec parse(binary() | nonempty_maybe_improper_list(), keyword()) :: Mail.Message.t()
+  def parse(content, opts \\ [])
+
+  def parse([_ | _] = lines, opts) do
     [headers, lines] = extract_headers(lines)
 
     %Mail.Message{}
-    |> parse_headers(headers)
-    |> mark_multipart
-    |> parse_body(lines)
+    |> parse_headers(headers, opts)
+    |> mark_multipart()
+    |> parse_body(lines, opts)
   end
 
-  def parse(content),
-    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse
+  def parse(content, opts),
+    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse(opts)
 
   defp extract_headers(list, headers \\ [])
 
@@ -294,18 +302,18 @@ defmodule Mail.Parsers.RFC2822 do
     end)
   end
 
-  defp parse_headers(message, []), do: message
+  defp parse_headers(message, [], _opts), do: message
 
-  defp parse_headers(message, [header | tail]) do
+  defp parse_headers(message, [header | tail], opts) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
-    decoded = parse_encoded_word(body)
+    decoded = parse_encoded_word(body, opts)
 
     headers =
       put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
 
     message = %{message | headers: headers}
-    parse_headers(message, tail)
+    parse_headers(message, tail, opts)
   end
 
   defp put_header(headers, "received" = key, value),
@@ -365,11 +373,11 @@ defmodule Mail.Parsers.RFC2822 do
     do: value
 
   # See https://tools.ietf.org/html/rfc2047
-  defp parse_encoded_word(""), do: ""
+  defp parse_encoded_word("", _opts), do: ""
 
-  defp parse_encoded_word(<<"=?", value::binary>>) do
+  defp parse_encoded_word(<<"=?", value::binary>>, opts) do
     case String.split(value, "?", parts: 4) do
-      [_charset, encoding, encoded_string, <<"=", remainder::binary>>] ->
+      [charset, encoding, encoded_string, <<"=", remainder::binary>>] ->
         decoded_string =
           case String.upcase(encoding) do
             "Q" ->
@@ -379,19 +387,22 @@ defmodule Mail.Parsers.RFC2822 do
               Mail.Encoders.Base64.decode(encoded_string)
           end
 
+        charset_handler = Keyword.get(opts, :charset_handler, fn _, string -> string end)
+        decoded_string = charset_handler.(charset, decoded_string)
+
         # Remove space if immediately followed by another encoded word string
         remainder = Regex.replace(~r/\s+\=\?/, remainder, "=?")
 
-        decoded_string <> parse_encoded_word(remainder)
+        decoded_string <> parse_encoded_word(remainder, opts)
 
       _ ->
         # Not an encoded word, moving on
-        "=?" <> parse_encoded_word(value)
+        "=?" <> parse_encoded_word(value, opts)
     end
   end
 
-  defp parse_encoded_word(<<char::utf8, rest::binary>>),
-    do: <<char::utf8, parse_encoded_word(rest)::binary>>
+  defp parse_encoded_word(<<char::utf8, rest::binary>>, opts),
+    do: <<char::utf8, parse_encoded_word(rest, opts)::binary>>
 
   defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
 
@@ -495,7 +506,7 @@ defmodule Mail.Parsers.RFC2822 do
   defp remove_excess_whitespace(<<char::utf8, rest::binary>>),
     do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
 
-  defp parse_body(%Mail.Message{multipart: true} = message, lines) do
+  defp parse_body(%Mail.Message{multipart: true} = message, lines, opts) do
     content_type = message.headers["content-type"]
     boundary = Mail.Proplist.get(content_type, "boundary")
 
@@ -503,20 +514,20 @@ defmodule Mail.Parsers.RFC2822 do
       lines
       |> extract_parts(boundary)
       |> Enum.map(fn part ->
-        parse(part)
+        parse(part, opts)
       end)
 
     Map.put(message, :parts, parts)
   end
 
-  defp parse_body(%Mail.Message{} = message, []) do
+  defp parse_body(%Mail.Message{} = message, [], _opts) do
     message
   end
 
-  defp parse_body(%Mail.Message{} = message, lines) do
+  defp parse_body(%Mail.Message{} = message, lines, _opts) do
     decoded =
       lines
-      |> join_body
+      |> join_body()
       |> decode(message)
 
     Map.put(message, :body, decoded)
