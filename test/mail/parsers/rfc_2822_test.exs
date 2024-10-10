@@ -817,8 +817,7 @@ defmodule Mail.Parsers.RFC2822Test do
       ------=_Part_295474_20544590.1456382229928
       Content-Type: application/octet-stream;
         name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
-      Content-Description:
-      =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
+      Content-Description: =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
       Content-Disposition: attachment;
         filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
         size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
@@ -830,7 +829,12 @@ defmodule Mail.Parsers.RFC2822Test do
       ------=_Part_295474_20544590.1456382229928
       """)
 
-    assert parts = message.parts
+    assert [part1, part2, part3, part4] = message.parts
+
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert %{headers: %{"content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]}} = part2
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} = part3
+    assert %{headers: %{"content-type" => ["application/octet-stream", {"name", "ID S\xE9 - Liste inscrits.xlsx"}]}} = part4
   end
 
   test "content-type mixed with no body" do
