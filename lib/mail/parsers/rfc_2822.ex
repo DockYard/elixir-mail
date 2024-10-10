@@ -429,13 +429,13 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_quoted_string(string, acc \\ "")
 
-  defp parse_quoted_string(<<"\\", char::utf8, rest::binary>>, acc),
-    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
+  defp parse_quoted_string(<<"\\", char, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char>>)
 
   defp parse_quoted_string(<<"\"", rest::binary>>, acc), do: {acc, rest}
 
-  defp parse_quoted_string(<<char::utf8, rest::binary>>, acc),
-    do: parse_quoted_string(rest, <<acc::binary, char::utf8>>)
+  defp parse_quoted_string(<<char, rest::binary>>, acc),
+    do: parse_quoted_string(rest, <<acc::binary, char>>)
 
   defp parse_received_value(value) do
     case String.split(value, ";") do
