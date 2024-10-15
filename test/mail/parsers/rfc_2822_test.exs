@@ -817,6 +817,201 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  # Yet another email found in the wild
+  test "parses all headers when lots of newlines" do
+    message =
+      parse_email("""
+      Delivered-To: user@exemple.com
+      MIME-Version: 1.0
+      Reply-To: Example Sender <sc-noreply@example.com>
+      Subject:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      Your Subject
+      With So Much Newlines
+      From: Example Sender <sc-noreply@example.com>
+      To: user@example.com
+      Content-Type: multipart/alternative; boundary="0000000000003a77cb0623f1bbba"
+
+      """)
+    assert message.headers["from"] == "Example Sender <sc-noreply@example.com>"
+    assert message.headers["to"] == ["user@example.com"]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
