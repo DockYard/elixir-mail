@@ -784,9 +784,10 @@ defmodule Mail.Parsers.RFC2822Test do
     	boundary="----=_Part_295474_20544590.1456382229928"
 
     ------=_Part_295474_20544590.1456382229928
-    Content-Type: text/plain
+    Content-Type: text/plain; charset="Windows-1252"
+      Content-Transfer-Encoding: quoted-printable
 
-    This is some text
+      fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
 
     ------=_Part_295474_20544590.1456382229928
     Content-Type: application/octet-stream;
