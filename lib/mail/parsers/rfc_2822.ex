@@ -524,11 +524,11 @@ defmodule Mail.Parsers.RFC2822 do
     message
   end
 
-  defp parse_body(%Mail.Message{} = message, lines, _opts) do
+  defp parse_body(%Mail.Message{} = message, lines, opts) do
     decoded =
       lines
       |> join_body()
-      |> decode(message)
+      |> decode(message, opts)
 
     Map.put(message, :body, decoded)
   end
@@ -580,9 +580,18 @@ defmodule Mail.Parsers.RFC2822 do
     end
   end
 
-  defp decode(body, message) do
+  defp decode(body, message, opts) do
     body = String.trim_trailing(body)
+    content_type = message.headers["content-type"]
+    charset = Mail.Proplist.get(content_type, "charset")
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
-    Mail.Encoder.decode(body, transfer_encoding)
+    decoded = Mail.Encoder.decode(body, transfer_encoding)
+
+    if charset do
+      charset_handler = Keyword.get(opts, :charset_handler, fn _, string -> string end)
+      charset_handler.(charset, decoded)
+    else
+      decoded
+    end
   end
 end

@@ -785,9 +785,9 @@ defmodule Mail.Parsers.RFC2822Test do
 
     ------=_Part_295474_20544590.1456382229928
     Content-Type: text/plain; charset="Windows-1252"
-      Content-Transfer-Encoding: quoted-printable
+    Content-Transfer-Encoding: quoted-printable
 
-      fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
+    fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
 
     ------=_Part_295474_20544590.1456382229928
     Content-Type: application/octet-stream;
@@ -833,6 +833,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert [part1, part2, part3, part4] = message.parts
 
     assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "fran\xE7aise pr\xE8s \xE0 th\xE9\xE2tre lumi\xE8re"
 
     assert %{
              headers: %{
@@ -860,9 +861,13 @@ defmodule Mail.Parsers.RFC2822Test do
           |> String.graphemes()
           |> Enum.map(fn
             # Windows-1252
-            <<233>> -> "é"
+            <<0xE0>> -> "à"
+            <<0xE2>> -> "â"
+            <<0xE7>> -> "ç"
+            <<0xE8>> -> "è"
+            <<0xE9>> -> "é"
             # Windows-1258
-            <<236>> -> "\u0301"
+            <<0xEC>> -> "\u0301"
             char -> char
           end)
           |> Enum.join()
@@ -871,6 +876,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert [part1, part2, part3, part4] = message.parts
     assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "française près à théâtre lumière"
 
     assert %{
              headers: %{
