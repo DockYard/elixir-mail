@@ -418,6 +418,16 @@ defmodule Mail.Parsers.RFC2822Test do
              "v=1; a=rsa-sha256; c=relaxed/relaxed;        d=example.com; s=20160922;        h=mime-version:in-reply-to:references:date:message-id:subject:from:to;        bh=ABCDEFGHABCDEFGHABCDEFGHABCDEFGHABCDEFGHABC=;        b=abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890+/         abcd=="
   end
 
+  test "parses utf-8 encoded from" do
+    message =
+      parse_email("""
+      From: =?UTF-8?B?am9obi5kb2VAcmVkYWN0ZS4uLg==?= <comments-noreply@docs.google.com>
+      """)
+
+    assert message.headers["from"] ==
+             {"john.doe@redacte...", "<comments-noreply@docs.google.com>"}
+  end
+
   test "parses more than 1 'Received:' header" do
     message =
       parse_email("""
