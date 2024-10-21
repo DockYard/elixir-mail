@@ -302,18 +302,22 @@ defmodule Mail.Parsers.RFC2822 do
     end)
   end
 
-  defp parse_headers(message, [], _opts), do: message
+  defp parse_headers(message, headers, opts) do
+    headers =
+      Enum.reduce(headers, message.headers, fn header, headers ->
+        {key, value} = parse_header(header, opts)
+        put_header(headers, key, value)
+      end)
 
-  defp parse_headers(message, [header | tail], opts) do
+    Map.put(message, :headers, headers)
+  end
+
+  def parse_header(header, opts) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
-    decoded = parse_encoded_word(body, opts)
-
-    headers =
-      put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
-
-    message = %{message | headers: headers}
-    parse_headers(message, tail, opts)
+    value = parse_header_value(key, body)
+    decoded = decode_header_value(key, value, opts)
+    {key, decoded}
   end
 
   defp put_header(headers, "received" = key, value),
@@ -372,6 +376,48 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value(_key, value),
     do: value
 
+  defp decode_header_value(_key, nil, _opts),
+    do: nil
+
+  defp decode_header_value(_key, %DateTime{} = datetime, _opts),
+    do: datetime
+
+  defp decode_header_value("received", value, _opts),
+    do: value
+
+  defp decode_header_value(_key, [value | [param | _params] = params], opts)
+       when is_binary(value) and is_tuple(param) do
+    decoded = parse_encoded_word(value, opts)
+    params = Enum.map(params, fn {param, value} -> {param, parse_encoded_word(value, opts)} end)
+    [decoded | params]
+  end
+
+  defp decode_header_value(_key, {name, email}, opts) do
+    decoded = parse_encoded_word(name, opts)
+    {decoded, email}
+  end
+
+  defp decode_header_value(key, addresses, opts)
+       when key in ["to", "cc", "from", "reply-to"] and is_list(addresses) do
+    addresses =
+      Enum.map(addresses, fn
+        {name, email} ->
+          decoded = parse_encoded_word(name, opts)
+          {decoded, email}
+
+        email ->
+          email
+      end)
+
+    addresses
+  end
+
+  defp decode_header_value("from", value, _opts), do: value
+
+  defp decode_header_value(_key, value, opts) do
+    parse_encoded_word(value, opts)
+  end
+
   # See https://tools.ietf.org/html/rfc2047
   defp parse_encoded_word("", _opts), do: ""
 
@@ -404,39 +450,59 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(<<char::utf8, rest::binary>>, opts),
     do: <<char::utf8, parse_encoded_word(rest, opts)::binary>>
 
-  defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
+  defp parse_structured_header_value(
+         string,
+         value \\ nil,
+         sub_types \\ [],
+         part \\ :value,
+         acc \\ ""
+       )
 
-  defp parse_structured_header_value("", value, [{key, nil} | sub_types], acc),
+  defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc),
     do: [value | Enum.reverse([{key, acc} | sub_types])]
 
-  defp parse_structured_header_value("", nil, [], acc),
+  defp parse_structured_header_value("", nil, [], _part, acc),
     do: acc
 
-  defp parse_structured_header_value("", value, sub_types, ""),
+  defp parse_structured_header_value("", value, sub_types, _part, ""),
     do: [value | Enum.reverse(sub_types)]
 
-  defp parse_structured_header_value("", value, [], acc),
+  defp parse_structured_header_value("", value, [], _part, acc),
     do: [value, String.trim(acc)]
 
-  defp parse_structured_header_value("", value, sub_types, acc),
-    do: parse_structured_header_value("", value, sub_types, String.trim(acc))
+  defp parse_structured_header_value("", value, sub_types, part, acc),
+    do: parse_structured_header_value("", value, sub_types, part, String.trim(acc))
 
-  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, acc) do
+  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, part, acc) do
     {string, rest} = parse_quoted_string(rest)
-    parse_structured_header_value(rest, value, sub_types, <<acc::binary, string::binary>>)
+    parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, string::binary>>)
   end
 
-  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, acc),
-    do: parse_structured_header_value(rest, acc, sub_types, "")
+  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, part, acc)
+       when part in [:value, :param_value],
+       do: parse_structured_header_value(rest, acc, sub_types, :param_name, "")
 
-  defp parse_structured_header_value(<<";", rest::binary>>, value, [{key, nil} | sub_types], acc),
-    do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], "")
+  defp parse_structured_header_value(
+         <<";", rest::binary>>,
+         value,
+         [{key, nil} | sub_types],
+         :param_value,
+         acc
+       ),
+       do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], :param_name, "")
 
-  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, acc),
-    do: parse_structured_header_value(rest, value, [{key_to_atom(acc), nil} | sub_types], "")
+  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, :param_name, acc),
+    do:
+      parse_structured_header_value(
+        rest,
+        value,
+        [{key_to_atom(acc), nil} | sub_types],
+        :param_value,
+        ""
+      )
 
-  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, acc),
-    do: parse_structured_header_value(rest, value, sub_types, <<acc::binary, char::utf8>>)
+  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, part, acc),
+    do: parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, char::utf8>>)
 
   defp parse_quoted_string(string, acc \\ "")
 

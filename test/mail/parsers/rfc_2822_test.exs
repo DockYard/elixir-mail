@@ -939,6 +939,76 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "parses encoded word cotaining 'special' characters RFC 2047§6.2" do
+    message =
+      parse_email("""
+      From: =?UTF-8?B?am9obi5kb2VAcmVkYWN0ZS4uLg==?= <comments-noreply@docs.google.com>
+      """)
+
+    assert message.headers["from"] == {"john.doe@redacte...", "comments-noreply@docs.google.com"}
+  end
+
+  test "correct handling of encoded words according to RFC 2047 (examples)" do
+    message =
+      parse_email("""
+      From: =?US-ASCII?Q?Keith_Moore?= <moore@cs.utk.edu>
+      To: =?ISO-8859-1?Q?Keld_J=F8rn_Simonsen?= <keld@dkuug.dk>
+      CC: =?ISO-8859-1?Q?Andr=E9?= Pirard <PIRARD@vm1.ulg.ac.be>
+      Subject: =?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?=
+       =?ISO-8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg==?=
+      """)
+
+    assert message.headers["from"] == {"Keith Moore", "moore@cs.utk.edu"}
+    assert message.headers["to"] == [{"Keld J\xF8rn Simonsen", "keld@dkuug.dk"}]
+    assert message.headers["cc"] == [{"Andr\xE9 Pirard", "PIRARD@vm1.ulg.ac.be"}]
+    assert message.headers["subject"] == "If you can read this you understand the example."
+
+    message =
+      parse_email("""
+      From: =?ISO-8859-1?Q?Olle_J=E4rnefors?= <ojarnef@admin.kth.se>
+      To: ietf-822@dimacs.rutgers.edu, ojarnef@admin.kth.se
+      Subject: Time for ISO 10646?
+      """)
+
+    assert message.headers["from"] == {"Olle J\xE4rnefors", "ojarnef@admin.kth.se"}
+    assert message.headers["to"] == ["ietf-822@dimacs.rutgers.edu", "ojarnef@admin.kth.se"]
+    assert message.headers["subject"] == "Time for ISO 10646?"
+
+    message =
+      parse_email("""
+      To: Dave Crocker <dcrocker@mordor.stanford.edu>
+      Cc: ietf-822@dimacs.rutgers.edu, paf@comsol.se
+      From: =?ISO-8859-1?Q?Patrik_F=E4ltstr=F6m?= <paf@nada.kth.se>
+      Subject: Re: RFC-HDR care and feeding
+      """)
+
+    assert message.headers["from"] == {"Patrik F\xE4ltstr\xF6m", "paf@nada.kth.se"}
+    assert message.headers["to"] == [{"Dave Crocker", "dcrocker@mordor.stanford.edu"}]
+    assert message.headers["cc"] == ["ietf-822@dimacs.rutgers.edu", "paf@comsol.se"]
+    assert message.headers["subject"] == "Re: RFC-HDR care and feeding"
+
+    message =
+      parse_email("""
+      From: Nathaniel Borenstein <nsb@thumper.bellcore.com>
+         (=?iso-8859-8?b?7eXs+SDv4SDp7Oj08A==?=)
+      To: Greg Vaudreuil <gvaudre@NRI.Reston.VA.US>, Ned Freed
+         <ned@innosoft.com>, Keith Moore <moore@cs.utk.edu>
+      Subject: Test of new header generator
+      MIME-Version: 1.0
+      Content-type: text/plain; charset=ISO-8859-1
+      """)
+
+    assert message.headers["from"] == {"Nathaniel Borenstein", "nsb@thumper.bellcore.com"}
+
+    assert message.headers["to"] == [
+             {"Greg Vaudreuil", "gvaudre@NRI.Reston.VA.US"},
+             {"Ned Freed", "ned@innosoft.com"},
+             {"Keith Moore", "moore@cs.utk.edu"}
+           ]
+
+    assert message.headers["subject"] == "Test of new header generator"
+  end
+
   defp parse_email(email, opts \\ []),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
