@@ -1,5 +1,5 @@
 defmodule Mail.Renderers.RFC2822 do
-  import Mail.Message, only: [match_content_type?: 2]
+  import Mail.Message, only: [match_content_type?: 2, is_attachment?: 1]
 
   @days ~w(Mon Tue Wed Thu Fri Sat Sun)
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
@@ -256,8 +256,10 @@ defmodule Mail.Renderers.RFC2822 do
 
     if Mail.Message.has_attachment?(message) do
       text_parts =
-        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
-        |> Enum.sort(&(&1 > &2))
+        Enum.filter(
+          message.parts,
+          &(match_content_type?(&1, ~r/text\/(plain|html)/) and not is_attachment?(&1))
+        )
 
       content_type = List.replace_at(content_type, 0, "multipart/mixed")
       message = Mail.Message.put_content_type(message, content_type)
