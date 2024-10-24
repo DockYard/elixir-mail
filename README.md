@@ -12,7 +12,7 @@ An RFC2822 implementation in Elixir, built for composability.
 def deps do
   [
     # Get from hex
-    {:mail, "~> 0.4.1"},
+    {:mail, "~> 0.4"},
 
     # Or use the latest from master
     {:mail, github: "DockYard/elixir-mail"}

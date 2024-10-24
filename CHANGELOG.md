@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.2 2024-10-24
+
+* Encoded strings that are not valid UTF-8 are now decoded to binary (as-is) rather than raising an error
+* Add `charset_handler` option to `Mail.Parsers.RFC2822` to allow custom charset handling https://github.com/DockYard/elixir-mail/pull/178
+
 ## 0.4.1 2024-10-09
 
 * Fix quoted-printable encoding of reserved characters https://github.com/DockYard/elixir-mail/pull/176
