@@ -253,6 +253,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert to_datetime("Wed, 14 05 2015 12:34:17") == ~U"2015-05-14 12:34:17Z"
     assert to_datetime("Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)") == ~U"2017-06-20 09:44:58Z"
     assert to_datetime("Fri Apr 15 17:22:55 CAT 2016") == ~U"2016-04-15 17:22:55Z"
+    assert to_datetime("Tue, 05 Nov 2024 10:31:43 MSK") == ~U"2024-11-05 10:31:43Z"
 
     [
       "January",
