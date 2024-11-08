@@ -8,7 +8,7 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   @new_line "=\r\n"
   @max_length 76
-  @reserved_chars [?=, ??, ?_]
+  @reserved_chars [?=, ??, ?_, ?.]
 
   @doc """
   Encodes a string into a quoted-printable encoded string.
@@ -52,6 +52,21 @@ defmodule Mail.Encoders.QuotedPrintable do
       else
         encode(tail, max_length, acc <> @new_line <> escaped, byte_size(escaped))
       end
+    end
+  end
+
+  # Encode ASCII period character
+  def encode(<<char, tail::binary>>, max_length, acc, line_length) when char in [?.] do
+    escaped = "=" <> Base.encode16(<<char>>)
+    line_length = line_length + byte_size(<<char>>)
+
+    case line_length do
+      1 ->
+        encode(tail, max_length, acc <> escaped, byte_size(escaped))
+      x when x < max_length ->
+        encode(tail, max_length, acc <> <<char>>, line_length)
+      _ ->
+        encode(tail, max_length, acc <> @new_line <> escaped, byte_size(escaped))
     end
   end
 
