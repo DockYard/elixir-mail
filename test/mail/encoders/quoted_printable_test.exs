@@ -146,6 +146,42 @@ defmodule Mail.Encoders.QuotedPrintableTest do
     assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
   end
 
+  test "encodes line beginning with a period" do
+    message = ".xxx"
+
+    encoding =
+      "=2Exxx"
+
+    assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
+  end
+
+  test "encodes 75 chars ending with a period" do
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx."
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx."
+
+    assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
+  end
+
+  test "encodes 76 chars ending with a period" do
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx."
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\n=2E"
+
+    assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
+  end
+
+  test "encodes 77 chars ending with a period" do
+    message = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx."
+
+    encoding =
+      "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx=\r\nx."
+
+    assert Mail.Encoders.QuotedPrintable.encode(message) == encoding
+  end
+
   test "decodes empty string" do
     assert Mail.Encoders.QuotedPrintable.decode("") == ""
   end
