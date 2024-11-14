@@ -2,13 +2,13 @@ defmodule Mail.Mixfile do
   use Mix.Project
 
   @source_url "https://github.com/DockYard/elixir-mail"
-  @version "0.2.3"
+  @version "0.4.2"
 
   def project do
     [
       app: :mail,
       version: @version,
-      elixir: "~> 1.3",
+      elixir: "~> 1.10",
       elixirc_paths: elixirc_paths(Mix.env()),
       build_embedded: Mix.env() == :prod,
       start_permanent: Mix.env() == :prod,
@@ -20,7 +20,9 @@ defmodule Mail.Mixfile do
   end
 
   def application do
-    [applications: [:crypto, :logger]]
+    [
+      extra_applications: [:logger, :crypto]
+    ]
   end
 
   def package do

@@ -126,9 +126,14 @@ defmodule Mail.Renderers.RFC2822Test do
     assert headers == ""
   end
 
-  test "headers - date" do
+  test "headers - erl date" do
     header = Mail.Renderers.RFC2822.render_header("date", {{2016, 1, 1}, {0, 0, 0}})
     assert header == "Date: Fri, 1 Jan 2016 00:00:00 +0000"
+  end
+
+  test "headers - DateTime" do
+    header = Mail.Renderers.RFC2822.render_header("date", ~U"2023-08-01 09:35:50Z")
+    assert header == "Date: Tue, 1 Aug 2023 09:35:50 +0000"
   end
 
   test "renders each part recursively" do
@@ -239,8 +244,68 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   test "timestamp_from_erl/1 converts to RFC2822 date and time format" do
-    timestamp = Mail.Renderers.RFC2822.timestamp_from_erl({{2016, 1, 1}, {0, 0, 0}})
+    timestamp = Mail.Renderers.RFC2822.timestamp_from_datetime({{2016, 1, 1}, {0, 0, 0}})
     assert timestamp == "Fri, 1 Jan 2016 00:00:00 +0000"
+
+    timestamp = Mail.Renderers.RFC2822.timestamp_from_datetime(~U"2023-08-01 09:40:46Z")
+    assert timestamp == "Tue, 1 Aug 2023 09:40:46 +0000"
+
+    # No std_offset
+    timestamp =
+      Mail.Renderers.RFC2822.timestamp_from_datetime(%DateTime{
+        calendar: Calendar.ISO,
+        day: 1,
+        hour: 9,
+        microsecond: {0, 0},
+        minute: 40,
+        month: 8,
+        second: 46,
+        std_offset: 0,
+        time_zone: "Africa/Johannesburg",
+        utc_offset: 7200,
+        year: 2023,
+        zone_abbr: "SAST"
+      })
+
+    assert timestamp == "Tue, 1 Aug 2023 09:40:46 +0200"
+
+    # with std_offset
+    timestamp =
+      Mail.Renderers.RFC2822.timestamp_from_datetime(%DateTime{
+        calendar: Calendar.ISO,
+        day: 1,
+        hour: 9,
+        microsecond: {0, 0},
+        minute: 40,
+        month: 8,
+        second: 46,
+        std_offset: 3600,
+        time_zone: "America/New_York",
+        utc_offset: -18000,
+        year: 2023,
+        zone_abbr: "EDT"
+      })
+
+    assert timestamp == "Tue, 1 Aug 2023 09:40:46 -0400"
+
+    # with minutes in offset
+    timestamp =
+      Mail.Renderers.RFC2822.timestamp_from_datetime(%DateTime{
+        calendar: Calendar.ISO,
+        day: 1,
+        hour: 9,
+        microsecond: {0, 0},
+        minute: 40,
+        month: 8,
+        second: 46,
+        std_offset: 0,
+        time_zone: "Australia/Eucla",
+        utc_offset: 31500,
+        year: 2023,
+        zone_abbr: "EDT"
+      })
+
+    assert timestamp == "Tue, 1 Aug 2023 09:40:46 +0845"
   end
 
   test "will raise when an invalid address in tuple with `to`" do

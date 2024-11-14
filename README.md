@@ -1,4 +1,6 @@
-# Mail [![Build Status](https://secure.travis-ci.org/DockYard/elixir-mail.svg?branch=master)](https://travis-ci.org/DockYard/elixir-mail)
+# Mail
+
+![Build Status](https://github.com/DockYard/elixir-mail/actions/workflows/main.yml/badge.svg)
 
 An RFC2822 implementation in Elixir, built for composability.
 
@@ -10,7 +12,7 @@ An RFC2822 implementation in Elixir, built for composability.
 def deps do
   [
     # Get from hex
-    {:mail, "~> 0.2"},
+    {:mail, "~> 0.4"},
 
     # Or use the latest from master
     {:mail, github: "DockYard/elixir-mail"}
@@ -49,7 +51,7 @@ message =
 After you have built your message you can render it:
 
 ```elixir
-rendered_message = Mail.Renderers.RFC2822.render(message)
+rendered_message = Mail.render(message)
 ```
 
 ## Parsing
@@ -58,7 +60,7 @@ If you'd like to parse an already rendered message back into
 a data model:
 
 ```elixir
-Mail.Parsers.RFC2822.parse(rendered_message)
+%Mail.Message{} = message = Mail.parse(rendered_message)
 ```
 
 [There are more functions described in the docs](https://hexdocs.pm/mail/Mail.html)

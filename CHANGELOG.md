@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.4.2 2024-10-24
+
+* Encoded strings that are not valid UTF-8 are now decoded to binary (as-is) rather than raising an error
+* Add `charset_handler` option to `Mail.Parsers.RFC2822` to allow custom charset handling https://github.com/DockYard/elixir-mail/pull/178
+
+## 0.4.1 2024-10-09
+
+* Fix quoted-printable encoding of reserved characters https://github.com/DockYard/elixir-mail/pull/176
+* Updates to documentation with doctests
+
+## 0.4.0 2024-10-02
+
+* Change date parser to return {:error, date_text} when date is unparsable https://github.com/DockYard/elixir-mail/pull/169
+* Ignore space between two encoded words (as per RFC 2047) https://github.com/DockYard/elixir-mail/pull/168
+* Change order of part lookup to match RFC 2046, §5.1.4 https://github.com/DockYard/elixir-mail/pull/167
+* Fix 8-bit decoding to preserve line breaks but restore wrapping https://github.com/DockYard/elixir-mail/pull/166
+* Fix 7-bit decoding to preserve line breaks but restore wrapping https://github.com/DockYard/elixir-mail/pull/164
+* Fix decoding of encoded words with spaces https://github.com/DockYard/elixir-mail/pull/160
+* Default to UTF-8 charset https://github.com/DockYard/elixir-mail/pull/162
+* Add support for case insensitive headers https://github.com/DockYard/elixir-mail/pull/161
+
+## 0.3.1 2023-08-04
+
+* Fix get_attachments/1 for attachments without filename prop https://github.com/DockYard/elixir-mail/pull/154
+
+## 0.3.0 2023-08-01
+
+* Add DateTime and time zone support to date parsing/rendering
+* Add Mail.parse/2 with default RFC2822 parser
+* Use a binary accumulator in QuotedPrintable encoder to reduce memory https://github.com/DockYard/elixir-mail/pull/145
+* Handle strings that appear to be quoted printable but are not https://github.com/DockYard/elixir-mail/pull/141
+* Provide default charset when no charset specified https://github.com/DockYard/elixir-mail/pull/144
+* Fix handling obsolete timezone (UT) in obsolete date/time format https://github.com/DockYard/elixir-mail/pull/143
+* Split encoded words on headers https://github.com/DockYard/elixir-mail/pull/134
+
 ## 0.2.3 2021-06-28
 
 * Add support for incorrect case in date parsing https://github.com/DockYard/elixir-mail/pull/132

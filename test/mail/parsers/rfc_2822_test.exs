@@ -1,5 +1,6 @@
 defmodule Mail.Parsers.RFC2822Test do
   use ExUnit.Case, async: true
+  doctest Mail.Parsers.RFC2822
 
   test "parses a singlepart message" do
     message =
@@ -78,10 +79,10 @@ defmodule Mail.Parsers.RFC2822Test do
 
     [text_part, html_part] = message.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is some HTML</h1>"
   end
 
@@ -116,39 +117,180 @@ defmodule Mail.Parsers.RFC2822Test do
 
     [text_part, html_part, headers_only_part] = message.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is some HTML</h1>"
 
     assert headers_only_part.headers["x-my-header"] == "no body!"
     assert headers_only_part.body == nil
   end
 
-  test "erl_from_timestamp\1" do
-    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
+  # A reproduction of an email found in the wild.
+  test "parses a multipart message with a body with two html parts" do
+    message =
+      parse_email("""
+      To: Test User <user@example.com>, Other User <other@example.com>
+      CC: The Dude <dude@example.com>, Batman <batman@example.com>
+      From: Me <me@example.com>
+      Subject: Test email
+      Mime-Version: 1.0
+      Content-Type: multipart/alternative; boundary=Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Transfer-Encoding: 7bit
 
-    assert erl_from_timestamp("Fri, 1 Jan 2016 00:00:00 +0000") == {{2016, 1, 1}, {0, 0, 0}}
-    assert erl_from_timestamp("1 Feb 2016 01:02:03 +0000") == {{2016, 2, 1}, {1, 2, 3}}
-    assert erl_from_timestamp(" 1 Mar 2016 11:12:13 +0000") == {{2016, 3, 1}, {11, 12, 13}}
-    assert erl_from_timestamp("\t1 Apr 2016 22:33:44 +0000") == {{2016, 4, 1}, {22, 33, 44}}
-    assert erl_from_timestamp("12 Jan 2016 00:00:00 +0000") == {{2016, 1, 12}, {0, 0, 0}}
-    assert erl_from_timestamp("25 Dec 2016 00:00:00 +0000 (UTC)") == {{2016, 12, 25}, {0, 0, 0}}
-    assert erl_from_timestamp("03 Apr 2017 12:30:55 GMT") == {{2017, 4, 3}, {12, 30, 55}}
-    # The spec specifies that the seconds are optional
-    assert erl_from_timestamp("14 Jun 2019 11:24 +0000") == {{2019, 6, 14}, {11, 24, 0}}
-    assert erl_from_timestamp("28 JUN 2021 09:10 +0200") == {{2021, 6, 28}, {9, 10, 0}}
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Type: text/plain; charset=utf-8
+      Content-Transfer-Encoding: quoted-printable
+
+      Text part
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1
+      Content-Type: multipart/mixed;
+        boundary=Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Transfer-Encoding: 7bit
+
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: text/html; charset=us-ascii
+      Content-Transfer-Encoding: 7bit
+
+      <html></html>
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: application/pdf; name=Payment.pdf; x-apple-part-url=45B14A08-AD6D-4298-9E0D-D71498E7112E
+      Content-Disposition: inline; filename=Payment.pdf
+      Content-Transfer-Encoding: base64
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1
+      Content-Type: text/html; charset=utf-8
+      Content-Transfer-Encoding: quoted-printable
+
+      <html>Non empty part</html>
+      --Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1--
+
+      --Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1--
+      """)
+
+    assert message.body == nil
+
+    [text_part, html_part] = message.parts
+
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "utf-8"}]
+    assert text_part.body == "Text part"
+
+    assert html_part.headers["content-type"] == [
+             "multipart/mixed",
+             {"boundary", "Apple-Mail-3B120747-147B-46E8-B375-DE9974BB35B1"}
+           ]
+
+    [html_part, _pdf_part, html_part2] = html_part.parts
+
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+    assert html_part.body == "<html></html>"
+
+    assert html_part2.body == "<html>Non empty part</html>"
+
+    assert Mail.get_html(message) == html_part2
   end
 
-  test "erl_from_timestamp\1 with invalid RFC2822 timestamps (found in the wild)" do
-    import Mail.Parsers.RFC2822, only: [erl_from_timestamp: 1]
+  test "to_datetime/1" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
-    assert erl_from_timestamp("Thu, 16 May 2019 5:50:53 +0700") == {{2019, 5, 16}, {5, 50, 53}}
+    assert to_datetime("Fri, 1 Jan 2016 00:00:00 +0000") == ~U"2016-01-01 00:00:00Z"
+    assert to_datetime("1 Feb 2016 01:02:03 +0000") == ~U"2016-02-01 01:02:03Z"
+    assert to_datetime(" 1 Mar 2016 11:12:13 +0000") == ~U"2016-03-01 11:12:13Z"
+    assert to_datetime("\t1 Apr 2016 22:33:44 +0000") == ~U"2016-04-01 22:33:44Z"
+    assert to_datetime("12 Jan 2016 00:00:00 +0000") == ~U"2016-01-12 00:00:00Z"
+    assert to_datetime("25 Dec 2016 00:00:00 +0000 (UTC)") == ~U"2016-12-25 00:00:00Z"
+    # The spec specifies that the seconds are optional
+    assert to_datetime("14 Jun 2019 11:24 +0000") == ~U"2019-06-14 11:24:00Z"
+    assert to_datetime("28 JUN 2021 09:10 +0200") == ~U"2021-06-28 07:10:00Z"
+    assert to_datetime("12 May 2020 12:08:24 UT") == ~U"2020-05-12 12:08:24Z"
+  end
+
+  # Handle obsolute date time https://datatracker.ietf.org/doc/html/rfc2822#section-4.3
+  test "to_datetime/1 with obsolete information" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
+
+    # Two-digit year
+    assert to_datetime("12 May 50 12:08:24 +0000") == ~U"1950-05-12 12:08:24Z"
+    assert to_datetime("12 May 49 12:08:24 +0000") == ~U"2049-05-12 12:08:24Z"
+
+    # Digit month
+    assert to_datetime("01 08 2023 08:59:03 +0000") == ~U"2023-08-01 08:59:03Z"
+
+    # Obsolete time zones
+    assert to_datetime("01 Aug 2023 08:59:03 UT") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("03 Apr 2017 12:30:55 UTC") == ~U"2017-04-03 12:30:55Z"
+    assert to_datetime("01 Aug 2023 08:59:03 GMT") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 EDT") == ~U"2023-08-01 12:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 EST") == ~U"2023-08-01 13:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 CDT") == ~U"2023-08-01 13:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 CST") == ~U"2023-08-01 14:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 MDT") == ~U"2023-08-01 14:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 MST") == ~U"2023-08-01 15:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 PDT") == ~U"2023-08-01 15:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 PST") == ~U"2023-08-01 16:59:03Z"
+
+    assert to_datetime("01 Aug 2023 08:59:03 A") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 B") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 C") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 D") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 E") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 F") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 G") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 H") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 I") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 K") == ~U"2023-08-01 08:59:03Z"
+    assert to_datetime("01 Aug 2023 08:59:03 Z") == ~U"2023-08-01 08:59:03Z"
+  end
+
+  test "to_datetime/1 with invalid RFC2822 timestamps (found in the wild)" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
+
+    assert to_datetime("Thu, 16 May 2019 5:50:53 +0700") == ~U"2019-05-15 22:50:53Z"
+    assert to_datetime("Tue May 30 15:29:15 2017") == ~U"2017-05-30 15:29:15Z"
+    assert to_datetime("Tue May 3 15:29:15 2017") == ~U"2017-05-03 15:29:15Z"
+    assert to_datetime("Wed, 14 05 2015 12:34:17") == ~U"2015-05-14 12:34:17Z"
+    assert to_datetime("Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)") == ~U"2017-06-20 09:44:58Z"
+    assert to_datetime("Fri Apr 15 17:22:55 CAT 2016") == ~U"2016-04-15 17:22:55Z"
+
+    [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ]
+    |> Enum.with_index(1)
+    |> Enum.each(fn {long_month, idx} ->
+      idx =
+        if idx < 10 do
+          "0#{idx}"
+        else
+          idx
+        end
+
+      {:ok, datetime, 0} = DateTime.from_iso8601("2024-#{idx}-13 18:29:58Z")
+      assert to_datetime("13 #{long_month} 2024 18:29:58 +0000") == datetime
+    end)
+  end
+
+  test "to_datetime/1 when the timestamp is unsupported" do
+    import Mail.Parsers.RFC2822, only: [to_datetime: 1]
+
+    assert to_datetime("invalid date string") == {:error, "invalid date string"}
   end
 
   test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient = "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
+    recipient =
+      "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
 
     retrieved_recipients = [
       {"The Dude", "dude@example.com"},
@@ -217,20 +359,20 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["from"] == {"Me", "me@example.com"}
     assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "foobar"}]
-    assert message.headers["date"] == {{2016, 1, 1}, {0, 0, 0}}
+    assert message.headers["date"] == ~U"2016-01-01 00:00:00Z"
 
     [alt_part, attach_part] = message.parts
 
     assert alt_part.headers["content-type"] == ["multipart/alternative", {"boundary", "bazqux"}]
     [text_part, html_part] = alt_part.parts
 
-    assert text_part.headers["content-type"] == "text/plain"
+    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
     assert text_part.body == "This is some text"
 
-    assert html_part.headers["content-type"] == "text/html"
+    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is the HTML</h1>"
 
-    assert attach_part.headers["content-type"] == "text/markdown"
+    assert attach_part.headers["content-type"] == ["text/markdown", {"charset", "us-ascii"}]
     assert attach_part.headers["content-disposition"] == ["attachment", {"filename", "README.md"}]
     assert attach_part.headers["content-transfer-encoding"] == "base64"
     assert attach_part.body == "Hello world!"
@@ -265,7 +407,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "by 101.102.103.104 with SMTP id abcdefg",
-               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+               {"date", ~U"2016-04-01 18:08:31Z"}
              ]
            ]
 
@@ -296,15 +438,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
-               {"date", {{2016, 4, 1}, {11, 8, 31}}}
+               {"date", ~U"2016-04-01 18:08:31Z"}
              ],
              [
                "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
-               {"date", {{2016, 4, 1}, {11, 8, 35}}}
+               {"date", ~U"2016-04-01 18:08:35Z"}
              ],
              [
                "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
-               {"date", {{2016, 4, 1}, {11, 9, 7}}}
+               {"date", ~U"2016-04-01 18:09:07Z"}
              ]
            ]
   end
@@ -347,6 +489,19 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["x-reallylongheadernamethatcausesbodytowrap"] == "BodyOnNewLine"
+  end
+
+  test "parse header with folded encoded word" do
+    # This is seen in the examples in https://www.rfc-editor.org/rfc/rfc2047.html#section-8
+    message =
+      parse_email("""
+      X-Encoded-Word: =?utf-8?Q?h=CE=B5=C5=82=C5=82=C3=B8=20w=C3=B8?=
+        =?utf-8?Q?r=C5=82d?=
+
+      Body
+      """)
+
+    assert message.headers["x-encoded-word"] == "hεłłø wørłd"
   end
 
   test "allow empty body (RFC2822 §3.5)" do
@@ -406,7 +561,7 @@ defmodule Mail.Parsers.RFC2822Test do
       parse_email("""
       To: user@example.com
       From: me@example.com
-      Subject: =?utf-8?Q?=C2=A3?=200.00 =?UTF-8?q?=F0=9F=92=B5?=
+      Subject: =?utf-8?Q?=C2=A3?=200.00=?UTF-8?q?_=F0=9F=92=B5?=
       Content-Type: multipart/mixed;
       	boundary="----=_Part_295474_20544590.1456382229928"
 
@@ -428,6 +583,30 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert ["attachment", {"filename", "Emoji 😀 Filename.png"}] =
              part.headers["content-disposition"]
+  end
+
+  test "parses headers with non-encoded string that looks like encoded word syntax" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Subject that has =? for an unknown reason with =?utf-8?B?8J+YgA==?=
+      List-Unsubscribe: https://some-domain.com/te/c/abcdef=?signature=abcdef
+      Content-Type: multipart/mixed;
+      	boundary="----=_Part_295474_20544590.1456382229928"
+
+      ------=_Part_295474_20544590.1456382229928
+      Content-Type: text/plain
+
+      This is some text
+
+      ------=_Part_295474_20544590.1456382229928--
+      """)
+
+    assert message.headers["subject"] == "Subject that has =? for an unknown reason with 😀"
+
+    assert message.headers["list-unsubscribe"] ==
+             "https://some-domain.com/te/c/abcdef=?signature=abcdef"
   end
 
   test "parses structured header with extraneous semicolon" do
@@ -465,7 +644,7 @@ defmodule Mail.Parsers.RFC2822Test do
              ],
              [
                "by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb",
-               {"date", {{2019, 6, 22}, {17, 59, 49}}}
+               {"date", ~U"2019-06-23 00:59:49Z"}
              ]
            ]
   end
@@ -486,11 +665,11 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from EUR01-HE1-obe.outbound.protection.outlook.com\t (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer\t Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
-               {"date", {{2018, 8, 6}, {7, 23, 18}}}
+               {"date", ~U"2018-08-06 07:23:18Z"}
              ],
              [
                "from EUR01-HE1-obe.outbound.protection.outlook.com         (213.199.154.213) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer         Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
-               {"date", {{2018, 8, 1}, {9, 49, 43}}}
+               {"date", ~U"2018-08-01 09:49:43Z"}
              ]
            ]
   end
@@ -515,23 +694,23 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite",
-               {"date", {{2019, 11, 25}, {13, 0, 46}}}
+               {"date", ~U"2019-11-25 11:00:46Z"}
              ],
              [
                "from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>",
-               {"date", {{2016, 4, 15}, {17, 22, 55}}}
+               {"date", ~U"2016-04-15 17:22:55Z"}
              ],
              ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
              [
                "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
-               {"date", {{2017, 8, 8}, {12, 5, 31}}}
+               {"date", ~U"2017-08-08 12:05:31Z"}
              ],
              [
                "from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])\tby x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw\tfor <x@example.com>",
-               {"date", {{2017, 6, 20}, {9, 44, 58}}}
+               {"date", ~U"2017-06-20 09:44:58Z"}
              ],
-             ["from trusted client by mx4.sika.com", {"date", {{2017, 5, 30}, {15, 29, 15}}}],
-             ["from local-ip[x.x.x.x] by FTGS", {"date", {{2014, 12, 28}, {20, 4, 31}}}]
+             ["from trusted client by mx4.sika.com", {"date", ~U"2017-05-30 15:29:15Z"}],
+             ["from local-ip[x.x.x.x] by FTGS", {"date", ~U"2014-12-28 18:04:31Z"}]
            ]
   end
 
@@ -541,7 +720,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Date: Wed, 14 05 2015 12:34:17
       """)
 
-    assert message.headers["date"] == {{2015, 5, 14}, {12, 34, 17}}
+    assert message.headers["date"] == ~U"2015-05-14 12:34:17Z"
   end
 
   test "handle comment after semi-colon in received header value" do
@@ -556,7 +735,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["received"] == [
              [
                "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
-               {"date", {{2017, 6, 8}, {4, 22, 53}}}
+               {"date", ~U"2017-06-08 08:22:53Z"}
              ]
            ]
   end
@@ -596,6 +775,128 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-type"]
   end
 
+  test "parses Windows-1252 encoded filenames" do
+    email = """
+    To: user@example.com
+    From: me@example.com
+    Subject: Test
+    Content-Type: multipart/mixed;
+    	boundary="----=_Part_295474_20544590.1456382229928"
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: text/plain; charset="Windows-1252"
+    Content-Transfer-Encoding: quoted-printable
+
+    fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?Imagin=E9.pdf?="
+    Content-Description: =?Windows-1252?Q?Imagine=E9.pdf?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?Imagine=E9.pdf?="; size=864872;
+      creation-date="Tue, 08 Oct 2024 14:16:59 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:59 GMT"
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/pdf;
+      name="=?windows-1258?Q?Pre=ECsentation.pdf?="
+    Content-Description: =?windows-1258?Q?Pre=ECsentation.pdf?=
+    Content-Disposition: attachment;
+      filename="=?windows-1258?Q?Pre=ECsentation.pdf?="; size=3827236;
+      creation-date="Wed, 11 Sep 2024 09:27:41 GMT";
+      modification-date="Wed, 09 Oct 2024 08:27:14 GMT"
+    Content-ID: <f_m0xno2c63>
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
+    Content-Description: =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
+      size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:55 GMT"
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    """
+
+    message = parse_email(email)
+    assert [part1, part2, part3, part4] = message.parts
+
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "fran\xE7aise pr\xE8s \xE0 th\xE9\xE2tre lumi\xE8re"
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID S\xE9 - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
+
+    # This is a simple character replacement function that simulates charset change from Windows-1252/1258 to UTF-8
+    message =
+      parse_email(email,
+        charset_handler: fn _charset, string ->
+          string
+          |> String.graphemes()
+          |> Enum.map(fn
+            # Windows-1252
+            <<0xE0>> -> "à"
+            <<0xE2>> -> "â"
+            <<0xE7>> -> "ç"
+            <<0xE8>> -> "è"
+            <<0xE9>> -> "é"
+            # Windows-1258
+            <<0xEC>> -> "\u0301"
+            char -> char
+          end)
+          |> Enum.join()
+        end
+      )
+
+    assert [part1, part2, part3, part4] = message.parts
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "française près à théâtre lumière"
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imaginé.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Présentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID Sé - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
+  end
+
   test "content-type mixed with no body" do
     message =
       parse_email("""
@@ -611,7 +912,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == nil
   end
 
-  test "content-type with implicit charset" do
+  test "content-type with explicit charset" do
     message =
       parse_email("""
       Content-Type: text/html; charset=us-ascii
@@ -620,8 +921,96 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
-  defp parse_email(email),
-    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
+  test "content-type with atypical casing" do
+    message =
+      parse_email("""
+      Content-type: text/html; charset=us-ascii
+      """)
+
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "content-type with implicit charset" do
+    message =
+      parse_email("""
+      Content-Type: text/html
+      """)
+
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
+  test "parses encoded word cotaining 'special' characters RFC 2047§6.2" do
+    message =
+      parse_email("""
+      From: =?UTF-8?B?am9obi5kb2VAcmVkYWN0ZS4uLg==?= <comments-noreply@docs.google.com>
+      """)
+
+    assert message.headers["from"] == {"john.doe@redacte...", "comments-noreply@docs.google.com"}
+  end
+
+  test "correct handling of encoded words according to RFC 2047 (examples)" do
+    message =
+      parse_email("""
+      From: =?US-ASCII?Q?Keith_Moore?= <moore@cs.utk.edu>
+      To: =?ISO-8859-1?Q?Keld_J=F8rn_Simonsen?= <keld@dkuug.dk>
+      CC: =?ISO-8859-1?Q?Andr=E9?= Pirard <PIRARD@vm1.ulg.ac.be>
+      Subject: =?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?=
+       =?ISO-8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg==?=
+      """)
+
+    assert message.headers["from"] == {"Keith Moore", "moore@cs.utk.edu"}
+    assert message.headers["to"] == [{"Keld J\xF8rn Simonsen", "keld@dkuug.dk"}]
+    assert message.headers["cc"] == [{"Andr\xE9 Pirard", "PIRARD@vm1.ulg.ac.be"}]
+    assert message.headers["subject"] == "If you can read this you understand the example."
+
+    message =
+      parse_email("""
+      From: =?ISO-8859-1?Q?Olle_J=E4rnefors?= <ojarnef@admin.kth.se>
+      To: ietf-822@dimacs.rutgers.edu, ojarnef@admin.kth.se
+      Subject: Time for ISO 10646?
+      """)
+
+    assert message.headers["from"] == {"Olle J\xE4rnefors", "ojarnef@admin.kth.se"}
+    assert message.headers["to"] == ["ietf-822@dimacs.rutgers.edu", "ojarnef@admin.kth.se"]
+    assert message.headers["subject"] == "Time for ISO 10646?"
+
+    message =
+      parse_email("""
+      To: Dave Crocker <dcrocker@mordor.stanford.edu>
+      Cc: ietf-822@dimacs.rutgers.edu, paf@comsol.se
+      From: =?ISO-8859-1?Q?Patrik_F=E4ltstr=F6m?= <paf@nada.kth.se>
+      Subject: Re: RFC-HDR care and feeding
+      """)
+
+    assert message.headers["from"] == {"Patrik F\xE4ltstr\xF6m", "paf@nada.kth.se"}
+    assert message.headers["to"] == [{"Dave Crocker", "dcrocker@mordor.stanford.edu"}]
+    assert message.headers["cc"] == ["ietf-822@dimacs.rutgers.edu", "paf@comsol.se"]
+    assert message.headers["subject"] == "Re: RFC-HDR care and feeding"
+
+    message =
+      parse_email("""
+      From: Nathaniel Borenstein <nsb@thumper.bellcore.com>
+         (=?iso-8859-8?b?7eXs+SDv4SDp7Oj08A==?=)
+      To: Greg Vaudreuil <gvaudre@NRI.Reston.VA.US>, Ned Freed
+         <ned@innosoft.com>, Keith Moore <moore@cs.utk.edu>
+      Subject: Test of new header generator
+      MIME-Version: 1.0
+      Content-type: text/plain; charset=ISO-8859-1
+      """)
+
+    assert message.headers["from"] == {"Nathaniel Borenstein", "nsb@thumper.bellcore.com"}
+
+    assert message.headers["to"] == [
+             {"Greg Vaudreuil", "gvaudre@NRI.Reston.VA.US"},
+             {"Ned Freed", "ned@innosoft.com"},
+             {"Keith Moore", "moore@cs.utk.edu"}
+           ]
+
+    assert message.headers["subject"] == "Test of new header generator"
+  end
+
+  defp parse_email(email, opts \\ []),
+    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
   defp parse_recipient(recipient),
     do: Mail.Parsers.RFC2822.parse_recipient_value(recipient)

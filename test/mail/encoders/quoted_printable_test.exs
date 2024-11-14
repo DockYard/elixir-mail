@@ -12,8 +12,14 @@ defmodule Mail.Encoders.QuotedPrintableTest do
     ascii_upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     assert Mail.Encoders.QuotedPrintable.encode(ascii_upper) == ascii_upper
 
-    ascii_symbols = "!\"#$%&\'()*+,-./0123456789:;<>@[\\]^_`{|}~"
+    ascii_symbols = "!\"#$%&\'()*+,-./0123456789:;<>@[\\]^`{|}~"
     assert Mail.Encoders.QuotedPrintable.encode(ascii_symbols) == ascii_symbols
+  end
+
+  # RFC 2047, section 4.2(3)
+  test "encodes reserved characters" do
+    reserved_characters = "=?_"
+    assert Mail.Encoders.QuotedPrintable.encode(reserved_characters) == "=3D=3F=5F"
   end
 
   test "encodes question mark sign" do

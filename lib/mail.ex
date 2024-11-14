@@ -26,6 +26,18 @@ defmodule Mail do
     do: %Mail.Message{multipart: true}
 
   @doc """
+  Primary hook for parsing
+
+  You can pass in your own custom parse module. That module
+  must have a `parse/1` function that accepts a string or list of lines
+
+  By default the `parser` will be `Mail.Parsers.RFC2822`
+  """
+  def parse(message, parser \\ Mail.Parsers.RFC2822) do
+    parser.parse(message)
+  end
+
+  @doc """
   Add a plaintext part to the message
 
   Shortcut function for adding plain text part
@@ -58,7 +70,7 @@ defmodule Mail do
           ["text/plain", {"charset", charset}]
 
         _else ->
-          "text/plain"
+          ["text/plain", {"charset", default_charset()}]
       end
 
     Mail.Message.put_body(message, body)
@@ -67,7 +79,9 @@ defmodule Mail do
   end
 
   @doc """
-  Find the text part of a given mail
+  Find the last text part of a given mail
+
+  RFC 2046, §5.1.4 “In general, the best choice is the LAST part of a type supported by the recipient system's local environment.”
 
   If single part with `content-type` "text/plain", returns itself
   If single part without `content-type` "text/plain", returns `nil`
@@ -75,14 +89,11 @@ defmodule Mail do
   If multipart without part having `content-type` "text/plain" will return `nil`
   """
   def get_text(%Mail.Message{multipart: true} = message) do
-    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+    Enum.reduce_while(Enum.reverse(message.parts), nil, fn sub_message, acc ->
       text_part = get_text(sub_message)
       if text_part, do: {:halt, text_part}, else: {:cont, acc}
     end)
   end
-
-  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message),
-    do: message
 
   def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
     do: message
@@ -120,7 +131,7 @@ defmodule Mail do
           ["text/html", {"charset", charset}]
 
         _else ->
-          "text/html"
+          ["text/html", {"charset", default_charset()}]
       end
 
     Mail.Message.put_body(message, body)
@@ -129,7 +140,9 @@ defmodule Mail do
   end
 
   @doc """
-  Find the html part of a given mail
+  Find the last html part of a given mail
+
+  RFC 2046, §5.1.4 “In general, the best choice is the LAST part of a type supported by the recipient system's local environment.”
 
   If single part with `content-type` "text/html", returns itself
   If single part without `content-type` "text/html", returns `nil`
@@ -137,7 +150,7 @@ defmodule Mail do
   If multipart without part having `content-type` "text/html" will return `nil`
   """
   def get_html(%Mail.Message{multipart: true} = message) do
-    Enum.reduce_while(message.parts, nil, fn sub_message, acc ->
+    Enum.reduce_while(Enum.reverse(message.parts), nil, fn sub_message, acc ->
       html_part = get_html(sub_message)
       if html_part, do: {:halt, html_part}, else: {:cont, acc}
     end)
@@ -149,6 +162,10 @@ defmodule Mail do
     do: message
 
   def get_html(%Mail.Message{}), do: nil
+
+  defp default_charset do
+    "UTF-8"
+  end
 
   @doc """
   Add an attachment part to the message
@@ -228,8 +245,13 @@ defmodule Mail do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_attachment?(message) do
         true ->
-          ["attachment", {"filename", filename} | _] =
-            Mail.Message.get_header(message, :content_disposition)
+          filename =
+            case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
+              ["attachment" | properties] ->
+                Enum.find_value(properties, "Unknown", fn {key, value} ->
+                  key == "filename" && value
+                end)
+            end
 
           {:cont, List.insert_at(acc, -1, {filename, message.body})}
 
@@ -252,8 +274,10 @@ defmodule Mail do
   @doc """
   Add a new `subject` header
 
-      Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
-      %Mail.Message{headers: %{subject: "Welcome to DockYard!"}}
+  ## Examples
+
+      iex> Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
+      %Mail.Message{headers: %{"subject" => "Welcome to DockYard!"}}
   """
   def put_subject(message, subject),
     do: Mail.Message.put_header(message, "subject", subject)
@@ -270,15 +294,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_to(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{to: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_to(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"to" => ["one@example.com"]}}
 
-      Mail.put_to(%Mail.Message{}, "one@example.com")
-      |> Mail.put_to(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{to: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_to(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_to(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -310,15 +336,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_cc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{cc: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"cc" => ["one@example.com"]}}
 
-      Mail.put_cc(%Mail.Message{}, "one@example.com")
-      |> Mail.put_cc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{cc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_cc(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -350,15 +378,17 @@ defmodule Mail do
   Recipients can be added as a single string or a list of strings.
   The list of recipients will be concated to the previous value.
 
-      Mail.put_bcc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{bcc: ["one@example.com"]}}
+  ## Examples
 
-      Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com"]}}
+      iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
+      %Mail.Message{headers: %{"bcc" => ["one@example.com"]}}
 
-      Mail.put_bcc(%Mail.Message{}, "one@example.com")
-      |> Mail.put_bcc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{bcc: ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
+      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com"]}}
+
+      iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
+      iex> |> Mail.put_bcc(["two@example.com", "three@example.com"])
+      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com", "three@example.com"]}}
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -387,8 +417,10 @@ defmodule Mail do
   @doc """
   Add a new `from` header
 
-      Mail.put_from(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{from: "user@example.com"}}
+  ## Examples
+
+      iex> Mail.put_from(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{"from" => "user@example.com"}}
   """
   def put_from(message, sender),
     do: Mail.Message.put_header(message, "from", sender)
@@ -402,8 +434,10 @@ defmodule Mail do
   @doc """
   Add a new `reply-to` header
 
-      Mail.put_reply_to(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{reply_to: "user@example.com"}}
+  ## Examples
+
+      iex> Mail.put_reply_to(%Mail.Message{}, "user@example.com")
+      %Mail.Message{headers: %{"reply-to" => "user@example.com"}}
   """
   def put_reply_to(message, reply_address),
     do: Mail.Message.put_header(message, "reply-to", reply_address)
