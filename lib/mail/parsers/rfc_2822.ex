@@ -85,58 +85,64 @@ defmodule Mail.Parsers.RFC2822 do
   returning the invalid date string.
   """
   @spec to_datetime(binary()) :: DateTime.t() | {:error, binary()}
-  def to_datetime(<<" ", rest::binary>>), do: to_datetime(rest)
-  def to_datetime(<<"\t", rest::binary>>), do: to_datetime(rest)
-  def to_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: to_datetime(rest)
+  def to_datetime(date_string) do
+    parse_datetime(date_string)
+  rescue
+    _ -> {:error, date_string}
+  end
 
-  def to_datetime(<<date::binary-size(1), " ", rest::binary>>),
-    do: to_datetime("0" <> date <> " " <> rest)
+  defp parse_datetime(<<" ", rest::binary>>), do: parse_datetime(rest)
+  defp parse_datetime(<<"\t", rest::binary>>), do: parse_datetime(rest)
+  defp parse_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: parse_datetime(rest)
+
+  defp parse_datetime(<<date::binary-size(1), " ", rest::binary>>),
+    do: parse_datetime("0" <> date <> " " <> rest)
 
   # This caters for an invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
-  def to_datetime(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
-    to_datetime("#{date} 0#{hour}:#{rest}")
+  defp parse_datetime(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
+    parse_datetime("#{date} 0#{hour}:#{rest}")
   end
 
   # This caters for an invalid date with dashes between the date/month/year parts
-  def to_datetime(
-        <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
-          rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year}#{rest}")
+  defp parse_datetime(
+         <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
+           rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year}#{rest}")
   end
 
   # This caters for an invalid two-digit year
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(2), " ",
-          rest::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(2), " ",
+           rest::binary>>
+       ) do
     year = year |> String.to_integer() |> to_four_digit_year()
-    to_datetime("#{date} #{month} #{year} #{rest}")
+    parse_datetime("#{date} #{month} #{year} #{rest}")
   end
 
   # This caters for missing seconds
-  def to_datetime(
-        <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
-          rest::binary>>
-      ) do
-    to_datetime("#{date} #{hour}:#{minute}:00 #{rest}")
+  defp parse_datetime(
+         <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
+           rest::binary>>
+       ) do
+    parse_datetime("#{date} #{hour}:#{minute}:00 #{rest}")
   end
 
   # Fixes invalid value: Wed, 14 10 2015 12:34:17
-  def to_datetime(
-        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
-          rest::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4),
+           " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+           rest::binary>>
+       ) do
     month_name = get_month_name(month_digits)
-    to_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+    parse_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          time_zone::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+           time_zone::binary>>
+       ) do
     year = year |> String.to_integer()
     month = get_month(String.downcase(month))
     date = date |> String.to_integer()
@@ -156,73 +162,84 @@ defmodule Mail.Parsers.RFC2822 do
 
   # This adds support for a now obsolete format
   # https://tools.ietf.org/html/rfc2822#section-4.3
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          timezone::binary-size(3), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+           timezone::binary-size(3), _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          _tz::binary-size(3), " ", year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(2), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", _tz::binary-size(3), " ",
+           year::binary-size(4), _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}")
   end
 
   # Fixes invalid value with milliseconds Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
-          _milliseconds::binary-size(3), rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
+           _milliseconds::binary-size(3), rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
   # Fixes invalid value: Tue May 30 15:29:15 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(2), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", year::binary-size(4),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(1), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(1), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", year::binary-size(4),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes missing time zone
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes invalid value with long months: 13 September 2024 18:29:58 +0000
   lm_sizes = Map.keys(@long_months) |> Enum.map(&byte_size/1) |> Enum.uniq()
 
   for month_size <- lm_sizes do
-    def to_datetime(
-          <<date::binary-size(2), " ", long_month::binary-size(unquote(month_size)), " ",
-            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
-            second::binary-size(2), rest::binary>>
-        ) do
+    defp parse_datetime(
+           <<date::binary-size(2), " ", long_month::binary-size(unquote(month_size)), " ",
+             year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+             second::binary-size(2), rest::binary>>
+         ) do
       month = long_month |> String.downcase() |> get_month_name()
-      to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
+      parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
     end
   end
 
-  def to_datetime(invalid_datetime), do: {:error, invalid_datetime}
+  # Chop off the day name
+  defp parse_datetime(<<_day_name::binary-size(3), " ", rest::binary>>) do
+    parse_datetime(rest)
+  end
+
+  # Chop off the day name followed by a comma
+  defp parse_datetime(<<_day_name::binary-size(3), ", ", rest::binary>>) do
+    parse_datetime(rest)
+  end
+
+  defp parse_datetime(invalid_datetime), do: {:error, invalid_datetime}
 
   defp to_four_digit_year(year) when year >= 0 and year < 50, do: 2000 + year
   defp to_four_digit_year(year) when year < 100 and year >= 50, do: 1900 + year
@@ -270,6 +287,12 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_time_zone(<<"+", offset::binary-size(4), _rest::binary>>), do: "+#{offset}"
   defp parse_time_zone(<<"-", offset::binary-size(4), _rest::binary>>), do: "-#{offset}"
 
+  # Using a named offset is not valid according to RFC 2822 - they should use a numeric offset
+  # To allow the parsing to continue, we assume UTC in this situation
+  defp parse_time_zone(<<_tz_abbr::binary-size(3)>>) do
+    "+0000"
+  end
+
   defp parse_time_zone(time_zone) do
     time_zone
     |> String.trim_leading("(")
@@ -302,18 +325,22 @@ defmodule Mail.Parsers.RFC2822 do
     end)
   end
 
-  defp parse_headers(message, [], _opts), do: message
+  defp parse_headers(message, headers, opts) do
+    headers =
+      Enum.reduce(headers, message.headers, fn header, headers ->
+        {key, value} = parse_header(header, opts)
+        put_header(headers, key, value)
+      end)
 
-  defp parse_headers(message, [header | tail], opts) do
+    Map.put(message, :headers, headers)
+  end
+
+  def parse_header(header, opts) do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
-    decoded = parse_encoded_word(body, opts)
-
-    headers =
-      put_header(message.headers, key, String.downcase(name) |> parse_header_value(decoded))
-
-    message = %{message | headers: headers}
-    parse_headers(message, tail, opts)
+    value = parse_header_value(key, body)
+    decoded = decode_header_value(key, value, opts)
+    {key, decoded}
   end
 
   defp put_header(headers, "received" = key, value),
@@ -372,6 +399,48 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value(_key, value),
     do: value
 
+  defp decode_header_value(_key, nil, _opts),
+    do: nil
+
+  defp decode_header_value(_key, %DateTime{} = datetime, _opts),
+    do: datetime
+
+  defp decode_header_value("received", value, _opts),
+    do: value
+
+  defp decode_header_value(_key, [value | [param | _params] = params], opts)
+       when is_binary(value) and is_tuple(param) do
+    decoded = parse_encoded_word(value, opts)
+    params = Enum.map(params, fn {param, value} -> {param, parse_encoded_word(value, opts)} end)
+    [decoded | params]
+  end
+
+  defp decode_header_value(_key, {name, email}, opts) do
+    decoded = parse_encoded_word(name, opts)
+    {decoded, email}
+  end
+
+  defp decode_header_value(key, addresses, opts)
+       when key in ["to", "cc", "from", "reply-to"] and is_list(addresses) do
+    addresses =
+      Enum.map(addresses, fn
+        {name, email} ->
+          decoded = parse_encoded_word(name, opts)
+          {decoded, email}
+
+        email ->
+          email
+      end)
+
+    addresses
+  end
+
+  defp decode_header_value("from", value, _opts), do: value
+
+  defp decode_header_value(_key, value, opts) do
+    parse_encoded_word(value, opts)
+  end
+
   # See https://tools.ietf.org/html/rfc2047
   defp parse_encoded_word("", _opts), do: ""
 
@@ -404,39 +473,59 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_encoded_word(<<char::utf8, rest::binary>>, opts),
     do: <<char::utf8, parse_encoded_word(rest, opts)::binary>>
 
-  defp parse_structured_header_value(string, value \\ nil, sub_types \\ [], acc \\ "")
+  defp parse_structured_header_value(
+         string,
+         value \\ nil,
+         sub_types \\ [],
+         part \\ :value,
+         acc \\ ""
+       )
 
-  defp parse_structured_header_value("", value, [{key, nil} | sub_types], acc),
+  defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc),
     do: [value | Enum.reverse([{key, acc} | sub_types])]
 
-  defp parse_structured_header_value("", nil, [], acc),
+  defp parse_structured_header_value("", nil, [], _part, acc),
     do: acc
 
-  defp parse_structured_header_value("", value, sub_types, ""),
+  defp parse_structured_header_value("", value, sub_types, _part, ""),
     do: [value | Enum.reverse(sub_types)]
 
-  defp parse_structured_header_value("", value, [], acc),
+  defp parse_structured_header_value("", value, [], _part, acc),
     do: [value, String.trim(acc)]
 
-  defp parse_structured_header_value("", value, sub_types, acc),
-    do: parse_structured_header_value("", value, sub_types, String.trim(acc))
+  defp parse_structured_header_value("", value, sub_types, part, acc),
+    do: parse_structured_header_value("", value, sub_types, part, String.trim(acc))
 
-  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, acc) do
+  defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, part, acc) do
     {string, rest} = parse_quoted_string(rest)
-    parse_structured_header_value(rest, value, sub_types, <<acc::binary, string::binary>>)
+    parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, string::binary>>)
   end
 
-  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, acc),
-    do: parse_structured_header_value(rest, acc, sub_types, "")
+  defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, part, acc)
+       when part in [:value, :param_value],
+       do: parse_structured_header_value(rest, acc, sub_types, :param_name, "")
 
-  defp parse_structured_header_value(<<";", rest::binary>>, value, [{key, nil} | sub_types], acc),
-    do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], "")
+  defp parse_structured_header_value(
+         <<";", rest::binary>>,
+         value,
+         [{key, nil} | sub_types],
+         :param_value,
+         acc
+       ),
+       do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], :param_name, "")
 
-  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, acc),
-    do: parse_structured_header_value(rest, value, [{key_to_atom(acc), nil} | sub_types], "")
+  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, :param_name, acc),
+    do:
+      parse_structured_header_value(
+        rest,
+        value,
+        [{key_to_atom(acc), nil} | sub_types],
+        :param_value,
+        ""
+      )
 
-  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, acc),
-    do: parse_structured_header_value(rest, value, sub_types, <<acc::binary, char::utf8>>)
+  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, part, acc),
+    do: parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, char::utf8>>)
 
   defp parse_quoted_string(string, acc \\ "")
 
