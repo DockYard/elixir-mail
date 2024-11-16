@@ -35,8 +35,6 @@ defmodule Mail.Message do
     do: put_in(message.parts, List.delete(message.parts, part))
 
   @doc """
-  Delete a matching part
-
   Will remove all parts from message.
   """
   def delete_all_parts(message),

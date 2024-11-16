@@ -265,7 +265,29 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.map(&Enum.reverse/1) # retain ordering
   end
 
-  defp reorganize(%Mail.Message{multipart: true} = message) do
+  @doc """
+  Will organize message parts to conform to expectations on MIME-part order,
+  specifically in the following format:
+
+      start multipart/mixed
+        start multipart/related
+          start multipart/alternative
+            <text and html parts>
+          end multipart/alternative
+          <inline parts>
+        end multipart/related
+        <attachment parts>
+      end multipart/mixed
+
+  Such that:
+
+  - text and html parts will be grouped in a `multipart/alternative`;
+  - inline attachments will be postpended and grouped with text and html parts
+    in a `multipart/related` (RFC 2387); and
+  - regular attachments will be postpended and grouped with all content in a
+    `multipart/mixed`
+  """
+  def reorganize(%Mail.Message{multipart: true} = message) do
     content_type = Mail.Message.get_content_type(message)
 
     [text_parts, mixed, inlines] = split_attachment_parts(message)

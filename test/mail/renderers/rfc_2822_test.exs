@@ -339,4 +339,151 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.Renderers.RFC2822.render()
     end
   end
+
+  test "will have correct part order for regular message" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from({"User2", "user2@example.com"})
+      |> Mail.put_subject("Test email")
+      |> Mail.put_text("Some text")
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.Renderers.RFC2822.reorganize()
+
+    assert %Mail.Message{
+             headers: %{"content-type" => ["multipart/alternative"]},
+             parts: [
+               %Mail.Message{
+                 headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                 body: "Some text",
+                 parts: [],
+                 multipart: false
+               },
+               %Mail.Message{
+                 headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                 body: "<h1>Some HTML</h1>",
+                 parts: [],
+                 multipart: false
+               }
+             ]
+           } = message
+  end
+
+  test "will have correct part order with only a regular attachment" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from({"User2", "user2@example.com"})
+      |> Mail.put_subject("Test email")
+      |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+      |> Mail.put_text("Some text")
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.Renderers.RFC2822.reorganize()
+
+    assert %Mail.Message{
+             headers: %{"content-type" => ["multipart/mixed"]},
+             parts: [
+               %Mail.Message{
+                 headers: %{"content-type" => ["multipart/alternative"]},
+                 parts: [
+                   %Mail.Message{
+                     headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                     body: "Some text",
+                     parts: [],
+                     multipart: false
+                   },
+                   %Mail.Message{
+                     headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                     body: "<h1>Some HTML</h1>",
+                     parts: [],
+                     multipart: false
+                   }
+                 ]
+               },
+               %Mail.Message{
+                 headers: %{
+                   "content-transfer-encoding" => :base64,
+                   "content-type" => ["image/jpeg"]
+                 },
+                 parts: [],
+                 multipart: false
+               }
+             ]
+           } = message
+  end
+
+  test "will have correct part order with inline attachment" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_to("user1@example.com")
+      |> Mail.put_from({"User2", "user2@example.com"})
+      |> Mail.put_subject("Test email")
+      |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+      |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+        headers: %{
+          content_id: "c_id",
+          content_type: "image/jpeg",
+          x_attachment_id: "a_id",
+          content_disposition: ["inline", filename: "filename"]
+        }
+      )
+      |> Mail.put_text("Some text")
+      |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.Renderers.RFC2822.reorganize()
+
+    # Bamboo.Attachment.new(
+    #   Application.app_dir(:notifications, path),
+    #   filename: filename,
+    #   content_id: "<#{id}>",
+    #   headers: [x_attachment_id: id, content_disposition: ["inline", filename: filename]],
+    #   content_type: "image/#{type}"
+    # )
+
+    assert %Mail.Message{
+             headers: %{"content-type" => ["multipart/mixed"]},
+             parts: [
+               %Mail.Message{
+                 headers: %{"content-type" => ["multipart/related"]},
+                 parts: [
+                   %Mail.Message{
+                     headers: %{"content-type" => ["multipart/alternative"]},
+                     parts: [
+                       %Mail.Message{
+                         headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                         body: "Some text",
+                         parts: [],
+                         multipart: false
+                       },
+                       %Mail.Message{
+                         headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                         body: "<h1>Some HTML</h1>",
+                         parts: [],
+                         multipart: false
+                       }
+                     ]
+                   },
+                   %Mail.Message{
+                     headers: %{
+                       "content-transfer-encoding" => :base64,
+                       "content-type" => "image/jpeg",
+                       "content-id" => "c_id",
+                       "content-disposition" => ["inline", {:filename, "filename"}],
+                       "x-attachment-id" => "a_id",
+                     },
+                     parts: [],
+                     multipart: false
+                   }
+                 ]
+               },
+               %Mail.Message{
+                 headers: %{
+                   "content-transfer-encoding" => :base64,
+                   "content-type" => ["image/jpeg"]
+                 },
+                 parts: [],
+                 multipart: false
+               }
+             ]
+           } = message
+  end
 end
