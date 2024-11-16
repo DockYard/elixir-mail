@@ -431,14 +431,6 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.put_html("<h1>Some HTML</h1>")
       |> Mail.Renderers.RFC2822.reorganize()
 
-    # Bamboo.Attachment.new(
-    #   Application.app_dir(:notifications, path),
-    #   filename: filename,
-    #   content_id: "<#{id}>",
-    #   headers: [x_attachment_id: id, content_disposition: ["inline", filename: filename]],
-    #   content_type: "image/#{type}"
-    # )
-
     assert %Mail.Message{
              headers: %{"content-type" => ["multipart/mixed"]},
              parts: [
