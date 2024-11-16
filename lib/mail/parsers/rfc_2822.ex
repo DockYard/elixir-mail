@@ -85,58 +85,64 @@ defmodule Mail.Parsers.RFC2822 do
   returning the invalid date string.
   """
   @spec to_datetime(binary()) :: DateTime.t() | {:error, binary()}
-  def to_datetime(<<" ", rest::binary>>), do: to_datetime(rest)
-  def to_datetime(<<"\t", rest::binary>>), do: to_datetime(rest)
-  def to_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: to_datetime(rest)
+  def to_datetime(date_string) do
+    parse_datetime(date_string)
+  rescue
+    _ -> {:error, date_string}
+  end
 
-  def to_datetime(<<date::binary-size(1), " ", rest::binary>>),
-    do: to_datetime("0" <> date <> " " <> rest)
+  defp parse_datetime(<<" ", rest::binary>>), do: parse_datetime(rest)
+  defp parse_datetime(<<"\t", rest::binary>>), do: parse_datetime(rest)
+  defp parse_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: parse_datetime(rest)
+
+  defp parse_datetime(<<date::binary-size(1), " ", rest::binary>>),
+    do: parse_datetime("0" <> date <> " " <> rest)
 
   # This caters for an invalid date with no 0 before the hour, e.g. 5:21:43 instead of 05:21:43
-  def to_datetime(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
-    to_datetime("#{date} 0#{hour}:#{rest}")
+  defp parse_datetime(<<date::binary-size(11), " ", hour::binary-size(1), ":", rest::binary>>) do
+    parse_datetime("#{date} 0#{hour}:#{rest}")
   end
 
   # This caters for an invalid date with dashes between the date/month/year parts
-  def to_datetime(
-        <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
-          rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year}#{rest}")
+  defp parse_datetime(
+         <<date::binary-size(2), "-", month::binary-size(3), "-", year::binary-size(4),
+           rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year}#{rest}")
   end
 
   # This caters for an invalid two-digit year
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(2), " ",
-          rest::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(2), " ",
+           rest::binary>>
+       ) do
     year = year |> String.to_integer() |> to_four_digit_year()
-    to_datetime("#{date} #{month} #{year} #{rest}")
+    parse_datetime("#{date} #{month} #{year} #{rest}")
   end
 
   # This caters for missing seconds
-  def to_datetime(
-        <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
-          rest::binary>>
-      ) do
-    to_datetime("#{date} #{hour}:#{minute}:00 #{rest}")
+  defp parse_datetime(
+         <<date::binary-size(11), " ", hour::binary-size(2), ":", minute::binary-size(2), " ",
+           rest::binary>>
+       ) do
+    parse_datetime("#{date} #{hour}:#{minute}:00 #{rest}")
   end
 
   # Fixes invalid value: Wed, 14 10 2015 12:34:17
-  def to_datetime(
-        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
-          rest::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4),
+           " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+           rest::binary>>
+       ) do
     month_name = get_month_name(month_digits)
-    to_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
+    parse_datetime("#{date} #{month_name} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          time_zone::binary>>
-      ) do
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+           time_zone::binary>>
+       ) do
     year = year |> String.to_integer()
     month = get_month(String.downcase(month))
     date = date |> String.to_integer()
@@ -156,73 +162,84 @@ defmodule Mail.Parsers.RFC2822 do
 
   # This adds support for a now obsolete format
   # https://tools.ietf.org/html/rfc2822#section-4.3
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          timezone::binary-size(3), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
+           timezone::binary-size(3), _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} (#{timezone})")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 CAT 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          _tz::binary-size(3), " ", year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(2), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", _tz::binary-size(3), " ",
+           year::binary-size(4), _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}")
   end
 
   # Fixes invalid value with milliseconds Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
-          _milliseconds::binary-size(3), rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}}")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), ".",
+           _milliseconds::binary-size(3), rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
   end
 
   # Fixes invalid value: Tue May 30 15:29:15 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(2), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(2), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", year::binary-size(4),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes invalid value: Tue Aug 8 12:05:31 2017
-  def to_datetime(
-        <<_day::binary-size(3), " ", month::binary-size(3), " ", date::binary-size(1), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2), " ",
-          year::binary-size(4), _rest::binary>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<month::binary-size(3), " ", date::binary-size(1), " ", hour::binary-size(2), ":",
+           minute::binary-size(2), ":", second::binary-size(2), " ", year::binary-size(4),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes missing time zone
-  def to_datetime(
-        <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
-          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2)>>
-      ) do
-    to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
+  defp parse_datetime(
+         <<date::binary-size(2), " ", month::binary-size(3), " ", year::binary-size(4), " ",
+           hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+           _rest::binary>>
+       ) do
+    parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second} +0000")
   end
 
   # Fixes invalid value with long months: 13 September 2024 18:29:58 +0000
   lm_sizes = Map.keys(@long_months) |> Enum.map(&byte_size/1) |> Enum.uniq()
 
   for month_size <- lm_sizes do
-    def to_datetime(
-          <<date::binary-size(2), " ", long_month::binary-size(unquote(month_size)), " ",
-            year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
-            second::binary-size(2), rest::binary>>
-        ) do
+    defp parse_datetime(
+           <<date::binary-size(2), " ", long_month::binary-size(unquote(month_size)), " ",
+             year::binary-size(4), " ", hour::binary-size(2), ":", minute::binary-size(2), ":",
+             second::binary-size(2), rest::binary>>
+         ) do
       month = long_month |> String.downcase() |> get_month_name()
-      to_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
+      parse_datetime("#{date} #{month} #{year} #{hour}:#{minute}:#{second}#{rest}")
     end
   end
 
-  def to_datetime(invalid_datetime), do: {:error, invalid_datetime}
+  # Chop off the day name
+  defp parse_datetime(<<_day_name::binary-size(3), " ", rest::binary>>) do
+    parse_datetime(rest)
+  end
+
+  # Chop off the day name followed by a comma
+  defp parse_datetime(<<_day_name::binary-size(3), ", ", rest::binary>>) do
+    parse_datetime(rest)
+  end
+
+  defp parse_datetime(invalid_datetime), do: {:error, invalid_datetime}
 
   defp to_four_digit_year(year) when year >= 0 and year < 50, do: 2000 + year
   defp to_four_digit_year(year) when year < 100 and year >= 50, do: 1900 + year
@@ -269,6 +286,12 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_time_zone(<<"+", offset::binary-size(4), _rest::binary>>), do: "+#{offset}"
   defp parse_time_zone(<<"-", offset::binary-size(4), _rest::binary>>), do: "-#{offset}"
+
+  # Using a named offset is not valid according to RFC 2822 - they should use a numeric offset
+  # To allow the parsing to continue, we assume UTC in this situation
+  defp parse_time_zone(<<_tz_abbr::binary-size(3)>>) do
+    "+0000"
+  end
 
   defp parse_time_zone(time_zone) do
     time_zone
