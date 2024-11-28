@@ -37,14 +37,19 @@ defmodule Mail.Encoders.EightBit do
   @doc """
   Decodes an 8-bit encoded string.
   """
-  def decode(string), do: do_decode(string, "")
-  defp do_decode(<<>>, acc), do: acc
+  def decode(encoded_string), do: do_decode(encoded_string, "", 0)
 
-  defp do_decode(<<head, tail::binary>>, acc) do
-    {decoded, tail} = decode_char(head, tail)
-    do_decode(tail, acc <> decoded)
+  defp do_decode(<<>>, acc, _line_length), do: acc
+
+  defp do_decode(<<"\r\n", tail::binary>>, acc, 998) do
+    do_decode(tail, acc, 0)
   end
 
-  defp decode_char(?\r, <<?\n, tail::binary>>), do: {"", tail}
-  defp decode_char(char, <<tail::binary>>), do: {<<char>>, tail}
+  defp do_decode(<<head, tail::binary>>, acc, line_length) do
+    {decoded, tail, length} = decode_char(head, tail)
+    do_decode(tail, acc <> decoded, line_length + length)
+  end
+
+  defp decode_char(?\0, _tail), do: raise(ArgumentError, message: "illegal NUL character")
+  defp decode_char(char, <<tail::binary>>), do: {<<char>>, tail, 1}
 end

@@ -1,5 +1,6 @@
 defmodule MailTest do
   use ExUnit.Case, async: true
+  doctest Mail
 
   defmodule TestRenderer do
     def render(message) do
@@ -137,7 +138,7 @@ defmodule MailTest do
 
     assert length(mail.parts) == 0
     assert mail.body == "Some text"
-    assert Mail.Message.get_content_type(mail) == ["text/plain"]
+    assert Mail.Message.get_content_type(mail) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "put_text with a multipart" do
@@ -147,7 +148,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "Some text"
-    assert Mail.Message.get_content_type(part) == ["text/plain"]
+    assert Mail.Message.get_content_type(part) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "put_text replaces existing text part in multipart" do
@@ -159,7 +160,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "Some other text"
-    assert Mail.Message.get_content_type(part) == ["text/plain"]
+    assert Mail.Message.get_content_type(part) == ["text/plain", {"charset", "UTF-8"}]
   end
 
   test "get_text with singlepart" do
@@ -187,10 +188,15 @@ defmodule MailTest do
 
   test "get_text with multipart and multiple values" do
     text = "I am the body!"
+
     mail =
       Mail.Message.put_part(
         Mail.build_multipart(),
-        Mail.Message.put_content_type(%Mail.Message{}, "text/plain; charset=UTF-8; format=flowed")
+        Mail.Message.put_content_type(%Mail.Message{}, [
+          "text/plain",
+          {"charset", "UTF-8"},
+          {"format", "flowed"}
+        ])
         |> Mail.Message.put_header(:content_transfer_encoding, :"8bit")
         |> Mail.Message.put_body(text)
       )
@@ -236,7 +242,7 @@ defmodule MailTest do
 
     assert length(mail.parts) == 0
     assert mail.body == "<h1>Some HTML</h1>"
-    assert Mail.Message.get_content_type(mail) == ["text/html"]
+    assert Mail.Message.get_content_type(mail) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "put_html with a multipart" do
@@ -246,7 +252,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "<h1>Some HTML</h1>"
-    assert Mail.Message.get_content_type(part) == ["text/html"]
+    assert Mail.Message.get_content_type(part) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "put_html replaces existing html part in multipart" do
@@ -258,7 +264,7 @@ defmodule MailTest do
     part = List.first(mail.parts)
 
     assert part.body == "<h1>Some other html</h1>"
-    assert Mail.Message.get_content_type(part) == ["text/html"]
+    assert Mail.Message.get_content_type(part) == ["text/html", {"charset", "UTF-8"}]
   end
 
   test "get_html with singlepart" do
@@ -474,6 +480,24 @@ defmodule MailTest do
     assert attachment == file
   end
 
+  test "get_attachments handles content disposition header withot filename property" do
+    {_, data} = file = {"Unknown", File.read!("README.md")}
+
+    mail =
+      Mail.build()
+      |> Mail.Message.put_body(data)
+      |> Mail.Message.put_header(:content_disposition, [
+        "attachment"
+      ])
+      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+      # We render and parse so we have the attachment with no properties
+      |> Mail.render()
+      |> Mail.parse()
+
+    [attachment | _] = Mail.get_attachments(mail)
+    assert attachment == file
+  end
+
   test "renders with the given renderer" do
     result =
       Mail.build()
@@ -481,5 +505,14 @@ defmodule MailTest do
       |> Mail.render(TestRenderer)
 
     assert result == "Test!"
+  end
+
+  test "parse with default parser" do
+    assert %Mail.Message{} =
+             message =
+             Mail.parse("Subject: Test\r\nContent-Type: text/plain\r\n\r\nHello world\r\n")
+
+    assert Mail.get_subject(message) == "Test"
+    assert message.body == "Hello world"
   end
 end

@@ -1,6 +1,6 @@
 To: user@example.com
 Subject: Test email
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 
 Some text

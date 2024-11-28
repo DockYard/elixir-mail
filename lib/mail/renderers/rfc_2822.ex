@@ -22,7 +22,7 @@ defmodule Mail.Renderers.RFC2822 do
   @address_types ["From", "To", "Reply-To", "Cc", "Bcc"]
 
   # https://tools.ietf.org/html/rfc2822#section-3.4.1
-  @email_validation_regex Application.get_env(
+  @email_validation_regex Application.compile_env(
                             :mail,
                             :email_regex,
                             ~r/[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,64}/
@@ -98,7 +98,7 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp render_header_value("Date", date_time),
-    do: timestamp_from_erl(date_time)
+    do: timestamp_from_datetime(date_time)
 
   defp render_header_value(address_type, addresses)
        when is_list(addresses) and address_type in @address_types,
@@ -177,11 +177,20 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join("\r\n")
   end
 
+  # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
+  # split in 76 chars including its surroundings and delimmiters.
+  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
   defp encode_header_value(header_value, :quoted_printable) do
-    case Mail.Encoders.QuotedPrintable.encode(header_value) do
+    case Mail.Encoders.QuotedPrintable.encode(header_value, 64) do
       ^header_value -> header_value
-      encoded -> <<"=?UTF-8?Q?", encoded::binary, "?=">>
+      encoded -> wrap_encoded_words(encoded)
     end
+  end
+
+  defp wrap_encoded_words(value) do
+    :binary.split(value, "=\r\n", [:global])
+    |> Enum.map(fn chunk -> <<"=?UTF-8?Q?", chunk::binary, "?=">> end)
+    |> Enum.join()
   end
 
   @doc """
@@ -191,8 +200,8 @@ defmodule Mail.Renderers.RFC2822 do
 
   This function always assumes the Erlang timestamp is in Universal time, not Local time
   """
-  def timestamp_from_erl({{year, month, day} = date, {hour, minute, second}}) do
-    day_name = Enum.at(@days, :calendar.day_of_the_week(date) - 1)
+  def timestamp_from_datetime({{year, month, day} = date, {hour, minute, second}}) do
+    day_name = day_name(:calendar.day_of_the_week(date))
     month_name = Enum.at(@months, month - 1)
 
     date_part = "#{day_name}, #{day} #{month_name} #{year}"
@@ -201,11 +210,46 @@ defmodule Mail.Renderers.RFC2822 do
     date_part <> " " <> time_part <> " +0000"
   end
 
-  defp pad(num),
-    do:
-      num
-      |> Integer.to_string()
-      |> String.pad_leading(2, "0")
+  def timestamp_from_datetime(%DateTime{} = datetime) do
+    %{
+      year: year,
+      month: month,
+      day: day,
+      hour: hour,
+      minute: minute,
+      second: second,
+      utc_offset: utc_offset,
+      std_offset: std_offset
+    } = datetime
+
+    day_name = Enum.at(@days, :calendar.day_of_the_week({year, month, day}) - 1)
+    month_name = Enum.at(@months, month - 1)
+
+    date_part = "#{day_name}, #{day} #{month_name} #{year}"
+    time_part = "#{pad(hour)}:#{pad(minute)}:#{pad(second)}"
+
+    date_part <> " " <> time_part <> " " <> render_time_zone(utc_offset, std_offset)
+  end
+
+  defp render_time_zone(utc_offset, std_offset) do
+    offset = abs(utc_offset + std_offset)
+    minutes = div(rem(offset, 3600), 60)
+    hours = div(offset, 3600)
+
+    if(utc_offset >= 0, do: "+", else: "-") <> "#{pad(hours)}#{pad(minutes)}"
+  end
+
+  @days
+  |> Enum.with_index(1)
+  |> Enum.each(fn {day, index} ->
+    defp day_name(unquote(index)), do: unquote(day)
+  end)
+
+  defp pad(num) do
+    num
+    |> Integer.to_string()
+    |> String.pad_leading(2, "0")
+  end
 
   defp reorganize(%Mail.Message{multipart: true} = message) do
     content_type = Mail.Message.get_content_type(message)

@@ -23,8 +23,21 @@ defmodule Mail.Encoders.EightBitTest do
     assert Mail.Encoders.EightBit.decode("") == ""
   end
 
-  test "decode removes <CR><LF> pairs" do
+  test "decode preserves <CR><LF> pairs" do
     message = "This is a \r\ntest\r\n"
-    assert Mail.Encoders.EightBit.decode(message) == "This is a test"
+    assert Mail.Encoders.EightBit.decode(message) == "This is a \r\ntest\r\n"
+  end
+
+  test "decode removes crlf wrapping characters" do
+    message = String.duplicate("-", 1000)
+    encoded = Mail.Encoders.EightBit.encode(message)
+    assert binary_part(encoded, 998, 2) == "\r\n"
+    assert message == Mail.Encoders.EightBit.decode(encoded)
+  end
+
+  test "decode raises if any character is <NUL>" do
+    assert_raise ArgumentError, fn ->
+      Mail.Encoders.EightBit.decode("\0")
+    end
   end
 end

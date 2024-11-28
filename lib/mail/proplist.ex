@@ -86,6 +86,8 @@ defmodule Mail.Proplist do
   * `list` - the list to look in
   * `key` - the key of the pair to retrieve it's value
   """
+  def get(nil, _key), do: nil
+
   def get(list, key) do
     case :proplists.get_value(key, list) do
       :undefined -> nil

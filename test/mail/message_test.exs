@@ -1,5 +1,6 @@
 defmodule Mail.MessageTest do
   use ExUnit.Case, async: true
+  doctest Mail.Message
 
   test "put_part" do
     part = %Mail.Message{body: "new part"}
@@ -51,7 +52,7 @@ defmodule Mail.MessageTest do
 
   test "put_content_type" do
     message = Mail.Message.put_content_type(%Mail.Message{}, "multipart/mixed")
-    assert Mail.Message.get_header(message, :content_type) == "multipart/mixed"
+    assert Mail.Message.get_header(message, :content_type) == ["multipart/mixed"]
   end
 
   test "get_content_type" do
@@ -108,28 +109,28 @@ defmodule Mail.MessageTest do
 
   test "build_text" do
     message = Mail.Message.build_text("Some text")
-    assert Mail.Message.get_content_type(message) == ["text/plain"]
+    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_text when given charset" do
-    message = Mail.Message.build_text("Some text", charset: "UTF-8")
-    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}]
+    message = Mail.Message.build_text("Some text", charset: "US-ASCII")
+    assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "US-ASCII"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
-    assert Mail.Message.get_content_type(message) == ["text/html"]
+    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "UTF-8"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
 
   test "build_html when given charset" do
-    message = Mail.Message.build_html("<h1>Some HTML</h1>", charset: "UTF-8")
-    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "UTF-8"}]
+    message = Mail.Message.build_html("<h1>Some HTML</h1>", charset: "US-ASCII")
+    assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "US-ASCII"}]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
@@ -230,6 +231,15 @@ defmodule Mail.MessageTest do
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
   end
 
+  test "UTF-8 in subject (quoted printable with spaces, RFC 2047§4.2 (2)" do
+    subject = "test 😀 test"
+
+    mail =
+      "Subject: =?UTF-8?Q?test_" <> Mail.Encoders.QuotedPrintable.encode("😀") <> "_test?=\r\n\r\n"
+
+    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(mail)
+  end
+
   test "UTF-8 in other header" do
     file_name = "READMEüä.md"
 
@@ -246,5 +256,21 @@ defmodule Mail.MessageTest do
     assert %Mail.Message{
              headers: %{"content-disposition" => ["attachment", {"filename", ^file_name}]}
            } = Mail.Parsers.RFC2822.parse(message)
+  end
+
+  test "long UTF-8 in subject" do
+    subject =
+      "über alles\nnew ?= line some очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень long line"
+
+    txt =
+      Mail.build()
+      |> Mail.put_subject(subject)
+      |> Mail.render()
+
+    encoded_subject =
+      "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
+
+    assert String.contains?(txt, encoded_subject)
+    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
   end
 end

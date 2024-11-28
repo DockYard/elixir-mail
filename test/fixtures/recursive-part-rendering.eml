@@ -1,13 +1,13 @@
 Content-Type: multipart/alternative; boundary="foobar"
 
 --foobar
-Content-Type: text/plain
+Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 
 Hello there! 1 + 1 =3D 2
 
 --foobar
-Content-Type: text/html
+Content-Type: text/html; charset=UTF-8
 Content-Transfer-Encoding: quoted-printable
 
 <a href=3D"/">Hello there! 1 + 1 =3D 2</a>

@@ -14,7 +14,7 @@ defmodule Mail.ProplistTest do
   end
 
   describe "has_key?" do
-    test "determins if the list contains the specified key" do
+    test "determines if the list contains the specified key" do
       src = [{"a", 2}, {"b", "3"}, :d]
       assert true == Proplist.has_key?(src, "a")
       assert true == Proplist.has_key?(src, "b")
