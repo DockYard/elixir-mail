@@ -95,10 +95,11 @@ defmodule Mail do
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
-    do: message
-
-  def get_text(%Mail.Message{}), do: nil
+  def get_text(%Mail.Message{} = message) do
+    if Mail.Message.match_content_type?(message, "text/plain") do
+      message
+    end
+  end
 
   @doc """
   Add an HTML part to the message
@@ -156,12 +157,11 @@ defmodule Mail do
     end)
   end
 
-  def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
-
-  def get_html(%Mail.Message{headers: %{"content-type" => ["text/html", _]}} = message),
-    do: message
-
-  def get_html(%Mail.Message{}), do: nil
+  def get_html(%Mail.Message{} = message) do
+    if Mail.Message.match_content_type?(message, "text/html") do
+      message
+    end
+  end
 
   defp default_charset do
     "UTF-8"

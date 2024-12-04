@@ -305,6 +305,20 @@ defmodule MailTest do
     assert html_part.body == "<h1>Some HTML</h1>"
   end
 
+  test "get_html with content-type containing multiple parameters" do
+    html_part =
+      Mail.build()
+      |> Mail.Message.put_content_type(["text/html", {"charset", "UTF-8"}, {"format", "flowed"}])
+      |> Mail.Message.put_header(:content_transfer_encoding, :"8bit")
+      |> Mail.Message.put_body("<h1>Test body</h1>")
+
+    mail =
+      Mail.build_multipart()
+      |> Mail.Message.put_part(html_part)
+
+    assert Mail.get_html(mail).body == "<h1>Test body</h1>"
+  end
+
   test "get_html with nested multiparts without html" do
     inner_multipart =
       Mail.build_multipart()
