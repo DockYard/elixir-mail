@@ -158,7 +158,7 @@ defmodule Mail do
 
   def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
 
-  def get_html(%Mail.Message{headers: %{"content-type" => ["text/html", _]}} = message),
+  def get_html(%Mail.Message{headers: %{"content-type" => ["text/html" | _]}} = message),
     do: message
 
   def get_html(%Mail.Message{}), do: nil
