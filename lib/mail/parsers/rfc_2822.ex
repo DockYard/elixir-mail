@@ -405,21 +405,6 @@ defmodule Mail.Parsers.RFC2822 do
   defp decode_header_value(_key, %DateTime{} = datetime, _opts),
     do: datetime
 
-  defp decode_header_value("received", value, _opts),
-    do: value
-
-  defp decode_header_value(_key, [value | [param | _params] = params], opts)
-       when is_binary(value) and is_tuple(param) do
-    decoded = parse_encoded_word(value, opts)
-    params = Enum.map(params, fn {param, value} -> {param, parse_encoded_word(value, opts)} end)
-    [decoded | params]
-  end
-
-  defp decode_header_value(_key, {name, email}, opts) do
-    decoded = parse_encoded_word(name, opts)
-    {decoded, email}
-  end
-
   defp decode_header_value(key, addresses, opts)
        when key in ["to", "cc", "from", "reply-to"] and is_list(addresses) do
     addresses =
@@ -435,7 +420,27 @@ defmodule Mail.Parsers.RFC2822 do
     addresses
   end
 
+  defp decode_header_value("from", {_name, _address} = value, opts) do
+    [from] = decode_header_value("from", [value], opts)
+    from
+  end
+
   defp decode_header_value("from", value, _opts), do: value
+
+  defp decode_header_value("received", value, _opts),
+    do: value
+
+  defp decode_header_value(_key, [value | [param | _params] = params], opts)
+       when is_binary(value) and is_tuple(param) do
+    decoded = parse_encoded_word(value, opts)
+    params = Enum.map(params, fn {param, value} -> {param, parse_encoded_word(value, opts)} end)
+    [decoded | params]
+  end
+
+  defp decode_header_value(_key, {name, email}, opts) do
+    decoded = parse_encoded_word(name, opts)
+    {decoded, email}
+  end
 
   defp decode_header_value(_key, value, opts) do
     parse_encoded_word(value, opts)

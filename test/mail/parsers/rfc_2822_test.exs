@@ -192,6 +192,20 @@ defmodule Mail.Parsers.RFC2822Test do
     assert Mail.get_html(message) == html_part2
   end
 
+  test "parses a message with multiple recipients" do
+    # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.
+    message =
+      parse_email("""
+      To: user@example.com, "John Doe" <other@example.com>, jane@example.com
+      """)
+
+    assert message.headers["to"] == [
+             "user@example.com",
+             {"John Doe", "other@example.com"},
+             "jane@example.com"
+           ]
+  end
+
   test "to_datetime/1" do
     import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
