@@ -817,6 +817,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "invalid content-type should not take infinite time" do
+    message =
+      parse_email("""
+      Content-type: text/html; charset=us-ascii;a
+      """)
+
+    assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+  end
+
   defp parse_email(email),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
 
