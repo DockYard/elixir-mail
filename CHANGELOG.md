@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.3 2024-11-15
+
+* Update header parsing to decode encoded words after parsing the header (RFC 2047) https://github.com/DockYard/elixir-mail/pull/181
+* Refactor RFC2822 datetime parser and assume unknown named timezones are UTC https://github.com/DockYard/elixir-mail/pull/183
+
+## 0.4.2 2024-10-24
+
+* Encoded strings that are not valid UTF-8 are now decoded to binary (as-is) rather than raising an error
+* Add `charset_handler` option to `Mail.Parsers.RFC2822` to allow custom charset handling https://github.com/DockYard/elixir-mail/pull/178
+
+## 0.4.1 2024-10-09
+
+* Fix quoted-printable encoding of reserved characters https://github.com/DockYard/elixir-mail/pull/176
+* Updates to documentation with doctests
+
 ## 0.4.0 2024-10-02
 
 * Change date parser to return {:error, date_text} when date is unparsable https://github.com/DockYard/elixir-mail/pull/169

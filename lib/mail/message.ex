@@ -9,7 +9,10 @@ defmodule Mail.Message do
   @doc """
   Add new part
 
-      Mail.Message.put_part(%Mail.Message{}, %Mail.Message{})
+  ## Examples
+
+      iex> Mail.Message.put_part(%Mail.Message{}, %Mail.Message{})
+      %Mail.Message{parts: [%Mail.Message{}]}
   """
   def put_part(message, %Mail.Message{} = part),
     do: put_in(message.parts, message.parts ++ [part])
@@ -40,10 +43,14 @@ defmodule Mail.Message do
   @doc """
   Will match on a full or partial content type
 
-      Mail.Message.match_content_type?(message, ~r/text/)
+  ## Examples
+
+      iex> message = %Mail.Message{headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]}}
+      iex> Mail.Message.match_content_type?(message, ~r/text/)
       true
 
-      Mail.Message.match_content_type?(message, "text/html")
+      iex> message = %Mail.Message{headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]}}
+      iex> Mail.Message.match_content_type?(message, "text/html")
       false
   """
   def match_content_type?(message, string_or_regex)
@@ -65,7 +72,10 @@ defmodule Mail.Message do
   @doc """
   Add a new header key/value pair
 
-      Mail.Message.put_header(%Mail.Message{}, :content_type, "text/plain")
+  ## Examples
+
+      iex> Mail.Message.put_header(%Mail.Message{}, :content_type, "text/plain")
+      %Mail.Message{headers: %{"content-type" => "text/plain"}}
 
   The individual headers will be in the `headers` field on the
   `%Mail.Message{}` struct
@@ -85,7 +95,9 @@ defmodule Mail.Message do
   @doc """
   Deletes a specific header key
 
-      Mail.Message.delete_header(%Mail.Message{headers: %{foo: "bar"}}, :foo)
+  ## Examples
+
+      iex> Mail.Message.delete_header(%Mail.Message{headers: %{"foo" => "bar"}}, :foo)
       %Mail.Message{headers: %{}}
   """
   def delete_header(message, header),
@@ -94,7 +106,9 @@ defmodule Mail.Message do
   @doc """
   Deletes a list of headers
 
-      Mail.Message.delete_headers(%Mail.Message{headers: %{foo: "bar", baz: "qux"}}, [:foo, :baz])
+  ## Examples
+
+      iex> Mail.Message.delete_headers(%Mail.Message{headers: %{"foo" => "bar", "baz" => "qux"}}, [:foo, :baz])
       %Mail.Message{headers: %{}}
   """
   def delete_headers(message, headers)
@@ -117,24 +131,35 @@ defmodule Mail.Message do
 
   The value will always be wrapped in a `List`
 
-      Mail.Message.put_content_type(%Mail.Message{}, "text/plain")
-      %Mail.Message{headers: %{content_type: ["text/plain"]}}
+  ## Examples
+
+      iex> Mail.Message.put_content_type(%Mail.Message{}, "text/plain")
+      %Mail.Message{headers: %{"content-type" => ["text/plain"]}}
+
+      iex> Mail.Message.put_content_type(%Mail.Message{}, ["text/plain", {"charset", "UTF-8"}])
+      %Mail.Message{headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]}}
   """
-  def put_content_type(message, content_type),
-    do: put_header(message, :content_type, content_type)
+  def put_content_type(message, content_type) when is_binary(content_type),
+    do: put_content_type(message, [content_type])
+
+  def put_content_type(message, content_type) do
+    put_header(message, :content_type, content_type)
+  end
 
   @doc """
   Gets the `content_type` from the header
 
   Will ensure the `content_type` is always wrapped in a `List`
 
-      Mail.Message.get_content_type(%Mail.Message{})
+  ## Examples
+
+      iex> Mail.Message.get_content_type(%Mail.Message{})
       [""]
 
-      Mail.Message.get_content_type(%Mail.Message{content_type: "text/plain"})
+      iex> Mail.Message.get_content_type(%Mail.Message{headers: %{"content-type" => "text/plain"}})
       ["text/plain"]
 
-      Mail.Message.get_content_type(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}})
+      iex> Mail.Message.get_content_type(%Mail.Message{headers: %{"content-type" => ["multipart/mixed", {"boundary", "foobar"}]}})
       ["multipart/mixed", {"boundary", "foobar"}]
   """
   def get_content_type(message),
@@ -148,11 +173,13 @@ defmodule Mail.Message do
   Will overwrite existing `boundary` key in the list. Will preserve other
   values in the list
 
-      Mail.Message.put_boundary(%Mail.Message{}, "foobar")
-      %Mail.Message{headers: %{content_type: ["", {"boundary", "foobar"}]}}
+  ## Examples
 
-      Mail.Message.put_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "bazqux"}]}})
-      %Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}}
+      iex> Mail.Message.put_boundary(%Mail.Message{}, "foobar")
+      %Mail.Message{headers: %{"content-type" => ["", {"boundary", "foobar"}]}}
+
+      iex> Mail.Message.put_boundary(%Mail.Message{headers: %{"content-type" => ["multipart/mixed", {"boundary", "bazqux"}]}}, "foobar")
+      %Mail.Message{headers: %{"content-type" => ["multipart/mixed", {"boundary", "foobar"}]}}
   """
   def put_boundary(message, boundary) do
     content_type =
@@ -167,10 +194,12 @@ defmodule Mail.Message do
 
   Will retrieve the boundary value. If one is not set a random one is generated.
 
-      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed", {"boundary", "foobar"}]}})
+  ## Examples
+
+      iex> Mail.Message.get_boundary(%Mail.Message{headers: %{"content-type" => ["multipart/mixed", {"boundary", "foobar"}]}})
       "foobar"
 
-      Mail.Message.get_boundary(%Mail.Message{headers: %{content_type: ["multipart/mixed"]}})
+      iex> Mail.Message.get_boundary(%Mail.Message{headers: %{"content-type" => ["multipart/mixed", {"boundary", "ASDFSHNEW3473423"}]}})
       "ASDFSHNEW3473423"
   """
   def get_boundary(message) do
@@ -190,7 +219,9 @@ defmodule Mail.Message do
   @doc """
   Sets the `body` field on the part
 
-      Mail.Message.put_body(%Mail.Message{}, "Some data")
+  ## Examples
+
+      iex> Mail.Message.put_body(%Mail.Message{}, "Some Data")
       %Mail.Message{body: "Some Data", headers: %{}}
   """
   def put_body(part, body),
@@ -199,11 +230,13 @@ defmodule Mail.Message do
   @doc """
   Build a new text message
 
-      Mail.Message.build_text("Some text")
-      %Mail.Message{body: "Some text", headers: %{content_type: "text/plain"}}
+  ## Examples
 
-      Mail.Message.build_text("Some text", charset: "UTF-8")
-      %Mail.Message{body: "Some text", headers: %{content_type: ["text/plain", {"charset", "UTF-8"}]}}
+      iex> Mail.Message.build_text("Some text")
+      %Mail.Message{body: "Some text", headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}], "content-transfer-encoding" => :quoted_printable}}
+
+      iex> Mail.Message.build_text("Some text", charset: "us-ascii")
+      %Mail.Message{body: "Some text", headers: %{"content-type" => ["text/plain", {"charset", "us-ascii"}], "content-transfer-encoding" => :quoted_printable}}
 
   ## Options
 
@@ -227,11 +260,13 @@ defmodule Mail.Message do
   @doc """
   Build a new HTML message
 
-      Mail.Message.build_html("<h1>Some HTML</h1>")
-      %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{content_type: "text/html"}}
+  ## Examples
 
-      Mail.Message.build_html("<h1>Some HTML</h1>", charset: "UTF-8")
-      %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{content_type: ["text/html", {"charset", "UTF-8"}]}}
+      iex> Mail.Message.build_html("<h1>Some HTML</h1>")
+      %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}], "content-transfer-encoding" => :quoted_printable}}
+
+      iex> Mail.Message.build_html("<h1>Some HTML</h1>", charset: "UTF-8")
+      %Mail.Message{body: "<h1>Some HTML</h1>", headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}], "content-transfer-encoding" => :quoted_printable}}
 
   ## Options
 
@@ -268,11 +303,13 @@ defmodule Mail.Message do
 
   The mimetype of the file is determined by the file extension.
 
-      Mail.Message.build_attachment("README.md")
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
+  ## Examples
 
-      Mail.Message.build_attachment({"README.md", "file contents"})
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
+      iex> message = Mail.Message.build_attachment("README.md")
+      %Mail.Message{body: <<"# Mail\\n", _::binary>>, headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64}} = message
+
+      iex> message = Mail.Message.build_attachment({"README.md", "file contents"})
+      %Mail.Message{body: "file contents", headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64}} = message
 
   ## Options
 
@@ -310,18 +347,20 @@ defmodule Mail.Message do
     * `:headers` - Headers to be merged
 
   ## Examples
-      Mail.Message.put_attachment(%Mail.Message{}, "README.md")
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
 
-      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents"})
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64}}
+      iex> message = Mail.Message.put_attachment(%Mail.Message{}, "README.md")
+      %Mail.Message{body: <<"# Mail\\n", _::binary>>, headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64}} = message
+
+      iex> Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents"})
+      %Mail.Message{body: "file contents", headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64}}
 
   ### Adding custom headers
-      Mail.Message.put_attachment(%Mail.Message{}, "README.md", headers: [content_id: "attachment-id"])
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64, content_id: "attachment-id"}}
 
-      Mail.Message.put_attachment(%Mail.Message{}, {"README.md", data}, headers: [content_id: "attachment-id"])
-      %Mail.Message{data: "base64 encoded", headers: %{content_type: ["text/x-markdown"], content_disposition: ["attachment", filename: "README.md"], content_transfer_encoding: :base64, content_id: "attachment-id"}}
+      iex> message =Mail.Message.put_attachment(%Mail.Message{}, "README.md", headers: [content_id: "attachment-id"])
+      %Mail.Message{body: <<"# Mail\\n", _::binary>>, headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64, "content-id" => "attachment-id"}} = message
+
+      iex> message = Mail.Message.put_attachment(%Mail.Message{}, {"README.md", "file contents"}, headers: [content_id: "attachment-id"])
+      %Mail.Message{body: "file contents", headers: %{"content-type" => ["text/markdown"], "content-disposition" => ["attachment", {"filename", "README.md"}], "content-transfer-encoding" => :base64, "content-id" => "attachment-id"}} = message
   """
   def put_attachment(message, path_or_file_tuple, opts \\ [])
 

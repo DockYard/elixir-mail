@@ -1,5 +1,6 @@
 defmodule Mail.Parsers.RFC2822Test do
   use ExUnit.Case, async: true
+  doctest Mail.Parsers.RFC2822
 
   test "parses a singlepart message" do
     message =
@@ -191,6 +192,20 @@ defmodule Mail.Parsers.RFC2822Test do
     assert Mail.get_html(message) == html_part2
   end
 
+  test "parses a message with multiple recipients" do
+    # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.
+    message =
+      parse_email("""
+      To: user@example.com, "John Doe" <other@example.com>, jane@example.com
+      """)
+
+    assert message.headers["to"] == [
+             "user@example.com",
+             {"John Doe", "other@example.com"},
+             "jane@example.com"
+           ]
+  end
+
   test "to_datetime/1" do
     import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
@@ -252,6 +267,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert to_datetime("Wed, 14 05 2015 12:34:17") == ~U"2015-05-14 12:34:17Z"
     assert to_datetime("Tue, 20 Jun 2017 09:44:58.568 +0000 (UTC)") == ~U"2017-06-20 09:44:58Z"
     assert to_datetime("Fri Apr 15 17:22:55 CAT 2016") == ~U"2016-04-15 17:22:55Z"
+    assert to_datetime("Tue, 05 Nov 2024 10:31:43 MSK") == ~U"2024-11-05 10:31:43Z"
 
     [
       "January",
@@ -774,6 +790,128 @@ defmodule Mail.Parsers.RFC2822Test do
              part.headers["content-type"]
   end
 
+  test "parses Windows-1252 encoded filenames" do
+    email = """
+    To: user@example.com
+    From: me@example.com
+    Subject: Test
+    Content-Type: multipart/mixed;
+    	boundary="----=_Part_295474_20544590.1456382229928"
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: text/plain; charset="Windows-1252"
+    Content-Transfer-Encoding: quoted-printable
+
+    fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?Imagin=E9.pdf?="
+    Content-Description: =?Windows-1252?Q?Imagine=E9.pdf?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?Imagine=E9.pdf?="; size=864872;
+      creation-date="Tue, 08 Oct 2024 14:16:59 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:59 GMT"
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/pdf;
+      name="=?windows-1258?Q?Pre=ECsentation.pdf?="
+    Content-Description: =?windows-1258?Q?Pre=ECsentation.pdf?=
+    Content-Disposition: attachment;
+      filename="=?windows-1258?Q?Pre=ECsentation.pdf?="; size=3827236;
+      creation-date="Wed, 11 Sep 2024 09:27:41 GMT";
+      modification-date="Wed, 09 Oct 2024 08:27:14 GMT"
+    Content-ID: <f_m0xno2c63>
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    Content-Type: application/octet-stream;
+      name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
+    Content-Description: =?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=
+    Content-Disposition: attachment;
+      filename="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?=";
+      size=19791; creation-date="Tue, 08 Oct 2024 14:16:55 GMT";
+      modification-date="Tue, 08 Oct 2024 14:16:55 GMT"
+    Content-Transfer-Encoding: base64
+
+    JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
+
+    ------=_Part_295474_20544590.1456382229928
+    """
+
+    message = parse_email(email)
+    assert [part1, part2, part3, part4] = message.parts
+
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "fran\xE7aise pr\xE8s \xE0 th\xE9\xE2tre lumi\xE8re"
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID S\xE9 - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
+
+    # This is a simple character replacement function that simulates charset change from Windows-1252/1258 to UTF-8
+    message =
+      parse_email(email,
+        charset_handler: fn _charset, string ->
+          string
+          |> String.graphemes()
+          |> Enum.map(fn
+            # Windows-1252
+            <<0xE0>> -> "à"
+            <<0xE2>> -> "â"
+            <<0xE7>> -> "ç"
+            <<0xE8>> -> "è"
+            <<0xE9>> -> "é"
+            # Windows-1258
+            <<0xEC>> -> "\u0301"
+            char -> char
+          end)
+          |> Enum.join()
+        end
+      )
+
+    assert [part1, part2, part3, part4] = message.parts
+    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert part1.body == "française près à théâtre lumière"
+
+    assert %{
+             headers: %{
+               "content-type" => ["application/octet-stream", {"name", "Imaginé.pdf"}]
+             }
+           } = part2
+
+    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Présentation.pdf"}]}} =
+             part3
+
+    assert %{
+             headers: %{
+               "content-type" => [
+                 "application/octet-stream",
+                 {"name", "ID Sé - Liste inscrits.xlsx"}
+               ]
+             }
+           } = part4
+  end
+
   test "content-type mixed with no body" do
     message =
       parse_email("""
@@ -816,8 +954,78 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
-  defp parse_email(email),
-    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
+  test "parses encoded word cotaining 'special' characters RFC 2047§6.2" do
+    message =
+      parse_email("""
+      From: =?UTF-8?B?am9obi5kb2VAcmVkYWN0ZS4uLg==?= <comments-noreply@docs.google.com>
+      """)
+
+    assert message.headers["from"] == {"john.doe@redacte...", "comments-noreply@docs.google.com"}
+  end
+
+  test "correct handling of encoded words according to RFC 2047 (examples)" do
+    message =
+      parse_email("""
+      From: =?US-ASCII?Q?Keith_Moore?= <moore@cs.utk.edu>
+      To: =?ISO-8859-1?Q?Keld_J=F8rn_Simonsen?= <keld@dkuug.dk>
+      CC: =?ISO-8859-1?Q?Andr=E9?= Pirard <PIRARD@vm1.ulg.ac.be>
+      Subject: =?ISO-8859-1?B?SWYgeW91IGNhbiByZWFkIHRoaXMgeW8=?=
+       =?ISO-8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg==?=
+      """)
+
+    assert message.headers["from"] == {"Keith Moore", "moore@cs.utk.edu"}
+    assert message.headers["to"] == [{"Keld J\xF8rn Simonsen", "keld@dkuug.dk"}]
+    assert message.headers["cc"] == [{"Andr\xE9 Pirard", "PIRARD@vm1.ulg.ac.be"}]
+    assert message.headers["subject"] == "If you can read this you understand the example."
+
+    message =
+      parse_email("""
+      From: =?ISO-8859-1?Q?Olle_J=E4rnefors?= <ojarnef@admin.kth.se>
+      To: ietf-822@dimacs.rutgers.edu, ojarnef@admin.kth.se
+      Subject: Time for ISO 10646?
+      """)
+
+    assert message.headers["from"] == {"Olle J\xE4rnefors", "ojarnef@admin.kth.se"}
+    assert message.headers["to"] == ["ietf-822@dimacs.rutgers.edu", "ojarnef@admin.kth.se"]
+    assert message.headers["subject"] == "Time for ISO 10646?"
+
+    message =
+      parse_email("""
+      To: Dave Crocker <dcrocker@mordor.stanford.edu>
+      Cc: ietf-822@dimacs.rutgers.edu, paf@comsol.se
+      From: =?ISO-8859-1?Q?Patrik_F=E4ltstr=F6m?= <paf@nada.kth.se>
+      Subject: Re: RFC-HDR care and feeding
+      """)
+
+    assert message.headers["from"] == {"Patrik F\xE4ltstr\xF6m", "paf@nada.kth.se"}
+    assert message.headers["to"] == [{"Dave Crocker", "dcrocker@mordor.stanford.edu"}]
+    assert message.headers["cc"] == ["ietf-822@dimacs.rutgers.edu", "paf@comsol.se"]
+    assert message.headers["subject"] == "Re: RFC-HDR care and feeding"
+
+    message =
+      parse_email("""
+      From: Nathaniel Borenstein <nsb@thumper.bellcore.com>
+         (=?iso-8859-8?b?7eXs+SDv4SDp7Oj08A==?=)
+      To: Greg Vaudreuil <gvaudre@NRI.Reston.VA.US>, Ned Freed
+         <ned@innosoft.com>, Keith Moore <moore@cs.utk.edu>
+      Subject: Test of new header generator
+      MIME-Version: 1.0
+      Content-type: text/plain; charset=ISO-8859-1
+      """)
+
+    assert message.headers["from"] == {"Nathaniel Borenstein", "nsb@thumper.bellcore.com"}
+
+    assert message.headers["to"] == [
+             {"Greg Vaudreuil", "gvaudre@NRI.Reston.VA.US"},
+             {"Ned Freed", "ned@innosoft.com"},
+             {"Keith Moore", "moore@cs.utk.edu"}
+           ]
+
+    assert message.headers["subject"] == "Test of new header generator"
+  end
+
+  defp parse_email(email, opts \\ []),
+    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
   defp parse_recipient(recipient),
     do: Mail.Parsers.RFC2822.parse_recipient_value(recipient)
