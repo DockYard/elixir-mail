@@ -138,7 +138,7 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
-  defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
+  defp render_address({name, email}), do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
   defp render_address(email), do: validate_address(email)
   defp render_subtypes([]), do: []
 
