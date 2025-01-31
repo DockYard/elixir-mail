@@ -225,13 +225,30 @@ defmodule Mail.MessageTest do
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
   end
 
-  test "UTF-8 in subject (quoted printable with spaces, RFC 2047§4.2 (2)" do
+  test "UTF-8 in subject (quoted printable with spaces, RFC 2047§4.2 (2))" do
     subject = "test 😀 test"
 
     mail =
       "Subject: =?UTF-8?Q?test_" <> Mail.Encoders.QuotedPrintable.encode("😀") <> "_test?=\r\n\r\n"
 
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(mail)
+  end
+
+  test "UTF-8 in addresses" do
+    from = {"Joachim Löw", "joachim.loew@example.com"}
+    to = {"Wolfgang Schüler", "wolfgang.schueler@example.com"}
+
+    txt =
+      Mail.build()
+      |> Mail.put_from(from)
+      |> Mail.put_to(to)
+      |> Mail.render()
+
+    encoded_from = ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
+    encoded_to = ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
+
+    assert txt =~ encoded_from
+    assert txt =~ encoded_to
   end
 
   test "UTF-8 in other header" do
