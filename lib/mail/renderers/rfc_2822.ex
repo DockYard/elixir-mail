@@ -140,6 +140,7 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_address({name, email}), do: ~s("#{name}" <#{validate_address(email)}>)
   defp render_address(email), do: validate_address(email)
+
   defp render_subtypes([]), do: []
 
   defp render_subtypes([{key, value} | subtypes]) when is_atom(key),
@@ -152,6 +153,14 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_subtypes([{key, value} | subtypes]) do
     key = String.replace(key, "_", "-")
     value = encode_header_value(value, :quoted_printable)
+
+    value =
+      if value =~ ~r/[\s;]/ do
+        "\"#{value}\""
+      else
+        value
+      end
+
     ["#{key}=#{value}" | render_subtypes(subtypes)]
   end
 

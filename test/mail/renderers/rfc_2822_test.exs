@@ -15,6 +15,17 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Foo-Bar: abcd; baz-buzz=qux"
   end
 
+  test "quotes header parameters if necessary" do
+    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my-test-file"])
+    assert header == "Content-Disposition: attachment; filename=my-test-file"
+
+    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my test file"])
+    assert header == "Content-Disposition: attachment; filename=\"my test file\""
+
+    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my;test;file"])
+    assert header == "Content-Disposition: attachment; filename=\"my;test;file\""
+  end
+
   test "address headers renders list of recipients" do
     header = Mail.Renderers.RFC2822.render_header("from", "user1@example.com")
     assert header == "From: user1@example.com"
