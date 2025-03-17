@@ -19,17 +19,17 @@ jobs:
 
     strategy:
       matrix:
-        elixir: ['1.14.5', '1.15.4', '1.16.3', '1.17.3']
-        erlang: ['24.3', '25.3', '26.0', '27.1']
-        exclude:
+        include:
           - elixir: '1.14.5'
-            erlang: '27.1'
-          - elixir: '1.15.4'
-            erlang: '27.1'
-          - elixir: '1.16.3'
-            erlang: '27.1'
-          - elixir: '1.17.3'
             erlang: '24.3'
+          - elixir: '1.15.4'
+            erlang: '25.3'
+          - elixir: '1.16.3'
+            erlang: '26.0'
+          - elixir: '1.17.3'
+            erlang: '27.3'
+          - elixir: '1.18.3'
+            erlang: '27.3'
     steps:
       - uses: actions/checkout@v3
       - name: Set up Elixir
