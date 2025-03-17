@@ -486,20 +486,29 @@ defmodule Mail.Parsers.RFC2822 do
          acc \\ ""
        )
 
-  defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc),
-    do: [value | Enum.reverse([{key, acc} | sub_types])]
+  defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc) do
+    [value | Enum.reverse([{key, acc} | sub_types])]
+  end
 
-  defp parse_structured_header_value("", nil, [], _part, acc),
-    do: acc
+  defp parse_structured_header_value("", value, sub_types, :param_name, _acc) do
+    [value | Enum.reverse(sub_types)]
+  end
 
-  defp parse_structured_header_value("", value, sub_types, _part, ""),
-    do: [value | Enum.reverse(sub_types)]
+  defp parse_structured_header_value("", nil, [], _part, acc) do
+    acc
+  end
 
-  defp parse_structured_header_value("", value, [], _part, acc),
-    do: [value, String.trim(acc)]
+  defp parse_structured_header_value("", value, [_ | _] = sub_types, _part, "") do
+    [value | Enum.reverse(sub_types)]
+  end
 
-  defp parse_structured_header_value("", value, sub_types, part, acc),
-    do: parse_structured_header_value("", value, sub_types, part, String.trim(acc))
+  defp parse_structured_header_value("", value, [], _part, acc) do
+    [value, String.trim(acc)]
+  end
+
+  defp parse_structured_header_value("", value, sub_types, part, acc) do
+    parse_structured_header_value("", value, sub_types, part, String.trim(acc))
+  end
 
   defp parse_structured_header_value(<<"\"", rest::binary>>, value, sub_types, part, acc) do
     {string, rest} = parse_quoted_string(rest)
@@ -507,8 +516,9 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp parse_structured_header_value(<<";", rest::binary>>, nil, sub_types, part, acc)
-       when part in [:value, :param_value],
-       do: parse_structured_header_value(rest, acc, sub_types, :param_name, "")
+       when part in [:value, :param_value] do
+    parse_structured_header_value(rest, acc, sub_types, :param_name, "")
+  end
 
   defp parse_structured_header_value(
          <<";", rest::binary>>,
@@ -516,21 +526,23 @@ defmodule Mail.Parsers.RFC2822 do
          [{key, nil} | sub_types],
          :param_value,
          acc
-       ),
-       do: parse_structured_header_value(rest, value, [{key, acc} | sub_types], :param_name, "")
+       ) do
+    parse_structured_header_value(rest, value, [{key, acc} | sub_types], :param_name, "")
+  end
 
-  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, :param_name, acc),
-    do:
-      parse_structured_header_value(
-        rest,
-        value,
-        [{key_to_atom(acc), nil} | sub_types],
-        :param_value,
-        ""
-      )
+  defp parse_structured_header_value(<<"=", rest::binary>>, value, sub_types, :param_name, acc) do
+    parse_structured_header_value(
+      rest,
+      value,
+      [{key_to_atom(acc), nil} | sub_types],
+      :param_value,
+      ""
+    )
+  end
 
-  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, part, acc),
-    do: parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, char::utf8>>)
+  defp parse_structured_header_value(<<char::utf8, rest::binary>>, value, sub_types, part, acc) do
+    parse_structured_header_value(rest, value, sub_types, part, <<acc::binary, char::utf8>>)
+  end
 
   defp parse_quoted_string(string, acc \\ "")
 
