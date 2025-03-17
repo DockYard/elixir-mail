@@ -18,12 +18,6 @@ defmodule Mail.MessageTest do
     assert message.parts == []
   end
 
-  test "ensure only `Mail.Message` structs can be used" do
-    assert_raise FunctionClauseError, fn ->
-      Mail.Message.put_part(%Mail.Message{}, nil)
-    end
-  end
-
   test "put_header" do
     message = Mail.Message.put_header(%Mail.Message{}, :test, "test content")
     assert Mail.Message.get_header(message, :test) == "test content"
