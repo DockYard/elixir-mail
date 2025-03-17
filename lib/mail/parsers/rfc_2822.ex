@@ -318,10 +318,49 @@ defmodule Mail.Parsers.RFC2822 do
   @spec parse_recipient_value(value :: String.t()) ::
           [{String.t(), String.t()} | String.t()]
   def parse_recipient_value(value) do
-    Regex.scan(~r/\s*("?)(.*?)\1\s*?<?([^<\s]+@[^\s>,]+)>?,?/, value)
+    Regex.scan(
+      ~r/
+    \s*
+    (?:
+      # Quoted name
+      ((?<!\\)")
+      (?<name>.*?)
+      \1
+      \s*
+      <
+      (?<email>[^<\s,]+@[^\s>,]+)
+      >
+    |
+      # Non-quoted name
+      (?<name2>[^\\",@]+?)
+      \s*?
+      <
+      (?<email2>[^<\s,]+@[^\s>,]+)
+      >
+    |
+      # Only email
+      <?(?<email3>[^<\s,]+@[^\s>,]+)>?
+    )
+    ,?
+    /x,
+      value,
+      capture: :all_names
+    )
     |> Enum.map(fn
-      [_, _, "", address] -> address
-      [_, _, name, address] -> {name, address}
+      # Scan is matching on named captures sorted alphabetically:
+      # [email, email2, email3, name, name2]
+      ["", "", address, "", ""] ->
+        {"", address}
+
+      [address, "", "", name, ""] ->
+        {name, address}
+
+      ["", address, "", "", name] ->
+        {name, address}
+    end)
+    |> Enum.map(fn
+      {"", address} -> address
+      {name, address} -> {String.replace(name, "\\", ""), address}
     end)
   end
 
