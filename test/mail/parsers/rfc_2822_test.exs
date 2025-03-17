@@ -1024,9 +1024,6 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["subject"] == "Test of new header generator"
   end
 
-  defp parse_email(email, opts \\ []),
-    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
-
   test "invalid content-type should not take infinite time" do
     message =
       parse_email("""
@@ -1036,8 +1033,8 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
-  defp parse_email(email),
-    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse()
+  defp parse_email(email, opts \\ []),
+    do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
   defp parse_recipient(recipient),
     do: Mail.Parsers.RFC2822.parse_recipient_value(recipient)
