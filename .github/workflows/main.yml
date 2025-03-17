@@ -39,7 +39,7 @@ jobs:
           elixir-version: ${{ matrix.elixir }}
           otp-version: ${{ matrix.erlang }}
       - name: Restore dependencies cache
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: deps
           key: ${{ runner.os }}-${{ matrix.erlang }}-${{ matrix.elixir }}-mix-${{ hashFiles('**/mix.lock') }}
