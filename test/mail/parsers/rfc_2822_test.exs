@@ -303,30 +303,59 @@ defmodule Mail.Parsers.RFC2822Test do
     assert to_datetime("invalid date string") == {:error, "invalid date string"}
   end
 
-  test "parse_recipient_value retrieves a list of name and addresses" do
-    recipient =
-      "The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, \"an@email.com\" <an@email.com>"
+  describe "parse_recipient_value/1" do
+    test "parse_recipient_value retrieves a list of name and addresses" do
+      recipient =
+        ~S|The Dude <dude@example.com>, batman@example.com, super<compact@recipi.ent>, "an@email.com" <an@email.com>|
 
-    retrieved_recipients = [
-      {"The Dude", "dude@example.com"},
-      "batman@example.com",
-      {"super", "compact@recipi.ent"},
-      {"an@email.com", "an@email.com"}
-    ]
+      retrieved_recipients = [
+        {"The Dude", "dude@example.com"},
+        "batman@example.com",
+        {"super", "compact@recipi.ent"},
+        {"an@email.com", "an@email.com"}
+      ]
 
-    assert parse_recipient(recipient) == retrieved_recipients
-  end
+      assert parse_recipient(recipient) == retrieved_recipients
+    end
 
-  test "parse_recipient_value retrieves an empty list when recipient is empty" do
-    assert parse_recipient("") == []
-  end
+    test "parse_recipient_value retrieves an empty list when recipient is empty" do
+      assert parse_recipient("") == []
+    end
 
-  test "parse_recipient_value retrieves an empty list when no \"address\" found" do
-    assert parse_recipient("NoEmail") == []
-  end
+    test "parse_recipient_value retrieves an empty list when no \"address\" found" do
+      assert parse_recipient("NoEmail") == []
+    end
 
-  test "parse_recipient_value retrieves a list when only one \"address\" found" do
-    assert parse_recipient("dude@example.com") == ["dude@example.com"]
+    test "parse_recipient_value retrieves a list when only one \"address\" found" do
+      assert parse_recipient("dude@example.com") == ["dude@example.com"]
+      assert parse_recipient("<dude@example.com>") == ["dude@example.com"]
+    end
+
+    test "parse_recipient_value quoted name" do
+      assert parse_recipient(~S|"dude" <dude@example.com>|) == [{"dude", "dude@example.com"}]
+
+      assert parse_recipient(~S|"First, Second" <dude@example.com>|) == [
+               {"First, Second", "dude@example.com"}
+             ]
+    end
+
+    test "parse_recipient_value non-quoted name" do
+      assert parse_recipient(~S|The Dude <dude@example.com>|) == [
+               {"The Dude", "dude@example.com"}
+             ]
+    end
+
+    test "parse_recipient_value extra quoted name" do
+      assert parse_recipient(~S|"\"dude\"" <dude@example.com>|) == [
+               {"\"dude\"", "dude@example.com"}
+             ]
+    end
+
+    test "parse_recipient_value extra test" do
+      assert parse_recipient(~S|"\"service@service.com\" " <service@service.com>|) == [
+               {~S|"service@service.com" |, "service@service.com"}
+             ]
+    end
   end
 
   test "parses a nested multipart message with encoded part" do
@@ -568,6 +597,19 @@ defmodule Mail.Parsers.RFC2822Test do
            ]
 
     assert message.headers["from"] == {"Lastname, First Names", "me@example.com"}
+  end
+
+  test "address name is an e-mail address with additiongal quotes" do
+    message =
+      parse_email("""
+      To: "User, Test" <user@example.com>
+      From: ""me@example.com"" <me@example.com>
+      Date: Fri, 1 Jan 2016 00:00:00 +0000
+      Subject: Blank body
+
+      """)
+
+    assert message.headers["from"] == {"\"me@example.com\"", "me@example.com"}
   end
 
   # See https://tools.ietf.org/html/rfc2047
