@@ -570,6 +570,19 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["from"] == {"Lastname, First Names", "me@example.com"}
   end
 
+  test "address name is an e-mail address with additiongal quotes" do
+    message =
+      parse_email("""
+      To: "User, Test" <user@example.com>
+      From: ""me@example.com"" <me@example.com>
+      Date: Fri, 1 Jan 2016 00:00:00 +0000
+      Subject: Blank body
+
+      """)
+
+    assert message.headers["from"] == {"\"me@example.com\"", "me@example.com"}
+  end
+
   # See https://tools.ietf.org/html/rfc2047
   test "parses headers with encoded word syntax" do
     message =
