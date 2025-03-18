@@ -155,7 +155,7 @@ defmodule Mail.Renderers.RFC2822 do
     value = encode_header_value(value, :quoted_printable)
 
     value =
-      if value =~ ~r/[\s;]/ do
+      if value =~ ~r/[\s()<>@,;:\\<\/\[\]?=]/ do
         "\"#{value}\""
       else
         value
