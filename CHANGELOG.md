@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4 2025-03-24
+
+* Quote address name when needed #190
+* Encode address name when needed #189
+* Fix infinite loop with invalid parameters #187
+* Fix parsing of multiple recipients #
+* Fix get_html/1 to correctly handle multiple parameters in the content-type header #186
+
 ## 0.4.3 2024-11-15
 
 * Update header parsing to decode encoded words after parsing the header (RFC 2047) https://github.com/DockYard/elixir-mail/pull/181
