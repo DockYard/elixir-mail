@@ -18,6 +18,19 @@ defmodule Mail.Message do
     put_in(message.parts, message.parts ++ [part])
   end
 
+  def put_parts(message, parts) when is_list(parts) do
+    put_in(message.parts, message.parts ++ parts)
+  end
+
+  def replace_part(message, match_fun, %Mail.Message{} = part) when is_function(match_fun, 1) do
+    parts =
+      message.parts
+      |> Enum.reject(match_fun)
+      |> Kernel.++([part])
+
+    %{message | parts: parts}
+  end
+
   @doc """
   Delete a matching part
 
@@ -375,21 +388,40 @@ defmodule Mail.Message do
   @doc """
   Is the part an attachment or not
 
+  Types:
+  - `:all` - all attachments
+  - `:attachment` - only attachments (default)
+  - `:inline` - only inline attachments
+
   Returns `Boolean`
   """
-  def is_attachment?(message),
-    do: Enum.member?(List.wrap(get_header(message, :content_disposition)), "attachment")
+  @spec is_attachment?(Mail.Message.t(), :all | :attachment | :inline) :: boolean()
+  def is_attachment?(message, type \\ :attachment) do
+    types =
+      case type do
+        :all -> ["attachment", "inline"]
+        :attachment -> ["attachment"]
+        :inline -> ["inline"]
+      end
+
+    case List.wrap(get_header(message, :content_disposition)) do
+      [disposition | _] -> disposition in types
+      _ -> false
+    end
+  end
 
   @doc """
   Determines the message has any attachment parts
 
   Returns a `Boolean`
   """
-  def has_attachment?(parts) when is_list(parts),
-    do: has_part?(parts, &is_attachment?/1)
+  def has_attachment?(parts, type \\ :attachment)
 
-  def has_attachment?(message),
-    do: has_attachment?(message.parts)
+  def has_attachment?(parts, type) when is_list(parts),
+    do: has_part?(parts, &is_attachment?(&1, type))
+
+  def has_attachment?(message, type),
+    do: has_attachment?(message.parts, type)
 
   @doc """
   Is the message text based or not

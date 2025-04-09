@@ -444,58 +444,98 @@ defmodule MailTest do
     |> assert()
   end
 
-  test "get_attachments walks all parts and collects attachments" do
-    mail =
-      Mail.build_multipart()
-      |> Mail.put_attachment("README.md")
+  describe "get_attachments/2" do
+    # from https://github.com/mathiasbynens/small/blob/master/jpeg.jpg
+    @tiny_jpeg_binary <<255, 216, 255, 219, 0, 67, 0, 3, 2, 2, 2, 2, 2, 3, 2, 2, 2, 3, 3, 3, 3, 4,
+                        6, 4, 4, 4, 4, 4, 8, 6, 6, 5, 6, 9, 8, 10, 10, 9, 8, 9, 9, 10, 12, 15, 12,
+                        10, 11, 14, 11, 9, 9, 13, 17, 13, 14, 15, 16, 16, 17, 16, 10, 12, 18, 19,
+                        18, 16, 19, 15, 16, 16, 16, 255, 201, 0, 11, 8, 0, 1, 0, 1, 1, 1, 17, 0,
+                        255, 204, 0, 6, 0, 16, 16, 5, 255, 218, 0, 8, 1, 1, 0, 0, 63, 0, 210, 207,
+                        32, 255, 217>>
 
-    expected = [{"README.md", File.read!("README.md")}]
-    attachments = Mail.get_attachments(mail)
-    assert attachments == expected
+    test "get_attachments walks all parts and collects attachments" do
+      mail =
+        Mail.build_multipart()
+        |> Mail.put_attachment("README.md")
 
-    subpart = Mail.build_multipart() |> Mail.put_attachment("CONTRIBUTING.md")
+      expected = [{"README.md", File.read!("README.md")}]
+      attachments = Mail.get_attachments(mail)
+      assert attachments == expected
 
-    mail = Mail.Message.put_part(mail, subpart)
+      subpart = Mail.build_multipart() |> Mail.put_attachment("CONTRIBUTING.md")
 
-    expected = List.insert_at(expected, -1, {"CONTRIBUTING.md", File.read!("CONTRIBUTING.md")})
-    attachments = Mail.get_attachments(mail)
-    assert attachments == expected
-  end
+      mail = Mail.Message.put_part(mail, subpart)
 
-  test "get_attachments handles content disposition header with extra properties" do
-    {filename, data} = file = {"README.md", File.read!("README.md")}
+      expected = List.insert_at(expected, -1, {"CONTRIBUTING.md", File.read!("CONTRIBUTING.md")})
+      attachments = Mail.get_attachments(mail)
+      assert attachments == expected
+    end
 
-    mail =
-      Mail.build()
-      |> Mail.Message.put_body(data)
-      |> Mail.Message.put_header(:content_disposition, [
-        "attachment",
-        {"filename", filename},
-        {"size", "xxx"},
-        {"creation_date", "xxx"}
-      ])
-      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+    test "get_attachments walks all parts and collects all, inline, or normal attachments" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "inline_jpeg.jpg"]
+          }
+        )
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
 
-    [attachment | _] = Mail.get_attachments(mail)
-    assert attachment == file
-  end
+      all_attachments = Mail.get_attachments(message, :all)
+      assert [{"inline_jpeg.jpg", _}, {"tiny_jpeg.jpg", _}] = all_attachments
 
-  test "get_attachments handles content disposition header withot filename property" do
-    {_, data} = file = {"Unknown", File.read!("README.md")}
+      inline_attachments = Mail.get_attachments(message, :inline)
+      assert [{"inline_jpeg.jpg", _}] = inline_attachments
 
-    mail =
-      Mail.build()
-      |> Mail.Message.put_body(data)
-      |> Mail.Message.put_header(:content_disposition, [
-        "attachment"
-      ])
-      |> Mail.Message.put_header(:content_transfer_encoding, :base64)
-      # We render and parse so we have the attachment with no properties
-      |> Mail.render()
-      |> Mail.parse()
+      normal_attachments = Mail.get_attachments(message)
+      assert [{"tiny_jpeg.jpg", _}] = normal_attachments
+    end
 
-    [attachment | _] = Mail.get_attachments(mail)
-    assert attachment == file
+    test "get_attachments handles content disposition header with extra properties" do
+      {filename, data} = file = {"README.md", File.read!("README.md")}
+
+      mail =
+        Mail.build()
+        |> Mail.Message.put_body(data)
+        |> Mail.Message.put_header(:content_disposition, [
+          "attachment",
+          {"filename", filename},
+          {"size", "xxx"},
+          {"creation_date", "xxx"}
+        ])
+        |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+
+      [attachment | _] = Mail.get_attachments(mail)
+      assert attachment == file
+    end
+
+    test "get_attachments handles content disposition header withot filename property" do
+      {_, data} = file = {"Unknown", File.read!("README.md")}
+
+      mail =
+        Mail.build()
+        |> Mail.Message.put_body(data)
+        |> Mail.Message.put_header(:content_disposition, [
+          "attachment"
+        ])
+        |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+        # We render and parse so we have the attachment with no properties
+        |> Mail.render()
+        |> Mail.parse()
+
+      [attachment | _] = Mail.get_attachments(mail)
+      assert attachment == file
+    end
   end
 
   test "renders with the given renderer" do

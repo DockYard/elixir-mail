@@ -244,8 +244,11 @@ defmodule Mail.MessageTest do
       |> Mail.put_to(to)
       |> Mail.render()
 
-    encoded_from = ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
-    encoded_to = ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
+    encoded_from =
+      ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
+
+    encoded_to =
+      ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
 
     assert txt =~ encoded_from
     assert txt =~ encoded_to

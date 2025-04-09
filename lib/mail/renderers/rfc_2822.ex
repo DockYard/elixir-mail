@@ -138,7 +138,9 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
-  defp render_address({name, email}), do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
+  defp render_address({name, email}),
+    do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
+
   defp render_address(email), do: validate_address(email)
 
   defp render_subtypes([]), do: []
@@ -261,31 +263,45 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp reorganize(%Mail.Message{multipart: true} = message) do
-    content_type = Mail.Message.get_content_type(message)
+    {text_parts, attachments} =
+      message.parts
+      |> Enum.split_with(&match_content_type?(&1, ~r/text\/(plain|html)/))
 
-    if Mail.Message.has_attachment?(message) do
-      text_parts =
-        Enum.filter(message.parts, &match_content_type?(&1, ~r/text\/(plain|html)/))
-        |> Enum.sort(&(&1 > &2))
+    {inline_attachments, other_attachments} =
+      Enum.split_with(attachments, &Mail.Message.is_attachment?(&1, :inline))
 
-      content_type = List.replace_at(content_type, 0, "multipart/mixed")
-      message = Mail.Message.put_content_type(message, content_type)
-
-      if Enum.any?(text_parts) do
-        message = Enum.reduce(text_parts, message, &Mail.Message.delete_part(&2, &1))
-
-        mixed_part =
-          Mail.build_multipart()
-          |> Mail.Message.put_content_type("multipart/alternative")
-
-        mixed_part = Enum.reduce(text_parts, mixed_part, &Mail.Message.put_part(&2, &1))
-        put_in(message.parts, List.insert_at(message.parts, 0, mixed_part))
-      else
-        message
-      end
+    if Enum.empty?(text_parts) do
+      Mail.Message.put_content_type(message, "multipart/mixed")
     else
-      content_type = List.replace_at(content_type, 0, "multipart/alternative")
-      Mail.Message.put_content_type(message, content_type)
+      alternative =
+        case text_parts do
+          [part] ->
+            part
+
+          text_parts ->
+            Mail.build_multipart()
+            |> Mail.Message.put_content_type("multipart/alternative")
+            |> Mail.Message.put_parts(text_parts)
+        end
+
+      related =
+        if Enum.empty?(inline_attachments) do
+          alternative
+        else
+          Mail.build_multipart()
+          |> Mail.Message.put_content_type("multipart/related")
+          |> Mail.Message.put_part(alternative)
+          |> Mail.Message.put_parts(inline_attachments)
+        end
+
+      if Enum.empty?(other_attachments) do
+        related
+      else
+        Mail.build_multipart()
+        |> Mail.Message.put_content_type("multipart/mixed")
+        |> Mail.Message.put_part(related)
+        |> Mail.Message.put_parts(other_attachments)
+      end
     end
   end
 

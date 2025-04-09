@@ -54,13 +54,11 @@ defmodule Mail do
   def put_text(message, body, opts \\ [])
 
   def put_text(%Mail.Message{multipart: true} = message, body, opts) do
-    message =
-      case Enum.find(message.parts, &Mail.Message.match_body_text/1) do
-        %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
-        _ -> message
-      end
-
-    Mail.Message.put_part(message, Mail.Message.build_text(body, opts))
+    Mail.Message.replace_part(
+      message,
+      &Mail.Message.match_body_text/1,
+      Mail.Message.build_text(body, opts)
+    )
   end
 
   def put_text(%Mail.Message{} = message, body, opts) do
@@ -115,13 +113,11 @@ defmodule Mail do
   def put_html(message, body, opts \\ [])
 
   def put_html(%Mail.Message{multipart: true} = message, body, opts) do
-    message =
-      case Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html")) do
-        %Mail.Message{} = part -> Mail.Message.delete_part(message, part)
-        _ -> message
-      end
-
-    Mail.Message.put_part(message, Mail.Message.build_html(body, opts))
+    Mail.Message.replace_part(
+      message,
+      &Mail.Message.match_content_type?(&1, "text/html"),
+      Mail.Message.build_html(body, opts)
+    )
   end
 
   def put_html(%Mail.Message{} = message, body, opts) do
@@ -223,24 +219,30 @@ defmodule Mail do
   @doc """
   Walks the message parts and collects all attachments
 
+  Types:
+  - `:all` - all attachments
+  - `:attachment` - only attachments (default)
+  - `:inline` - only inline attachments
+
   Each member in the list is `{filename, content}`
   """
-  def get_attachments(%Mail.Message{} = message) do
+  @spec get_attachments(Mail.Message.t(), :all | :attachment | :inline) :: [
+          {String.t(), binary()}
+        ]
+  def get_attachments(%Mail.Message{} = message, type \\ :attachment) do
     walk_parts([message], {:cont, []}, fn message, acc ->
-      case Mail.Message.is_attachment?(message) do
-        true ->
-          filename =
-            case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
-              ["attachment" | properties] ->
-                Enum.find_value(properties, "Unknown", fn {key, value} ->
-                  key == "filename" && value
-                end)
-            end
+      if Mail.Message.is_attachment?(message, type) do
+        filename =
+          case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
+            [_ | properties] ->
+              Enum.find_value(properties, "Unknown", fn {key, value} ->
+                key == "filename" && value
+              end)
+          end
 
-          {:cont, List.insert_at(acc, -1, {filename, message.body})}
-
-        false ->
-          {:cont, acc}
+        {:cont, List.insert_at(acc, -1, {filename, message.body})}
+      else
+        {:cont, acc}
       end
     end)
     |> elem(1)

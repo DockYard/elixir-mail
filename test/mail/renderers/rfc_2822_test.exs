@@ -16,13 +16,28 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   test "quotes header parameters if necessary" do
-    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my-test-file"])
+    header =
+      Mail.Renderers.RFC2822.render_header("Content-Disposition", [
+        "attachment",
+        filename: "my-test-file"
+      ])
+
     assert header == "Content-Disposition: attachment; filename=my-test-file"
 
-    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my test file"])
+    header =
+      Mail.Renderers.RFC2822.render_header("Content-Disposition", [
+        "attachment",
+        filename: "my test file"
+      ])
+
     assert header == "Content-Disposition: attachment; filename=\"my test file\""
 
-    header = Mail.Renderers.RFC2822.render_header("Content-Disposition", ["attachment", filename: "my;test;file"])
+    header =
+      Mail.Renderers.RFC2822.render_header("Content-Disposition", [
+        "attachment",
+        filename: "my;test;file"
+      ])
+
     assert header == "Content-Disposition: attachment; filename=\"my;test;file\""
   end
 
@@ -348,6 +363,397 @@ defmodule Mail.Renderers.RFC2822Test do
       Mail.build()
       |> Mail.put_cc("@example.com")
       |> Mail.Renderers.RFC2822.render()
+    end
+  end
+
+  describe "multipart configuration" do
+    test "multipart/alternative with text/plain and text/html" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/alternative", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                   body: "Some text",
+                   parts: [],
+                   multipart: false
+                 },
+                 %Mail.Message{
+                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                   body: "<h1>Some HTML</h1>",
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/related with text/html and inline attachment" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "image.jpg"]
+          }
+        )
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/related", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]}
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-id" => "c_id",
+                     "content-disposition" => ["inline", {"filename", "image.jpg"}],
+                     "x-attachment-id" => "a_id"
+                   }
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with text/html and attachment" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.put_attachment({"image.jpg", @tiny_jpeg_binary})
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]}
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
+                   }
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with multipart/alternative and attachment" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => [
+                       "multipart/alternative",
+                       {"boundary", _alternative_boundary}
+                     ]
+                   },
+                   parts: [
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                       body: "Some text",
+                       parts: [],
+                       multipart: false
+                     },
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                       body: "<h1>Some HTML</h1>",
+                       parts: [],
+                       multipart: false
+                     }
+                   ]
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}]
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/related and inline attachment and multipart/alternative with text/plain and text/html" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "image.jpg"]
+          }
+        )
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{
+                 "content-type" => ["multipart/related", {"boundary", _related_boundary}]
+               },
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => [
+                       "multipart/alternative",
+                       {"boundary", _alternative_boundary}
+                     ]
+                   },
+                   parts: [
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                       body: "Some text",
+                       parts: [],
+                       multipart: false
+                     },
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                       body: "<h1>Some HTML</h1>",
+                       parts: [],
+                       multipart: false
+                     }
+                   ]
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-id" => "c_id",
+                     "content-disposition" => ["inline", {"filename", "image.jpg"}],
+                     "x-attachment-id" => "a_id"
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with attachment and multipart/alternative with text/plain and text/html" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"image.jpg", @tiny_jpeg_binary})
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{
+                 "content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]
+               },
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => [
+                       "multipart/alternative",
+                       {"boundary", _alternative_boundary}
+                     ]
+                   },
+                   parts: [
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                       body: "Some text",
+                       parts: [],
+                       multipart: false
+                     },
+                     %Mail.Message{
+                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                       body: "<h1>Some HTML</h1>",
+                       parts: [],
+                       multipart: false
+                     }
+                   ]
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with multipart/related and inline attachment and multipart/alternative with text/plain and text/html" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "image.jpg"]
+          }
+        )
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => ["multipart/related", {"boundary", _related_boundary}]
+                   },
+                   parts: [
+                     %Mail.Message{
+                       headers: %{
+                         "content-type" => [
+                           "multipart/alternative",
+                           {"boundary", _alternative_boundary}
+                         ]
+                       },
+                       parts: [
+                         %Mail.Message{
+                           headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                           body: "Some text",
+                           parts: [],
+                           multipart: false
+                         },
+                         %Mail.Message{
+                           headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
+                           body: "<h1>Some HTML</h1>",
+                           parts: [],
+                           multipart: false
+                         }
+                       ]
+                     },
+                     %Mail.Message{
+                       headers: %{
+                         "content-transfer-encoding" => "base64",
+                         "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                         "content-id" => "c_id",
+                         "content-disposition" => ["inline", {"filename", "image.jpg"}],
+                         "x-attachment-id" => "a_id"
+                       },
+                       parts: [],
+                       multipart: false
+                     }
+                   ]
+                 },
+                 %Mail.Message{
+                   headers: %{
+                     "content-transfer-encoding" => "base64",
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}]
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with only attachments" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"image.jpg", @tiny_jpeg_binary})
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
+    test "multipart/mixed with only inline attachments" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "inline_jpeg.jpg"]
+          }
+        )
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{
+                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
+                     "content-disposition" => ["inline", {"filename", "inline_jpeg.jpg"}]
+                   },
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
     end
   end
 end

@@ -1,12 +1,18 @@
 # Changelog
 
+## 0.4.5
+
+* Update RFC2822 Renderer to correctly render multipart combinations of `multipart/alternative`, `multipart/related`, and `multipart/mixed` https://github.com/DockYard/elixir-mail/pull/137
+* Update `Mail.get_attachments/2` to handle inline attachments
+* Update `Mail.Message.is_attachment?/2` to handle inline attachments
+
 ## 0.4.4 2025-03-24
 
-* Quote address name when needed #190
-* Encode address name when needed #189
-* Fix infinite loop with invalid parameters #187
-* Fix parsing of multiple recipients #
-* Fix get_html/1 to correctly handle multiple parameters in the content-type header #186
+* Quote address name when needed https://github.com/DockYard/elixir-mail/pull/190
+* Encode address name when needed https://github.com/DockYard/elixir-mail/pull/189
+* Fix infinite loop with invalid parameters https://github.com/DockYard/elixir-mail/pull/187
+* Fix parsing of multiple recipients
+* Fix get_html/1 to correctly handle multiple parameters in the content-type header https://github.com/DockYard/elixir-mail/pull/186
 
 ## 0.4.3 2024-11-15
 
