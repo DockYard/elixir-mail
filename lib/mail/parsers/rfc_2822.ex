@@ -95,6 +95,9 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_datetime(<<"\t", rest::binary>>), do: parse_datetime(rest)
   defp parse_datetime(<<_day::binary-size(3), ", ", rest::binary>>), do: parse_datetime(rest)
 
+  # Handle day name with space before comma: "Fri , 18 Apr 2025 05:50:01 +0200"
+  defp parse_datetime(<<_day::binary-size(3), " ", ",", rest::binary>>), do: parse_datetime(rest)
+
   defp parse_datetime(<<date::binary-size(1), " ", rest::binary>>),
     do: parse_datetime("0" <> date <> " " <> rest)
 
