@@ -210,6 +210,7 @@ defmodule Mail.Parsers.RFC2822Test do
     import Mail.Parsers.RFC2822, only: [to_datetime: 1]
 
     assert to_datetime("Fri, 1 Jan 2016 00:00:00 +0000") == ~U"2016-01-01 00:00:00Z"
+    assert to_datetime("Fri , 18 Apr 2025 05:50:01 +0200") == ~U"2025-04-18 03:50:01Z"
     assert to_datetime("1 Feb 2016 01:02:03 +0000") == ~U"2016-02-01 01:02:03Z"
     assert to_datetime(" 1 Mar 2016 11:12:13 +0000") == ~U"2016-03-01 11:12:13Z"
     assert to_datetime("\t1 Apr 2016 22:33:44 +0000") == ~U"2016-04-01 22:33:44Z"
