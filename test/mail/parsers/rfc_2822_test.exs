@@ -682,6 +682,84 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.body == "This is some text"
   end
 
+  test "parses attachment headers with and without a name in content-type" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Complex attachment headers
+      Content-Type: multipart/mixed; boundary=boundary123
+
+      --boundary123
+      Content-Type: application/pdf; name="document.pdf"
+      Content-Transfer-Encoding: base64
+      Content-Disposition: attachment; filename="document.pdf"
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0=
+
+      --boundary123
+      Content-Type: application/pdf;
+      Content-Transfer-Encoding: base64
+      Content-Disposition: attachment; filename="unnamed.pdf"
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0=
+
+
+      --boundary123
+      Content-Type: application/pdf
+      Content-Transfer-Encoding: base64
+      Content-Disposition: attachment; filename="unnamed.pdf"
+
+      JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0=
+
+      --boundary123
+      Content-Type: application/octet-stream; x-param=value;
+      Content-Transfer-Encoding: base64
+      Content-Disposition: attachment; filename="binary-data.bin"
+
+      SGVsbG8gd29ybGQh
+
+      --boundary123--
+      """)
+
+    assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "boundary123"}]
+
+    [pdf_with_name, pdf_without_name, pdf_without_name_or_semicolon, binary_with_param] =
+      message.parts
+
+    assert pdf_with_name.headers["content-type"] == ["application/pdf", {"name", "document.pdf"}]
+
+    assert pdf_with_name.headers["content-disposition"] == [
+             "attachment",
+             {"filename", "document.pdf"}
+           ]
+
+    assert pdf_without_name.headers["content-type"] == [
+             "application/pdf",
+             {"charset", "us-ascii"}
+           ]
+
+    assert pdf_without_name_or_semicolon.headers["content-type"] == [
+             "application/pdf",
+             {"charset", "us-ascii"}
+           ]
+
+    assert pdf_without_name.headers["content-disposition"] == [
+             "attachment",
+             {"filename", "unnamed.pdf"}
+           ]
+
+    assert binary_with_param.headers["content-type"] == [
+             "application/octet-stream",
+             {"x_param", "value"}
+           ]
+
+    assert binary_with_param.headers["content-disposition"] == [
+             "attachment",
+             {"filename", "binary-data.bin"}
+           ]
+  end
+
   test "parse invalid Received header" do
     message =
       parse_email("""
