@@ -1,10 +1,12 @@
 # Changelog
 
-## 0.4.5
+## 0.5.0 2025-04-22
 
-* Update RFC2822 Renderer to correctly render multipart combinations of `multipart/alternative`, `multipart/related`, and `multipart/mixed` https://github.com/DockYard/elixir-mail/pull/137
+* Update RFC2822 Renderer to correctly render multipart combinations of `multipart/alternative`, `multipart/related`, and `multipart/mixed` https://github.com/DockYard/elixir-mail/pull/137 (potential breaking change)
 * Update `Mail.get_attachments/2` to handle inline attachments
 * Update `Mail.Message.is_attachment?/2` to handle inline attachments
+* Update recipient parsing regex https://github.com/DockYard/elixir-mail/pull/193 (potential breaking change; all existing tests pass)
+* Added another in-the-wild date parsing edge case https://github.com/DockYard/elixir-mail/pull/196
 
 ## 0.4.4 2025-03-24
 
