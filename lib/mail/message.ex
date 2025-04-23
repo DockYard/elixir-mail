@@ -86,6 +86,12 @@ defmodule Mail.Message do
   def put_header(message, key, content),
     do: %{message | headers: Map.put(message.headers, fix_header(key), content)}
 
+  def put_headers(message, headers) do
+    Enum.reduce(headers, message, fn {key, value}, message ->
+      put_header(message, key, value)
+    end)
+  end
+
   def get_header(message, key) when not is_binary(key),
     do: get_header(message, to_string(key))
 

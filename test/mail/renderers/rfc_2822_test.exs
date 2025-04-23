@@ -202,6 +202,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.put_subject("Test email")
       |> Mail.put_text("Some text")
       |> Mail.put_html("<h1>Some HTML</h1>")
+      |> Mail.Message.put_content_type("multipart/alternative")
       |> Mail.Message.put_boundary("foobar")
 
     {:ok, fixture} = File.read("test/fixtures/simple-multipart-rendering.eml")
@@ -754,6 +755,30 @@ defmodule Mail.Renderers.RFC2822Test do
                  }
                ]
              } = message
+    end
+
+    test "multipart/mixed with custom headers" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_to("user1@example.com")
+        |> Mail.Message.put_header("X-Custom-Header", "custom value")
+        |> Mail.put_subject("Test email")
+        |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
+        |> Mail.put_attachment({"inline_jpeg.jpg", @tiny_jpeg_binary},
+          headers: %{
+            content_id: "c_id",
+            content_type: "image/jpeg",
+            x_attachment_id: "a_id",
+            content_disposition: ["inline", filename: "image.jpg"]
+          }
+        )
+        |> Mail.put_text("Some text")
+        |> Mail.put_html("<h1>Some HTML</h1>")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %{"x-custom-header" => "custom value"} = message.headers
     end
   end
 end
