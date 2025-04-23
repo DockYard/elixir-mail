@@ -429,9 +429,9 @@ defmodule Mail.Parsers.RFC2822 do
     do: parse_received_value(value)
 
   defp parse_header_value("content-type", value) do
-    case parse_structured_header_value(value) do
+    case List.wrap(parse_structured_header_value(value)) do
+      [<<value::binary>>] -> [value, {"charset", "us-ascii"}]
       [_ | _] = header -> header
-      <<value::binary>> -> [value, {"charset", "us-ascii"}]
     end
   end
 
