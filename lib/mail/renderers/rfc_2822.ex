@@ -32,10 +32,12 @@ defmodule Mail.Renderers.RFC2822 do
   Renders a message according to the RFC2822 spec
   """
   def render(%Mail.Message{multipart: true} = message) do
-    message
-    |> reorganize
-    |> Mail.Message.put_header(:mime_version, "1.0")
-    |> render_part()
+    part =
+      message
+      |> reorganize
+      |> Mail.Message.put_header(:mime_version, "1.0")
+
+    render_part(%{part | headers: Map.merge(message.headers, part.headers)})
   end
 
   def render(%Mail.Message{} = message),
