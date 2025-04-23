@@ -287,4 +287,73 @@ defmodule Mail.MessageTest do
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
   end
+
+  test "headers in message are rendered correctly" do
+    message =
+      %Mail.Message{
+        headers: %{
+          "from" => "\"Sender\" <sender@example.com>",
+          "subject" => "Test Subject",
+          "to" => [{"", "recipient@example.com"}],
+          "x-custom-header-1" => "custom-header-value",
+          "x-custom-header-2" => "custom-header-value"
+        },
+        body: nil,
+        parts: [
+          %Mail.Message{
+            headers: %{
+              "content-transfer-encoding" => :quoted_printable,
+              "content-type" => ["text/plain", {"charset", "utf-8"}]
+            },
+            body: "Test text body",
+            parts: [],
+            multipart: false
+          }
+        ],
+        multipart: false
+      }
+
+    rendered = Mail.Renderers.RFC2822.render(message)
+    assert String.contains?(rendered, "X-Custom-Header-1")
+    assert String.contains?(rendered, "X-Custom-Header-2")
+  end
+
+  test "headers in multipart message are rendered correctly" do
+    message =
+      %Mail.Message{
+        headers: %{
+          "from" => "\"Sender\" <sender@example.com>",
+          "subject" => "Test Subject",
+          "to" => [{"", "recipient@example.com"}],
+          "x-custom-header-1" => "custom-header-value",
+          "x-custom-header-2" => "custom-header-value"
+        },
+        body: nil,
+        parts: [
+          %Mail.Message{
+            headers: %{
+              "content-transfer-encoding" => :quoted_printable,
+              "content-type" => ["text/plain", {"charset", "utf-8"}]
+            },
+            body: "Test text body",
+            parts: [],
+            multipart: false
+          },
+          %Mail.Message{
+            headers: %{
+              "content-transfer-encoding" => :quoted_printable,
+              "content-type" => ["text/html", {"charset", "UTF-8"}]
+            },
+            body: "<html>html body</html>",
+            parts: [],
+            multipart: false
+          }
+        ],
+        multipart: true
+      }
+
+    rendered = Mail.Renderers.RFC2822.render(message)
+    assert String.contains?(rendered, "X-Custom-Header-1")
+    assert String.contains?(rendered, "X-Custom-Header-2")
+  end
 end
