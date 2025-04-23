@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 2025-04-23
+
+* Fix regression in multipart rendering where custom headers were lost
+
 ## 0.5.0 2025-04-22
 
 * Update RFC2822 Renderer to correctly render multipart combinations of `multipart/alternative`, `multipart/related`, and `multipart/mixed` https://github.com/DockYard/elixir-mail/pull/137 (potential breaking change)
