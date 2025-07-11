@@ -519,7 +519,7 @@ defmodule MailTest do
       assert attachment == file
     end
 
-    test "get_attachments handles content disposition header withot filename property" do
+    test "get_attachments handles content disposition header without filename property" do
       {_, data} = file = {"Unknown", File.read!("README.md")}
 
       mail =
@@ -527,6 +527,28 @@ defmodule MailTest do
         |> Mail.Message.put_body(data)
         |> Mail.Message.put_header(:content_disposition, [
           "attachment"
+        ])
+        |> Mail.Message.put_header(:content_transfer_encoding, :base64)
+        # We render and parse so we have the attachment with no properties
+        |> Mail.render()
+        |> Mail.parse()
+
+      [attachment | _] = Mail.get_attachments(mail)
+      assert attachment == file
+    end
+
+    test "get_attachments handles checks content_type for name property" do
+      {filename, data} = file = {"README.md", File.read!("README.md")}
+
+      mail =
+        Mail.build()
+        |> Mail.Message.put_body(data)
+        |> Mail.Message.put_header(:content_disposition, [
+          "attachment"
+        ])
+        |> Mail.Message.put_header(:content_type, [
+          "application/octet-stream",
+          {"name", filename}
         ])
         |> Mail.Message.put_header(:content_transfer_encoding, :base64)
         # We render and parse so we have the attachment with no properties

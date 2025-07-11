@@ -235,10 +235,14 @@ defmodule Mail do
         filename =
           case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
             [_ | properties] ->
-              Enum.find_value(properties, "Unknown", fn {key, value} ->
+              Enum.find_value(properties, fn {key, value} ->
                 key == "filename" && value
               end)
-          end
+          end ||
+            case Mail.Message.get_header(message, :content_type) do
+              [_, {"name", name}] -> name
+              _ -> "Unknown"
+            end
 
         {:cont, List.insert_at(acc, -1, {filename, message.body})}
       else
