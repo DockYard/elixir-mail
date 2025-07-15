@@ -665,7 +665,10 @@ defmodule Mail.Parsers.RFC2822 do
         parse(part, opts)
       end)
 
-    Map.put(message, :parts, parts)
+    case parts do
+      [] -> parse_body(Map.put(message, :multipart, false), lines, opts)
+      _ -> Map.put(message, :parts, parts)
+    end
   end
 
   defp parse_body(%Mail.Message{} = message, [], _opts) do

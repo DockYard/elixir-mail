@@ -967,7 +967,23 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.parts == []
-    assert message.body == nil
+    assert message.body == ""
+  end
+
+  test "multipart content-type with no parts" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: Test
+      Content-Type: multipart/mixed; boundary="foobar"
+
+      This is a message with multipart content-type but no actual parts
+      """)
+
+    assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "foobar"}]
+    assert message.body == "This is a message with multipart content-type but no actual parts"
+    assert message.parts == []
   end
 
   test "content-type with explicit charset" do
