@@ -1101,6 +1101,83 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "parses RFC 2231 parameter continuations for long filenames" do
+    message =
+      parse_email("""
+      Subject: RFC 2231 Long filename test
+      Content-Type: multipart/mixed; boundary="boundary123"
+
+      --boundary123
+      Content-Type: application/pdf
+      Content-Disposition: attachment;
+        filename*0="a_very_long_filename_that_needs_to_be_split_across_multiple_";
+        filename*1="lines_according_to_RFC_2231_parameter_continuations.pdf"
+
+      PDF content here
+      --boundary123--
+      """)
+
+    [part] = message.parts
+
+    assert [
+             "attachment",
+             {"filename",
+              "a_very_long_filename_that_needs_to_be_split_across_multiple_lines_according_to_RFC_2231_parameter_continuations.pdf"}
+           ] =
+             part.headers["content-disposition"]
+  end
+
+  test "parses RFC 2231 parameter continuations with charset and language" do
+    message =
+      parse_email("""
+      Subject: RFC 2231 with charset
+      Content-Type: multipart/mixed; boundary="boundary456"
+
+      --boundary456
+      Content-Type: image/png
+      Content-Disposition: inline;
+        filename*0*=UTF-8'en'%C3%A9%C3%A0%20test%20file%20with%20special%20;
+        filename*1*=characters%20%C3%B1%C3%B6%C3%BC.png
+
+      PNG content here
+      --boundary456--
+      """)
+
+    [part] = message.parts
+
+    assert ["inline", {"filename", "éà test file with special characters ñöü.png"}] =
+             part.headers["content-disposition"]
+  end
+
+  test "parses mixed RFC 2231 continuations with regular parameters" do
+    message =
+      parse_email("""
+      Subject: RFC 2231 mixed parameters
+      Content-Type: multipart/mixed; boundary="boundary789"
+
+      --boundary789
+      Content-Type: application/octet-stream;
+        name="short.txt"
+      Content-Disposition: attachment;
+        filename*0="this_is_a_very_long_filename_that_exceeds_the_";
+        filename*1="normal_line_length_limit_";
+        filename*2="and_needs_to_be_continued.txt";
+        size="12345"
+
+      File content here
+      --boundary789--
+      """)
+
+    [part] = message.parts
+    ["attachment" | params] = part.headers["content-disposition"]
+
+    assert {"filename",
+            "this_is_a_very_long_filename_that_exceeds_the_normal_line_length_limit_and_needs_to_be_continued.txt"} in params
+
+    assert {"size", "12345"} in params
+    assert length(params) == 2
+  end
+
   defp parse_email(email, opts \\ []),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 

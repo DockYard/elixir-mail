@@ -530,10 +530,12 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc) do
     [value | Enum.reverse([{key, acc} | sub_types])]
+    |> assemble_params()
   end
 
   defp parse_structured_header_value("", value, sub_types, :param_name, _acc) do
     [value | Enum.reverse(sub_types)]
+    |> assemble_params()
   end
 
   defp parse_structured_header_value("", nil, [], _part, acc) do
@@ -542,6 +544,7 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_structured_header_value("", value, [_ | _] = sub_types, _part, "") do
     [value | Enum.reverse(sub_types)]
+    |> assemble_params()
   end
 
   defp parse_structured_header_value("", value, [], _part, acc) do
@@ -719,6 +722,67 @@ defmodule Mail.Parsers.RFC2822 do
     |> String.trim()
     |> String.downcase()
     |> String.replace("-", "_")
+  end
+
+  defp assemble_params(params) when is_list(params) do
+    {regular_params, continued_params} =
+      params
+      |> Enum.split_with(fn
+        {key, _value} when is_binary(key) ->
+          not String.match?(key, ~r/\*\d+\*?$/)
+
+        _ ->
+          true
+      end)
+
+    reassembled =
+      continued_params
+      |> Enum.group_by(fn {key, _value} ->
+        String.replace(key, ~r/\*\d+\*?$/, "")
+      end)
+      |> Enum.map(&reassemble_param_group/1)
+
+    regular_params ++ reassembled
+  end
+
+  defp reassemble_param_group({base_name, continuations}) do
+    sorted_continuations =
+      continuations
+      |> Enum.sort_by(fn {key, _value} ->
+        case Regex.run(~r/\*(\d+)\*?$/, key) do
+          [_, num] -> String.to_integer(num)
+          _ -> 0
+        end
+      end)
+
+    is_encoded =
+      sorted_continuations
+      |> List.first()
+      |> elem(0)
+      |> String.ends_with?("*")
+
+    combined_value =
+      sorted_continuations
+      |> Enum.map(fn {_key, value} -> value end)
+      |> handle_sorted_continuations(is_encoded)
+
+    {base_name, combined_value}
+  end
+
+  defp handle_sorted_continuations(list, false), do: list |> Enum.join("")
+
+  defp handle_sorted_continuations([first | rest], true) do
+    {_charset, _lang, first_value} =
+      case String.split(first, "'", parts: 3) do
+        [charset, lang, encoded_value] ->
+          {charset, lang, encoded_value}
+
+        _ ->
+          {"UTF-8", "", first}
+      end
+
+    Enum.join([first_value | rest], "")
+    |> URI.decode()
   end
 
   defp multipart?(headers) do
