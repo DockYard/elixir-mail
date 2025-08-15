@@ -381,9 +381,27 @@ defmodule Mail.Parsers.RFC2822 do
     [name, body] = String.split(header, ":", parts: 2)
     key = String.downcase(name)
     value = parse_header_value(key, body)
+
+    value =
+      case value do
+        [value | params] = list when is_binary(value) and is_list(params) ->
+          if is_params(params) do
+            [value | concatenate_continuation_params(params, opts)]
+          else
+            list
+          end
+
+        value ->
+          value
+      end
+
     decoded = decode_header_value(key, value, opts)
     {key, decoded}
   end
+
+  defp is_params([]), do: true
+  defp is_params([{_key, _value} | params]), do: is_params(params)
+  defp is_params([_ | _]), do: false
 
   defp put_header(headers, "received" = key, value),
     do: Map.update(headers, key, [value], &[value | &1])
@@ -504,6 +522,7 @@ defmodule Mail.Parsers.RFC2822 do
           end
 
         charset_handler = Keyword.get(opts, :charset_handler, fn _, string -> string end)
+        [charset | _language] = String.split(charset, "*", parts: 2)
         decoded_string = charset_handler.(charset, decoded_string)
 
         # Remove space if immediately followed by another encoded word string
@@ -530,12 +549,10 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_structured_header_value("", value, [{key, nil} | sub_types], _part, acc) do
     [value | Enum.reverse([{key, acc} | sub_types])]
-    |> assemble_params()
   end
 
   defp parse_structured_header_value("", value, sub_types, :param_name, _acc) do
     [value | Enum.reverse(sub_types)]
-    |> assemble_params()
   end
 
   defp parse_structured_header_value("", nil, [], _part, acc) do
@@ -544,7 +561,6 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp parse_structured_header_value("", value, [_ | _] = sub_types, _part, "") do
     [value | Enum.reverse(sub_types)]
-    |> assemble_params()
   end
 
   defp parse_structured_header_value("", value, [], _part, acc) do
@@ -724,65 +740,84 @@ defmodule Mail.Parsers.RFC2822 do
     |> String.replace("-", "_")
   end
 
-  defp assemble_params(params) when is_list(params) do
-    {regular_params, continued_params} =
-      params
-      |> Enum.split_with(fn
-        {key, _value} when is_binary(key) ->
-          not String.match?(key, ~r/\*\d+\*?$/)
+  # This is for RFC 2231 parameters that are split into multiple parts
+  defp concatenate_continuation_params(params, opts) do
+    params
+    |> Enum.map(fn
+      # Find parameters that are split into multiple parts
+      {key, value} when is_binary(value) ->
+        case String.split(key, "*", parts: 2) do
+          [key, part] ->
+            {{key, part}, value}
 
-        _ ->
-          true
-      end)
+          _ ->
+            {key, value}
+        end
 
-    reassembled =
-      continued_params
-      |> Enum.group_by(fn {key, _value} ->
-        String.replace(key, ~r/\*\d+\*?$/, "")
-      end)
-      |> Enum.map(&reassemble_param_group/1)
+      kv ->
+        kv
+    end)
+    # Group the split parameters by key
+    |> Enum.reduce({nil, []}, fn
+      {{key, <<"0", _::binary>> = part}, value}, {_prev_key, acc} ->
+        # The continuations are tagged so they don’t conflict with pre-parsed parameters, like DKIM
+        {key, [{:continuation, key, [{part, value}]} | acc]}
 
-    regular_params ++ reassembled
+      {{key, part}, value}, {key, [{:continuation, key, values} | acc]} ->
+        {key, [{:continuation, key, [{part, value} | values]} | acc]}
+
+      {key, value}, {_, acc} ->
+        {nil, [{key, value} | acc]}
+    end)
+    # We don’t need the previous key tracking value anymore
+    |> elem(1)
+    # Parse and join the continuations
+    |> Enum.map(fn
+      {:continuation, key, values} ->
+        # The values are in reverse order from the above grouping reduction, so we need to reverse them
+        {charset, _language, value} = parse_continuation_part(Enum.reverse(values))
+
+        converted_value =
+          if charset do
+            charset_handler = Keyword.get(opts, :charset_handler, fn _, string -> string end)
+            charset_handler.(charset, value)
+          else
+            value
+          end
+
+        {key, converted_value}
+
+      {key, value} ->
+        {key, value}
+    end)
+    # Reverse the list to maintain the original order
+    |> Enum.reverse()
   end
 
-  defp reassemble_param_group({base_name, continuations}) do
-    sorted_continuations =
+  defp parse_continuation_part(continuations) do
+    {charset, language, value} =
       continuations
-      |> Enum.sort_by(fn {key, _value} ->
-        case Regex.run(~r/\*(\d+)\*?$/, key) do
-          [_, num] -> String.to_integer(num)
-          _ -> 0
+      |> Enum.reduce({nil, nil, <<>>}, fn {continuation, value_part},
+                                          {charset, language, value} ->
+        cond do
+          continuation == "0*" ->
+            case String.split(value_part, "'", parts: 3) do
+              ["", language, value] ->
+                {nil, language, URI.decode(value)}
+
+              [charset, language, value] ->
+                {charset, language, URI.decode(value)}
+            end
+
+          is_binary(continuation) and String.ends_with?(continuation, "*") ->
+            {charset, language, value <> URI.decode(value_part)}
+
+          true ->
+            {charset, language, value <> value_part}
         end
       end)
 
-    is_encoded =
-      sorted_continuations
-      |> List.first()
-      |> elem(0)
-      |> String.ends_with?("*")
-
-    combined_value =
-      sorted_continuations
-      |> Enum.map(fn {_key, value} -> value end)
-      |> handle_sorted_continuations(is_encoded)
-
-    {base_name, combined_value}
-  end
-
-  defp handle_sorted_continuations(list, false), do: list |> Enum.join("")
-
-  defp handle_sorted_continuations([first | rest], true) do
-    {_charset, _lang, first_value} =
-      case String.split(first, "'", parts: 3) do
-        [charset, lang, encoded_value] ->
-          {charset, lang, encoded_value}
-
-        _ ->
-          {"UTF-8", "", first}
-      end
-
-    Enum.join([first_value | rest], "")
-    |> URI.decode()
+    {charset, language, value}
   end
 
   defp multipart?(headers) do
