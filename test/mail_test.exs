@@ -519,22 +519,68 @@ defmodule MailTest do
       assert attachment == file
     end
 
-    test "get_attachments handles content disposition header without filename property" do
-      {_, data} = file = {"Unknown", File.read!("README.md")}
+    test "get_attachments correctly retrieves the file name" do
+      message = %Mail.Message{
+        multipart: true,
+        parts: [
+          %Mail.Message{
+            body: "file content 1",
+            headers: %{
+              "content-disposition" => ["attachment"],
+              "content-transfer-encoding" => :base64
+            }
+          },
+          %Mail.Message{
+            body: "file content 2",
+            headers: %{
+              "content-disposition" => ["attachment", {"filename", "README.md"}],
+              "content-transfer-encoding" => :base64
+            }
+          },
+          %Mail.Message{
+            body: "file content 3",
+            headers: %{
+              "content-disposition" => ["attachment"],
+              "content-type" => ["application/octet-stream", {"name", "README.md"}]
+            }
+          },
+          %Mail.Message{
+            body: "file content 4",
+            headers: %{
+              "content-disposition" => ["attachment", {"foo", "bar"}, {"filename", "README.md"}],
+              "content-type" => ["application/octet-stream", {"name", "README.md"}]
+            }
+          },
+          %Mail.Message{
+            body: "file content 5",
+            headers: %{
+              "content-disposition" => ["attachment"],
+              "content-type" => [
+                "application/octet-stream",
+                {"foo", "bar"},
+                {"name", "README.md"}
+              ]
+            }
+          },
+          %Mail.Message{
+            body: "file content 6",
+            headers: %{
+              "content-disposition" => ["attachment", {"foo", "bar"}],
+              "content-type" => ["application/octet-stream", {"foo", "bar"}]
+            }
+          }
+        ]
+      }
 
-      mail =
-        Mail.build()
-        |> Mail.Message.put_body(data)
-        |> Mail.Message.put_header(:content_disposition, [
-          "attachment"
-        ])
-        |> Mail.Message.put_header(:content_transfer_encoding, :base64)
-        # We render and parse so we have the attachment with no properties
-        |> Mail.render()
-        |> Mail.parse()
+      [attachment1, attachment2, attachment3, attachment4, attachment5, attachment6 | _] =
+        Mail.get_attachments(message)
 
-      [attachment | _] = Mail.get_attachments(mail)
-      assert attachment == file
+      assert attachment1 == {"Unknown", "file content 1"}
+      assert attachment2 == {"README.md", "file content 2"}
+      assert attachment3 == {"README.md", "file content 3"}
+      assert attachment4 == {"README.md", "file content 4"}
+      assert attachment5 == {"README.md", "file content 5"}
+      assert attachment6 == {"Unknown", "file content 6"}
     end
 
     test "get_attachments handles checks content_type for name property" do

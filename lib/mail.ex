@@ -232,17 +232,7 @@ defmodule Mail do
   def get_attachments(%Mail.Message{} = message, type \\ :attachment) do
     walk_parts([message], {:cont, []}, fn message, acc ->
       if Mail.Message.is_attachment?(message, type) do
-        filename =
-          case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
-            [_ | properties] ->
-              Enum.find_value(properties, fn {key, value} ->
-                key == "filename" && value
-              end)
-          end ||
-            case Mail.Message.get_header(message, :content_type) do
-              [_, {"name", name}] -> name
-              _ -> "Unknown"
-            end
+        filename = get_attachment_filename(message)
 
         {:cont, List.insert_at(acc, -1, {filename, message.body})}
       else
@@ -250,6 +240,34 @@ defmodule Mail do
       end
     end)
     |> elem(1)
+  end
+
+  defp get_attachment_filename(message) do
+    filename =
+      case Mail.Message.get_header(message, :content_disposition) do
+        [_ | properties] ->
+          Enum.find_value(properties, fn {key, value} -> key == "filename" && value end)
+
+        _ ->
+          nil
+      end
+
+    filename =
+      case filename do
+        nil ->
+          case Mail.Message.get_header(message, :content_type) do
+            [_ | properties] ->
+              Enum.find_value(properties, fn {key, value} -> key == "name" && value end)
+
+            _ ->
+              nil
+          end
+
+        filename ->
+          filename
+      end
+
+    filename || "Unknown"
   end
 
   defp walk_parts(_parts, {:halt, acc}, _fun), do: {:halt, acc}
