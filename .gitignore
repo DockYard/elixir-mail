@@ -24,3 +24,5 @@ mail-*.tar
 
 # Temporary files for e.g. tests
 /tmp
+
+.tool-versions

@@ -94,6 +94,25 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Subject: Hello World!"
   end
 
+  test "does not fold In-Reply-To header" do
+    message_id = "<" <> String.duplicate("a", 70) <> "@example.com>"
+
+    header = Mail.Renderers.RFC2822.render_header("In-Reply-To", message_id)
+
+    assert header == "In-Reply-To: #{message_id}"
+  end
+
+  test "does not fold References header" do
+    message_ids =
+      1..3
+      |> Enum.map(fn index -> "<id-#{index}-" <> String.duplicate("b", 30) <> "@example.com>" end)
+      |> Enum.join(" ")
+
+    header = Mail.Renderers.RFC2822.render_header("References", message_ids)
+
+    assert header == "References: #{message_ids}"
+  end
+
   test "headers - renders all headers" do
     headers = Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"})
     assert headers == "Foo: bar\r\nBaz: qux"

@@ -118,6 +118,13 @@ defmodule Mail.Renderers.RFC2822 do
     render_header_value(key, value)
   end
 
+  defp render_header_value(header, value) when header in ["In-Reply-To", "References"] do
+    value
+    |> List.wrap()
+    |> Enum.map(&format_message_id/1)
+    |> Enum.join(" ")
+  end
+
   defp render_header_value(_key, [value | subtypes]),
     do:
       Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
@@ -187,6 +194,10 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.reverse()
     |> Enum.join("\r\n")
   end
+
+  defp format_message_id(value) when is_binary(value), do: value
+
+  defp format_message_id(value), do: to_string(value)
 
   # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
   # split in 76 chars including its surroundings and delimmiters.
