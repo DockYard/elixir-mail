@@ -44,36 +44,77 @@ defmodule Mail.Parsers.RFC2822 do
   ## Options
 
     * `:charset_handler` - A function that takes a charset and binary and returns a binary. Defaults to return the string as is.
+    * `:header_only` - Whether to parse only the headers. Defaults to false.
 
   """
   @spec parse(binary() | nonempty_maybe_improper_list(), keyword()) :: Mail.Message.t()
-  def parse(content, opts \\ [])
+  def parse(content, opts \\ []) when is_binary(content) do
+    {headers, body_offset, has_body} = extract_headers_and_body_offset(content)
 
-  def parse([_ | _] = lines, opts) do
-    [headers, lines] = extract_headers(lines)
+    message =
+      %Mail.Message{}
+      |> parse_headers(headers, opts)
+      |> mark_multipart()
 
-    %Mail.Message{}
-    |> parse_headers(headers, opts)
-    |> mark_multipart()
-    |> parse_body(lines, opts)
+    if has_body and not Keyword.get(opts, :header_only, false) do
+      # Extract body portion using offset
+      body_content =
+        if body_offset < byte_size(content) do
+          binary_part(content, body_offset, byte_size(content) - body_offset)
+        else
+          ""
+        end
+
+      parse_body_binary(message, body_content, opts)
+    else
+      message
+    end
   end
 
-  def parse(content, opts),
-    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse(opts)
+  defp extract_headers_and_body_offset(content) do
+    content
+    |> Stream.unfold(fn remaining ->
+      case remaining |> :binary.split("\n") do
+        [""] -> nil
+        [line, rest] -> {{line, byte_size(line) + 1}, rest}
+        [line] -> {{line, byte_size(line)}, ""}
+      end
+    end)
+    |> Stream.map(fn {line, size} -> {String.trim_trailing(line), size} end)
+    |> Enum.reduce_while({[], nil, 0, false}, &accumulate_headers/2)
+    |> case do
+      {headers, current_header, offset, false} ->
+        # No empty line found - all content is headers, no body section
+        headers = if current_header, do: [current_header | headers], else: headers
+        {Enum.reverse(headers), offset, false}
 
-  defp extract_headers(list, headers \\ [])
+      {headers, _current_header, offset, true} ->
+        # Empty line found normally - there is a body section (even if empty)
+        {headers, offset, true}
+    end
+  end
 
-  defp extract_headers(["" | tail], headers),
-    do: [Enum.reverse(headers), tail]
+  # Empty line marks end of headers
+  defp accumulate_headers({"", line_size}, {headers, current_header, offset, _found}) do
+    final_headers = if current_header, do: [current_header | headers], else: headers
+    {:halt, {Enum.reverse(final_headers), nil, offset + line_size, true}}
+  end
 
-  defp extract_headers([<<" ", _::binary>> = folded_body | tail], [previous_header | headers]),
-    do: extract_headers(tail, [previous_header <> folded_body | headers])
+  # Folded header (continuation line starts with space or tab)
+  defp accumulate_headers(
+         {<<first_char, _::binary>> = line, line_size},
+         {headers, current_header, offset, found}
+       )
+       when first_char in [?\s, ?\t] do
+    current_header = if current_header, do: current_header <> line, else: nil
+    {:cont, {headers, current_header, offset + line_size, found}}
+  end
 
-  defp extract_headers([<<"\t", _::binary>> = folded_body | tail], [previous_header | headers]),
-    do: extract_headers(tail, [previous_header <> folded_body | headers])
-
-  defp extract_headers([header | tail], headers),
-    do: extract_headers(tail, [header | headers])
+  # New header line
+  defp accumulate_headers({line, line_size}, {headers, current_header, offset, found}) do
+    new_headers = if current_header, do: [current_header | headers], else: headers
+    {:cont, {new_headers, line, offset + line_size, found}}
+  end
 
   @doc """
   Parses a RFC2822 timestamp to a DateTime with timezone
