@@ -1292,6 +1292,53 @@ defmodule Mail.Parsers.RFC2822Test do
     end
   end
 
+  describe "Large part handling" do
+    @multi_part_message """
+    To: Test User <user@example.com>, Other User <other@example.com>
+    CC: The Dude <dude@example.com>, Batman <batman@example.com>
+    From: Me <me@example.com>
+    Subject: Test email
+    Mime-Version: 1.0
+    Content-Type: multipart/alternative; boundary=foobar
+
+    This is a multi-part message in MIME format
+    --foobar
+    Content-Type: text/plain
+
+    This is some text
+
+    --foobar
+    Content-Type: text/html
+
+    <h1>This is some HTML</h1>
+
+    --foobar
+    x-my-header: no body!
+
+    --foobar--
+    """
+
+    test "large parts are skipped" do
+      message =
+        parse_email(
+          @multi_part_message,
+          skip_large_parts?: true,
+          max_part_size: 1
+        )
+
+      assert message.body == nil
+
+      [text_part, html_part, headers_only_part] = message.parts
+
+      assert text_part.parts == []
+      assert text_part.headers == %{}
+      assert html_part.parts == []
+      assert html_part.headers == %{}
+      assert headers_only_part.parts == []
+      assert headers_only_part.headers == %{}
+    end
+  end
+
   defp parse_email(email, opts \\ []),
     do: email |> convert_crlf |> Mail.Parsers.RFC2822.parse(opts)
 
