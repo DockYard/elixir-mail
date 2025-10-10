@@ -118,10 +118,19 @@ defmodule Mail.Renderers.RFC2822 do
     render_header_value(key, value)
   end
 
-  defp render_header_value(header, value) when header in ["In-Reply-To", "References"] do
+  defp render_header_value(header, value)
+       when header in [
+              # RFC 5322
+              "Message-Id",
+              "In-Reply-To",
+              "References",
+              "Resent-Message-Id",
+              # RFC 2045
+              "Content-Id"
+            ] do
     value
     |> List.wrap()
-    |> Enum.map(&format_message_id/1)
+    |> Enum.map(&to_string/1)
     |> Enum.join(" ")
   end
 
@@ -194,10 +203,6 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.reverse()
     |> Enum.join("\r\n")
   end
-
-  defp format_message_id(value) when is_binary(value), do: value
-
-  defp format_message_id(value), do: to_string(value)
 
   # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
   # split in 76 chars including its surroundings and delimmiters.

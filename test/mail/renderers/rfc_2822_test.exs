@@ -94,18 +94,19 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Subject: Hello World!"
   end
 
-  test "does not fold In-Reply-To header" do
-    message_id = "<" <> String.duplicate("a", 70) <> "@example.com>"
+  ["Message-Id", "In-Reply-To", "References", "Resent-Message-Id", "Content-Id"]
+  |> Enum.each(fn header ->
+    test "does not encode #{header} header (msg-id)" do
+      message_id = "<" <> String.duplicate("a", 73) <> "@example.com>"
+      header = Mail.Renderers.RFC2822.render_header(unquote(header), message_id)
+      assert header == "#{unquote(header)}: #{message_id}"
+    end
+  end)
 
-    header = Mail.Renderers.RFC2822.render_header("In-Reply-To", message_id)
-
-    assert header == "In-Reply-To: #{message_id}"
-  end
-
-  test "does not fold References header" do
+  test "does not encode References header (msg-id) with multiple message-ids" do
     message_ids =
       1..3
-      |> Enum.map(fn index -> "<id-#{index}-" <> String.duplicate("b", 30) <> "@example.com>" end)
+      |> Enum.map(fn index -> "<id-#{index}-" <> String.duplicate("b", 70) <> "@example.com>" end)
       |> Enum.join(" ")
 
     header = Mail.Renderers.RFC2822.render_header("References", message_ids)
