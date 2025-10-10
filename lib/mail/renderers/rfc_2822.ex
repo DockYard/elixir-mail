@@ -118,6 +118,22 @@ defmodule Mail.Renderers.RFC2822 do
     render_header_value(key, value)
   end
 
+  defp render_header_value(header, value)
+       when header in [
+              # RFC 5322
+              "Message-Id",
+              "In-Reply-To",
+              "References",
+              "Resent-Message-Id",
+              # RFC 2045
+              "Content-Id"
+            ] do
+    value
+    |> List.wrap()
+    |> Enum.map(&to_string/1)
+    |> Enum.join(" ")
+  end
+
   defp render_header_value(_key, [value | subtypes]),
     do:
       Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
