@@ -44,36 +44,135 @@ defmodule Mail.Parsers.RFC2822 do
   ## Options
 
     * `:charset_handler` - A function that takes a charset and binary and returns a binary. Defaults to return the string as is.
+    * `:headers_only` - Whether to parse only the headers. Defaults to false.
+    * `:parts_handler_fn` - A function invoked for each multipart message part. Receives `part_info`, `message` (with parsed headers), and `opts`. Defaults to nil (normal parsing).
 
+  ## Parts Handler Function
+
+  The `:parts_handler_fn` option allows custom handling of each part in a multipart message:
+
+      parts_handler_fn: fn part_info, message, opts ->
+        # part_info = %{size: 46_000, start: 1234, index: 0}
+        # message = %Mail.Message{} (with headers already parsed)
+        # opts = keyword list of options passed to parse/2
+
+        :parse  # Continue with normal parsing (default behavior)
+        # or
+        %{message | headers: %{message.headers | "x-custom" => "true"}}
+      end
+
+  ### Handler Return Values
+
+    * `:parse` - Continues with normal parsing of the part's body
+    * `%Mail.Message{}` - Returns a custom message structure (headers are already parsed, you provide the body)
   """
   @spec parse(binary() | nonempty_maybe_improper_list(), keyword()) :: Mail.Message.t()
-  def parse(content, opts \\ [])
-
-  def parse([_ | _] = lines, opts) do
-    [headers, lines] = extract_headers(lines)
-
-    %Mail.Message{}
-    |> parse_headers(headers, opts)
-    |> mark_multipart()
-    |> parse_body(lines, opts)
+  def parse(content, opts \\ []) when is_binary(content) do
+    parse_part(%{
+      part_info: %{size: byte_size(content), start: 0, index: 0},
+      body_content: content,
+      parts_handler_fn: nil,
+      opts: opts
+    })
   end
 
-  def parse(content, opts),
-    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse(opts)
+  defp parse_part(%{
+         part_info: part_info,
+         body_content: body_content,
+         parts_handler_fn: parts_handler_fn,
+         opts: opts
+       }) do
+    part_data = binary_part(body_content, part_info.start, part_info.size)
+    {headers, body_offset, has_body} = extract_headers_and_body_offset(part_data)
 
-  defp extract_headers(list, headers \\ [])
+    message =
+      %Mail.Message{}
+      |> parse_headers(headers, opts)
+      |> mark_multipart()
 
-  defp extract_headers(["" | tail], headers),
-    do: [Enum.reverse(headers), tail]
+    cond do
+      parts_handler_fn == nil -> :parse
+      is_function(parts_handler_fn, 3) -> parts_handler_fn.(part_info, message, opts)
+    end
+    |> apply_handler_result(%{
+      message: message,
+      part_info: part_info,
+      has_body: has_body,
+      body_offset: body_offset,
+      part_data: part_data,
+      opts: opts
+    })
+  end
 
-  defp extract_headers([<<" ", _::binary>> = folded_body | tail], [previous_header | headers]),
-    do: extract_headers(tail, [previous_header <> folded_body | headers])
+  defp apply_handler_result(%Mail.Message{} = message, _context) do
+    message
+  end
 
-  defp extract_headers([<<"\t", _::binary>> = folded_body | tail], [previous_header | headers]),
-    do: extract_headers(tail, [previous_header <> folded_body | headers])
+  defp apply_handler_result(:parse, %{message: message, has_body: false}) do
+    message
+  end
 
-  defp extract_headers([header | tail], headers),
-    do: extract_headers(tail, [header | headers])
+  defp apply_handler_result(:parse, %{
+         message: message,
+         body_offset: body_offset,
+         part_data: part_data,
+         opts: opts
+       }) do
+    # Extract body portion using offset
+    body_content =
+      if body_offset < byte_size(part_data) do
+        binary_part(part_data, body_offset, byte_size(part_data) - body_offset)
+      else
+        ""
+      end
+
+    parse_body_binary(message, body_content, opts)
+  end
+
+  defp extract_headers_and_body_offset(content) do
+    content
+    |> Stream.unfold(fn remaining ->
+      case remaining |> :binary.split("\n") do
+        [""] -> nil
+        [line, rest] -> {{line, byte_size(line) + 1}, rest}
+        [line] -> {{line, byte_size(line)}, ""}
+      end
+    end)
+    |> Stream.map(fn {line, size} -> {String.trim_trailing(line), size} end)
+    |> Enum.reduce_while({[], nil, 0, false}, &accumulate_headers/2)
+    |> case do
+      {headers, current_header, offset, false} ->
+        # No empty line found - all content is headers, no body section
+        headers = if current_header, do: [current_header | headers], else: headers
+        {Enum.reverse(headers), offset, false}
+
+      {headers, _current_header, offset, true} ->
+        # Empty line found normally - there is a body section (even if empty)
+        {headers, offset, true}
+    end
+  end
+
+  # Empty line marks end of headers
+  defp accumulate_headers({"", line_size}, {headers, current_header, offset, _found}) do
+    final_headers = if current_header, do: [current_header | headers], else: headers
+    {:halt, {Enum.reverse(final_headers), nil, offset + line_size, true}}
+  end
+
+  # Folded header (continuation line starts with space or tab)
+  defp accumulate_headers(
+         {<<first_char, _::binary>> = line, line_size},
+         {headers, current_header, offset, found}
+       )
+       when first_char in [?\s, ?\t] do
+    current_header = if current_header, do: current_header <> line, else: nil
+    {:cont, {headers, current_header, offset + line_size, found}}
+  end
+
+  # New header line
+  defp accumulate_headers({line, line_size}, {headers, current_header, offset, found}) do
+    new_headers = if current_header, do: [current_header | headers], else: headers
+    {:cont, {new_headers, line, offset + line_size, found}}
+  end
 
   @doc """
   Parses a RFC2822 timestamp to a DateTime with timezone
@@ -673,65 +772,167 @@ defmodule Mail.Parsers.RFC2822 do
   defp remove_excess_whitespace(<<char::utf8, rest::binary>>),
     do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
 
-  defp parse_body(%Mail.Message{multipart: true} = message, lines, opts) do
+  defp parse_body_binary(%Mail.Message{multipart: true} = message, body_content, opts) do
     content_type = message.headers["content-type"]
     boundary = Mail.Proplist.get(content_type, "boundary")
+    part_ranges = extract_parts_ranges(body_content, boundary)
 
-    parts =
-      lines
-      |> extract_parts(boundary)
-      |> Enum.map(fn part ->
-        parse(part, opts)
+    parts_handler_fn = Keyword.get(opts, :parts_handler_fn, nil)
+
+    parsed_parts =
+      part_ranges
+      |> Enum.with_index()
+      |> Enum.map(fn {{start, size}, index} ->
+        if parts_handler_fn do
+          parse_part(%{
+            part_info: %{size: size, start: start, index: index},
+            body_content: body_content,
+            parts_handler_fn: parts_handler_fn,
+            opts: opts
+          })
+        else
+          String.trim_trailing(binary_part(body_content, start, size), "\r\n")
+          |> parse(opts)
+        end
       end)
 
-    case parts do
-      [] -> parse_body(Map.put(message, :multipart, false), lines, opts)
-      _ -> Map.put(message, :parts, parts)
+    case parsed_parts do
+      [] -> parse_body_binary(Map.put(message, :multipart, false), body_content, opts)
+      _ -> Map.put(message, :parts, parsed_parts)
     end
   end
 
-  defp parse_body(%Mail.Message{} = message, [], _opts) do
+  # Empty body for non-multipart - set to empty string
+  defp parse_body_binary(%Mail.Message{multipart: false} = message, "", _opts) do
+    Map.put(message, :body, "")
+  end
+
+  # Empty body for multipart (shouldn't happen normally, but leave as nil)
+  defp parse_body_binary(%Mail.Message{} = message, "", _opts) do
     message
   end
 
-  defp parse_body(%Mail.Message{} = message, lines, opts) do
-    decoded =
-      lines
-      |> join_body()
-      |> decode(message, opts)
-
+  # Simple (non-multipart) body
+  defp parse_body_binary(%Mail.Message{} = message, body_content, opts) do
+    # Normalize line endings without splitting into array
+    normalized_body = String.replace(body_content, ~r/\r?\n/, "\r\n")
+    decoded = decode(normalized_body, message, opts)
     Map.put(message, :body, decoded)
   end
 
-  defp join_body(lines, acc \\ [])
-  defp join_body([], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
-  defp join_body([""], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
-  defp join_body([head | tail], acc), do: join_body(tail, [head | acc])
+  defp extract_parts_ranges(content, boundary) do
+    start_boundary = "--" <> boundary
+    end_boundary = "--" <> boundary <> "--"
 
-  defp extract_parts(lines, boundary, acc \\ [], parts \\ nil)
+    # Stream through content tracking byte offsets for boundaries
+    content
+    |> Stream.unfold(fn remaining ->
+      case remaining |> :binary.split("\n") do
+        [""] -> nil
+        [line, rest] -> {{line, byte_size(line) + 1}, rest}
+        [line] -> {{line, byte_size(line)}, ""}
+      end
+    end)
+    |> Stream.map(fn {line, size} -> {String.trim_trailing(line), size} end)
+    |> Enum.reduce_while({[], 0, nil, nil}, fn {line, line_size}, {_, offset, _, _} = acc ->
+      new_offset = offset + line_size
+      accumulate_part_range({line, new_offset}, acc, start_boundary, end_boundary)
+    end)
+    |> extract_final_part_range(content)
+    |> Enum.reverse()
+  end
 
-  defp extract_parts([], _boundary, _acc, parts),
-    do: Enum.reverse(List.wrap(parts))
+  # End boundary found: but no part was started
+  defp accumulate_part_range(
+         {line, new_offset},
+         {ranges, _offset, _state, nil},
+         _start_boundary,
+         end_boundary
+       )
+       when line == end_boundary do
+    {:halt, {ranges, new_offset, :done, nil}}
+  end
 
-  defp extract_parts(["--" <> boundary | tail], boundary, acc, nil),
-    do: extract_parts(tail, boundary, acc, [])
+  # End boundary found: append new [part_start -> offset] range
+  defp accumulate_part_range(
+         {line, new_offset},
+         {ranges, offset, _state, part_start},
+         _start_boundary,
+         end_boundary
+       )
+       when line == end_boundary do
+    ranges = [{part_start, offset - part_start} | ranges]
+    {:halt, {ranges, new_offset, :done, nil}}
+  end
 
-  defp extract_parts(["--" <> boundary | tail], boundary, acc, parts),
-    do: extract_parts(tail, boundary, [], [Enum.reverse(acc) | parts])
+  # Start boundary found: first boundary
+  defp accumulate_part_range(
+         {line, new_offset},
+         {ranges, _offset, nil, _part_start},
+         start_boundary,
+         _end_boundary
+       )
+       when line == start_boundary do
+    {:cont, {ranges, new_offset, :collecting, new_offset}}
+  end
 
-  defp extract_parts([<<"--" <> rest>> = line | tail], boundary, acc, parts) do
-    if rest == boundary <> "--" do
-      extract_parts([], boundary, [], [Enum.reverse(acc) | parts])
+  # Start boundary found: subsequent boundary
+  defp accumulate_part_range(
+         {line, new_offset},
+         {ranges, offset, _state, part_start},
+         start_boundary,
+         _end_boundary
+       )
+       when line == start_boundary do
+    part_range = {part_start, offset - part_start}
+    {:cont, {[part_range | ranges], new_offset, :collecting, new_offset}}
+  end
+
+  # Inside a part: just track offset
+  defp accumulate_part_range(
+         {_line, new_offset},
+         {ranges, _offset, :collecting, part_start},
+         _start_boundary,
+         _end_boundary
+       ) do
+    {:cont, {ranges, new_offset, :collecting, part_start}}
+  end
+
+  # Before first boundary: ignore
+  defp accumulate_part_range(
+         {_line, new_offset},
+         {ranges, _offset, state, part_start},
+         _start_boundary,
+         _end_boundary
+       ) do
+    {:cont, {ranges, new_offset, state, part_start}}
+  end
+
+  # Handle case where end boundary wasn't found (still :collecting)
+  defp extract_final_part_range({ranges, _offset, :collecting, start}, content) do
+    # Add final part from start to end of content (if it has content (not empty or just whitespace)
+    part_size = byte_size(content) - start
+
+    if part_size > 0 and contains_non_whitespace?(content, start, start + part_size) do
+      [{start, part_size} | ranges]
     else
-      extract_parts(tail, boundary, [line | acc], parts)
+      ranges
     end
   end
 
-  defp extract_parts([_line | tail], boundary, acc, nil),
-    do: extract_parts(tail, boundary, acc, nil)
+  defp extract_final_part_range({ranges, _offset, _state, _start}, _content) do
+    ranges
+  end
 
-  defp extract_parts([head | tail], boundary, acc, parts),
-    do: extract_parts(tail, boundary, [head | acc], parts)
+  @whitespaces [?\s, ?\t, ?\r, ?\n]
+  defp contains_non_whitespace?(content, pos, limit) when pos < limit do
+    case :binary.at(content, pos) do
+      char when char in @whitespaces -> contains_non_whitespace?(content, pos + 1, limit)
+      _ -> true
+    end
+  end
+
+  defp contains_non_whitespace?(_, _, _), do: false
 
   defp key_to_atom(key) do
     key
