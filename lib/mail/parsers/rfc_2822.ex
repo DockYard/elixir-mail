@@ -44,33 +44,89 @@ defmodule Mail.Parsers.RFC2822 do
   ## Options
 
     * `:charset_handler` - A function that takes a charset and binary and returns a binary. Defaults to return the string as is.
-    * `:header_only` - Whether to parse only the headers. Defaults to false.
-    * `:max_part_size` - The maximum size of a part in bytes. Defaults to 10MB.
-    * `:skip_large_parts?` - Whether to skip parts larger than `max_part_size`. Defaults to false.
+    * `:headers_only` - Whether to parse only the headers. Defaults to false.
+    * `:parts_handler_fn` - A function invoked for each multipart message part. Receives `part_info`, `message` (with parsed headers), and `opts`. Defaults to nil (normal parsing).
 
+  ## Parts Handler Function
+
+  The `:parts_handler_fn` option allows custom handling of each part in a multipart message:
+
+      parts_handler_fn: fn part_info, message, opts ->
+        # part_info = %{size: 46_000, start: 1234, index: 0}
+        # message = %Mail.Message{} (with headers already parsed)
+        # opts = keyword list of options passed to parse/2
+
+        :parse  # Continue with normal parsing (default behavior)
+        # or
+        %{message | headers: %{message.headers | "x-custom" => "true"}}
+      end
+
+  ### Handler Return Values
+
+    * `:parse` - Continues with normal parsing of the part's body
+    * `%Mail.Message{}` - Returns a custom message structure (headers are already parsed, you provide the body)
   """
   @spec parse(binary() | nonempty_maybe_improper_list(), keyword()) :: Mail.Message.t()
   def parse(content, opts \\ []) when is_binary(content) do
-    {headers, body_offset, has_body} = extract_headers_and_body_offset(content)
+    parse_part(%{
+      part_info: %{size: byte_size(content), start: 0, index: 0},
+      body_content: content,
+      parts_handler_fn: nil,
+      opts: opts
+    })
+  end
+
+  defp parse_part(%{
+         part_info: part_info,
+         body_content: body_content,
+         parts_handler_fn: parts_handler_fn,
+         opts: opts
+       }) do
+    part_data = binary_part(body_content, part_info.start, part_info.size)
+    {headers, body_offset, has_body} = extract_headers_and_body_offset(part_data)
 
     message =
       %Mail.Message{}
       |> parse_headers(headers, opts)
       |> mark_multipart()
 
-    if has_body and not Keyword.get(opts, :header_only, false) do
-      # Extract body portion using offset
-      body_content =
-        if body_offset < byte_size(content) do
-          binary_part(content, body_offset, byte_size(content) - body_offset)
-        else
-          ""
-        end
-
-      parse_body_binary(message, body_content, opts)
-    else
-      message
+    cond do
+      parts_handler_fn == nil -> :parse
+      is_function(parts_handler_fn, 3) -> parts_handler_fn.(part_info, message, opts)
     end
+    |> apply_handler_result(%{
+      message: message,
+      part_info: part_info,
+      has_body: has_body,
+      body_offset: body_offset,
+      part_data: part_data,
+      opts: opts
+    })
+  end
+
+  defp apply_handler_result(%Mail.Message{} = message, _context) do
+    message
+  end
+
+  defp apply_handler_result(:parse, %{message: message, has_body: false}) do
+    message
+  end
+
+  defp apply_handler_result(:parse, %{
+         message: message,
+         body_offset: body_offset,
+         part_data: part_data,
+         opts: opts
+       }) do
+    # Extract body portion using offset
+    body_content =
+      if body_offset < byte_size(part_data) do
+        binary_part(part_data, body_offset, byte_size(part_data) - body_offset)
+      else
+        ""
+      end
+
+    parse_body_binary(message, body_content, opts)
   end
 
   defp extract_headers_and_body_offset(content) do
@@ -721,15 +777,19 @@ defmodule Mail.Parsers.RFC2822 do
     boundary = Mail.Proplist.get(content_type, "boundary")
     part_ranges = extract_parts_ranges(body_content, boundary)
 
-    size_threshold = Keyword.get(opts, :max_part_size, 10_000_000)
-    skip_large_parts? = Keyword.get(opts, :skip_large_parts?, false)
+    parts_handler_fn = Keyword.get(opts, :parts_handler_fn, nil)
 
     parsed_parts =
       part_ranges
-      |> Enum.map(fn {start, size} ->
-        if skip_large_parts? and size > size_threshold do
-          # Don't extract or parse large parts: return placeholder
-          %Mail.Message{body: "[Part skipped: #{size} bytes - too large to parse]"}
+      |> Enum.with_index()
+      |> Enum.map(fn {{start, size}, index} ->
+        if parts_handler_fn do
+          parse_part(%{
+            part_info: %{size: size, start: start, index: index},
+            body_content: body_content,
+            parts_handler_fn: parts_handler_fn,
+            opts: opts
+          })
         else
           String.trim_trailing(binary_part(body_content, start, size), "\r\n")
           |> parse(opts)

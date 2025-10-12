@@ -1292,7 +1292,7 @@ defmodule Mail.Parsers.RFC2822Test do
     end
   end
 
-  describe "Large part handling" do
+  describe "parts_handler_fn" do
     @multi_part_message """
     To: Test User <user@example.com>, Other User <other@example.com>
     CC: The Dude <dude@example.com>, Batman <batman@example.com>
@@ -1318,24 +1318,128 @@ defmodule Mail.Parsers.RFC2822Test do
     --foobar--
     """
 
-    test "large parts are skipped" do
+    test "handler returning :parse parses parts normally" do
       message =
         parse_email(
           @multi_part_message,
-          skip_large_parts?: true,
-          max_part_size: 1
+          parts_handler_fn: fn _part_info, _message, _opts ->
+            :parse
+          end
         )
 
       assert message.body == nil
+      [text_part, html_part, headers_only_part] = message.parts
+
+      assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
+      assert text_part.body == "This is some text"
+
+      assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+      assert html_part.body == "<h1>This is some HTML</h1>"
+
+      assert headers_only_part.headers["x-my-header"] == "no body!"
+      assert headers_only_part.body == ""
+    end
+
+    test "handler returning custom message with skipped body" do
+      message =
+        parse_email(
+          @multi_part_message,
+          parts_handler_fn: fn part_info, message, _opts ->
+            Map.put(message, :body, "[Headers only - body skipped: #{part_info.size} bytes]")
+          end
+        )
+
+      assert message.body == nil
+      [text_part, html_part, headers_only_part] = message.parts
+
+      # Headers are still parsed
+      assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
+      # Body is replaced with placeholder
+      assert text_part.body =~ "[Headers only - body skipped:"
+
+      assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+      assert html_part.body =~ "[Headers only - body skipped:"
+
+      assert headers_only_part.headers["x-my-header"] == "no body!"
+      assert headers_only_part.body =~ "[Headers only - body skipped:"
+    end
+
+    test "handler returning custom message" do
+      message =
+        parse_email(
+          @multi_part_message,
+          parts_handler_fn: fn part_info, message, _opts ->
+            %Mail.Message{
+              body: "Custom body for part #{part_info.index}",
+              headers: Map.put(message.headers, "x-custom", "true")
+            }
+          end
+        )
+
+      assert message.body == nil
+      [text_part, html_part, headers_only_part] = message.parts
+
+      assert text_part.body == "Custom body for part 0"
+      assert text_part.headers["x-custom"] == "true"
+      assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
+
+      assert html_part.body == "Custom body for part 1"
+      assert html_part.headers["x-custom"] == "true"
+
+      assert headers_only_part.body == "Custom body for part 2"
+      assert headers_only_part.headers["x-custom"] == "true"
+    end
+
+    test "handler can access part_info and skip based on size" do
+      message =
+        parse_email(
+          @multi_part_message,
+          parts_handler_fn: fn part_info, message, _opts ->
+            if part_info.size > 25 do
+              Map.put(message, :body, "[Headers only - body skipped: #{part_info.size} bytes]")
+            else
+              :parse
+            end
+          end
+        )
 
       [text_part, html_part, headers_only_part] = message.parts
 
-      assert text_part.parts == []
-      assert text_part.headers == %{}
-      assert html_part.parts == []
-      assert html_part.headers == %{}
-      assert headers_only_part.parts == []
-      assert headers_only_part.headers == %{}
+      # Text part is large, should be skipped
+      assert text_part.body =~ "[Headers only - body skipped:"
+
+      # HTML part is large, should be skipped
+      assert html_part.body =~ "[Headers only - body skipped:"
+
+      # Headers-only part is small, should be parsed
+      assert headers_only_part.body == ""
+    end
+
+    test "handler can access message and conditionally skip based on content-type" do
+      message =
+        parse_email(
+          @multi_part_message,
+          parts_handler_fn: fn part_info, message, _opts ->
+            content_type = message.headers["content-type"]
+            # Skip HTML parts
+            if List.first(content_type || []) == "text/html" do
+              Map.put(message, :body, "[Headers only - body skipped: #{part_info.size} bytes]")
+            else
+              :parse
+            end
+          end
+        )
+
+      [text_part, html_part, headers_only_part] = message.parts
+
+      # Text part should be parsed
+      assert text_part.body == "This is some text"
+
+      # HTML part should be skipped
+      assert html_part.body =~ "[Headers only - body skipped:"
+
+      # Headers-only part should be parsed
+      assert headers_only_part.body == ""
     end
   end
 
