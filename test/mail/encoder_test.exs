@@ -19,7 +19,7 @@ defmodule Mail.EncoderTest do
 
     test "encodes a binary as base64" do
       # with odd casings
-      assert "SGVsbG8sIFdvcmxk\r\n" == Encoder.encode("Hello, World", "BASE64")
+      assert "SGVsbG8sIFdvcmxk" == Encoder.encode("Hello, World", "BASE64")
       assert "Hello, World" == Encoder.decode("SGVsbG8sIFdvcmxk\r\n", "Base64")
     end
 

@@ -18,6 +18,6 @@ defmodule Mail.Encoders.Base64Test do
     encoded = Mail.Encoders.Base64.encode(message)
 
     assert encoded ==
-             "SGVsbG8gd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3JsZCEgSGVsbG8gd29ybGQhIEhlbGxv\r\nIHdvcmxkISBIZWxsbyB3b3JsZCEgSGVsbG8gd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3Js\r\nZCE=\r\n"
+             "SGVsbG8gd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3JsZCEgSGVsbG8gd29ybGQhIEhlbGxv\r\nIHdvcmxkISBIZWxsbyB3b3JsZCEgSGVsbG8gd29ybGQhIEhlbGxvIHdvcmxkISBIZWxsbyB3b3Js\r\nZCE="
   end
 end

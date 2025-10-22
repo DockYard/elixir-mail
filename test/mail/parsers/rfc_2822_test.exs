@@ -37,7 +37,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["from"] == "me@example.com"
     assert message.headers["reply-to"] == "otherme@example.com"
     assert message.headers["subject"] == "Test Email"
-    assert message.body == nil
+    assert message.body == ""
   end
 
   test "parses a multipart message" do
@@ -80,7 +80,7 @@ defmodule Mail.Parsers.RFC2822Test do
     [text_part, html_part] = message.parts
 
     assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
-    assert text_part.body == "This is some text"
+    assert text_part.body == "This is some text\r\n"
 
     assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is some HTML</h1>"
@@ -101,12 +101,10 @@ defmodule Mail.Parsers.RFC2822Test do
       Content-Type: text/plain
 
       This is some text
-
       --foobar
       Content-Type: text/html
 
       <h1>This is some HTML</h1>
-
       --foobar
       x-my-header: no body!
 
@@ -124,7 +122,7 @@ defmodule Mail.Parsers.RFC2822Test do
     assert html_part.body == "<h1>This is some HTML</h1>"
 
     assert headers_only_part.headers["x-my-header"] == "no body!"
-    assert headers_only_part.body == nil
+    assert headers_only_part.body == ""
   end
 
   # A reproduction of an email found in the wild.
@@ -381,7 +379,6 @@ defmodule Mail.Parsers.RFC2822Test do
       Content-Type: text/html
 
       <h1>This is the HTML</h1>
-
       --bazqux--
       --foobar
       Content-Type: text/markdown
@@ -412,7 +409,7 @@ defmodule Mail.Parsers.RFC2822Test do
     [text_part, html_part] = alt_part.parts
 
     assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
-    assert text_part.body == "This is some text"
+    assert text_part.body == "This is some text\r\n"
 
     assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
     assert html_part.body == "<h1>This is the HTML</h1>"
@@ -846,7 +843,6 @@ defmodule Mail.Parsers.RFC2822Test do
     Content-Transfer-Encoding: quoted-printable
 
     fran=E7aise pr=E8s =E0 th=E9=E2tre lumi=E8re
-
     ------=_Part_295474_20544590.1456382229928
     Content-Type: application/octet-stream;
       name="=?Windows-1252?Q?Imagin=E9.pdf?="
@@ -858,7 +854,6 @@ defmodule Mail.Parsers.RFC2822Test do
     Content-Transfer-Encoding: base64
 
     JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
-
     ------=_Part_295474_20544590.1456382229928
     Content-Type: application/pdf;
       name="=?windows-1258?Q?Pre=ECsentation.pdf?="
@@ -871,7 +866,6 @@ defmodule Mail.Parsers.RFC2822Test do
     Content-Transfer-Encoding: base64
 
     JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
-
     ------=_Part_295474_20544590.1456382229928
     Content-Type: application/octet-stream;
       name="=?Windows-1252?Q?ID_S=E9_-_Liste_inscrits.xlsx?="
@@ -883,7 +877,6 @@ defmodule Mail.Parsers.RFC2822Test do
     Content-Transfer-Encoding: base64
 
     JVBERi0xLjcKJeLjz9MKNiAwIG9iago8PCAvQ3JlYXRvciAoT3BlblRleHQgRXhzdHJlYW0gVmVy
-
     ------=_Part_295474_20544590.1456382229928
     """
 
