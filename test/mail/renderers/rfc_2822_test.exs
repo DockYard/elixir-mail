@@ -220,7 +220,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.put_from({"User2", "user2@example.com"})
       |> Mail.put_reply_to({"User3", "user3@example.com"})
       |> Mail.put_subject("Test email")
-      |> Mail.put_text("Some text")
+      |> Mail.put_text("Some text\r\n")
       |> Mail.put_html("<h1>Some HTML</h1>")
       |> Mail.Message.put_content_type("multipart/alternative")
       |> Mail.Message.put_boundary("foobar")
@@ -238,7 +238,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.put_to("user1@example.com")
       |> Mail.put_from({"User2", "user2@example.com"})
       |> Mail.put_subject("Test email")
-      |> Mail.put_text("Some text")
+      |> Mail.put_text("Some text\r\n")
       |> Mail.put_html("<h1>Some HTML</h1>")
       |> Mail.put_attachment({"tiny_jpeg.jpg", @tiny_jpeg_binary})
 

@@ -58,13 +58,21 @@ defmodule Mail.Parsers.RFC2822 do
     |> parse_body(lines, opts)
   end
 
-  def parse(content, opts),
-    do: content |> String.split("\r\n") |> Enum.map(&String.trim_trailing/1) |> parse(opts)
+  def parse(content, opts) do
+    content
+    |> String.trim_trailing("\r\n")
+    |> String.split("\r\n")
+    |> Enum.map(&String.trim_trailing/1)
+    |> parse(opts)
+  end
 
   defp extract_headers(list, headers \\ [])
 
   defp extract_headers(["" | tail], headers),
     do: [Enum.reverse(headers), tail]
+
+  defp extract_headers([], headers),
+    do: [Enum.reverse(headers), []]
 
   defp extract_headers([<<" ", _::binary>> = folded_body | tail], [previous_header | headers]),
     do: extract_headers(tail, [previous_header <> folded_body | headers])
@@ -690,10 +698,6 @@ defmodule Mail.Parsers.RFC2822 do
     end
   end
 
-  defp parse_body(%Mail.Message{} = message, [], _opts) do
-    message
-  end
-
   defp parse_body(%Mail.Message{} = message, lines, opts) do
     decoded =
       lines
@@ -705,7 +709,6 @@ defmodule Mail.Parsers.RFC2822 do
 
   defp join_body(lines, acc \\ [])
   defp join_body([], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
-  defp join_body([""], acc), do: acc |> Enum.reverse() |> Enum.join("\r\n")
   defp join_body([head | tail], acc), do: join_body(tail, [head | acc])
 
   defp extract_parts(lines, boundary, acc \\ [], parts \\ nil)
@@ -831,7 +834,6 @@ defmodule Mail.Parsers.RFC2822 do
   end
 
   defp decode(body, message, opts) do
-    body = String.trim_trailing(body)
     content_type = message.headers["content-type"]
     charset = Mail.Proplist.get(content_type, "charset")
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")

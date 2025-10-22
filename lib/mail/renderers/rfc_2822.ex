@@ -58,7 +58,7 @@ defmodule Mail.Renderers.RFC2822 do
 
     parts =
       render_parts(message.parts, fun)
-      |> Enum.join("\r\n\r\n#{boundary}\r\n")
+      |> Enum.join("\r\n#{boundary}\r\n")
 
     "#{headers}\r\n\r\n#{boundary}\r\n#{parts}\r\n#{boundary}--"
   end

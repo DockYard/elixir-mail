@@ -24,5 +24,5 @@ defmodule Mail.Encoders.Base64 do
   defp add_line_breaks(<<head::binary-size(76), tail::binary>>),
     do: [head, "\r\n" | add_line_breaks(tail)]
 
-  defp add_line_breaks(tail), do: [tail, "\r\n"]
+  defp add_line_breaks(tail), do: [tail]
 end
