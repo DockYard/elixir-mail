@@ -72,7 +72,7 @@ defmodule Mail.Encoders.QuotedPrintable do
 
   ## Examples
 
-      Mail.QuotedPrintable.decode("fa=C3=A7ade")
+      Mail.Encoders.QuotedPrintable.decode("fa=C3=A7ade")
       "façade"
   """
   @spec decode(binary) :: binary
