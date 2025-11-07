@@ -134,9 +134,14 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join(" ")
   end
 
-  defp render_header_value(key, [value | subtypes]),
-    do:
-      Enum.join([encode_header_value(value, key) | render_subtypes(subtypes)], "; ")
+  defp render_header_value(key, [value | subtypes]) do
+    encoded_header_value =
+      value
+      |> encode_header_value(key)
+      |> fold_header_value(key)
+
+    Enum.join([encoded_header_value | render_subtypes(subtypes)], "; ")
+  end
 
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
@@ -245,6 +250,47 @@ defmodule Mail.Renderers.RFC2822 do
   defp contains_non_ascii?(<<>>), do: false
   defp contains_non_ascii?(<<byte, _rest::binary>>) when byte > 127, do: true
   defp contains_non_ascii?(<<_byte, rest::binary>>), do: contains_non_ascii?(rest)
+
+  defp fold_header_value(header_value, header) do
+    # This _should_ handle most cases of header folding, but the RFC mentions for
+    # structured headers that contain email addresses, that folding should occur
+    # after commas (so avoiding folding in the middle of the name/email-address pair,
+    # even if there's foldable spaces there).  As such, this is currently not
+    # used on fields that are known to have that structure.
+
+    # desired header line limit is 78 characters
+    limit = 78
+
+    # Split on SPACE or HTAB but only if followed by non-whitespace, so each
+    # subsequent part starts with a whitespace we can potentially fold on.
+    # Trailing whitespace removed to prevent case where final line is only whitespace.
+    [first_part | remaining_parts] =
+      header_value
+      |> String.trim_trailing()
+      |> then(&Regex.split(~r/[ \t]+[^ \t]+/, &1, include_captures: true, trim: true))
+
+    {lines, current, _prefix_length} =
+      Enum.reduce(
+        remaining_parts,
+        {[], first_part, byte_size(header) + byte_size(": ")},
+        fn part, {lines, current, prefix_length} ->
+          if prefix_length + byte_size(current) + byte_size(part) <= limit do
+            {lines, current <> part, prefix_length}
+          else
+            # Adding chunks together are too long, so put `current` part into `lines`
+            # and `part` in the accumulator for the next iteration.
+            # Note: also includes case where `current` is too long on its own (because
+            # it can't be divided)
+            {[current | lines], part, 0}
+          end
+        end
+      )
+
+    # add final line and then join with CRLF
+    [current | lines]
+    |> Enum.reverse()
+    |> Enum.join("\r\n")
+  end
 
   @doc """
   Builds a RFC2822 timestamp from an Erlang timestamp
