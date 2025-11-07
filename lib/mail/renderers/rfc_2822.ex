@@ -134,9 +134,9 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join(" ")
   end
 
-  defp render_header_value(_key, [value | subtypes]),
+  defp render_header_value(key, [value | subtypes]),
     do:
-      Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
+      Enum.join([encode_header_value(value, key) | render_subtypes(subtypes)], "; ")
 
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
@@ -155,7 +155,7 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp render_address({name, email}),
-    do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
+    do: "#{encode_header_value(~s("#{name}"))} <#{validate_address(email)}>"
 
   defp render_address(email), do: validate_address(email)
 
@@ -170,7 +170,7 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_subtypes([{key, value} | subtypes]) do
     key = String.replace(key, "_", "-")
-    value = encode_header_value(value, :quoted_printable)
+    value = encode_header_value(value)
 
     value =
       if value =~ ~r/[\s()<>@,;:\\<\/\[\]?=]/ do
@@ -204,21 +204,42 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join("\r\n")
   end
 
-  # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
-  # split in 76 chars including its surroundings and delimmiters.
-  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
-  defp encode_header_value(header_value, :quoted_printable) do
-    case Mail.Encoders.QuotedPrintable.encode(header_value, 64) do
-      ^header_value -> header_value
-      encoded -> wrap_encoded_words(encoded)
+  defp encode_header_value(header_value, header \\ "") do
+    if ascii_string?(header_value) do
+      header_value
+    else
+      # From RFC2047 §2 https://datatracker.ietf.org/doc/html/rfc2047#section-2
+      # An 'encoded-word' may not be more than 75 characters long, including
+      # 'charset', 'encoding', 'encoded-text', and delimiters.  If it is
+      # desirable to encode more text than will fit in an 'encoded-word' of
+      # 75 characters, multiple 'encoded-word's (separated by CRLF SPACE) may
+      # be used.
+
+      # From RFC2047 §5 https://datatracker.ietf.org/doc/html/rfc2047#section-5
+      # ... an 'encoded-word' that appears in a
+      # header field defined as '*text' MUST be separated from any adjacent
+      # 'encoded-word' or 'text' by 'linear-white-space'.
+
+      header_value
+      |> Mail.Encoders.QuotedPrintable.encode(
+        # 75 is maximum length, subtract wrapping, add trailing "=" we strip out
+        75 - byte_size("=?UTF-8?Q?") - byte_size("?=") + byte_size("="),
+        <<>>,
+        byte_size(header) + byte_size(": ")
+      )
+      |> :binary.split("=\r\n", [:global])
+      |> Enum.map(fn chunk ->
+        # SPACE must be encoded as "_" and then everything wrapped
+        # to indicate an 'encoded-word'
+        chunk = String.replace(chunk, " ", "_")
+        <<"=?UTF-8?Q?", chunk::binary, "?=">>
+      end)
+      |> Enum.join(" ")
     end
   end
 
-  defp wrap_encoded_words(value) do
-    :binary.split(value, "=\r\n", [:global])
-    |> Enum.map(fn chunk -> <<"=?UTF-8?Q?", chunk::binary, "?=">> end)
-    |> Enum.join()
-  end
+  # Returns `true` if string only contains 7-bit characters or is empty
+  defp ascii_string?(value) when is_binary(value), do: is_nil(Regex.run(~r/[^\x00-\x7F]+/, value))
 
   @doc """
   Builds a RFC2822 timestamp from an Erlang timestamp
