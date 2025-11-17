@@ -219,7 +219,7 @@ defmodule Mail.MessageTest do
       |> Mail.put_subject(subject)
       |> Mail.render()
 
-    encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
+    encoded_subject = "=?UTF-8?Q?" <> String.replace(Mail.Encoders.QuotedPrintable.encode(subject), " ", "_") <> "?="
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
@@ -245,10 +245,10 @@ defmodule Mail.MessageTest do
       |> Mail.render()
 
     encoded_from =
-      ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
+      ~s(From: =?UTF-8?Q?"#{elem(from, 0) |> Mail.Encoders.QuotedPrintable.encode() |> String.replace(" ", "_")}"?= <#{elem(from, 1)}>)
 
     encoded_to =
-      ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
+      ~s(To: =?UTF-8?Q?"#{elem(to, 0) |> Mail.Encoders.QuotedPrintable.encode() |> String.replace(" ", "_")}"?= <#{elem(to, 1)}>)
 
     assert txt =~ encoded_from
     assert txt =~ encoded_to
@@ -273,18 +273,119 @@ defmodule Mail.MessageTest do
   end
 
   test "long UTF-8 in subject" do
+    # begin value with simple ASCII so each character is encoded into a single character
     subject =
-      "über alles\nnew ?= line some очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень long line"
+      "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890 über alles\nnew ?= line some очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень-очень long line"
 
     txt =
       Mail.build()
       |> Mail.put_subject(subject)
       |> Mail.render()
 
+    # Each encoded word has a maximum length of 75 characters, minus the wrapping
+    # 12 characters for the wrapping, that leaves 63 characters internally.  The
+    # first line's header is 7 characters plus 1 space and 1 colon, so that leaves
+    # 54 internal charcaters within the encoded word
     encoded_subject =
-      "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
+      """
+      Subject: =?UTF-8?Q?123456789012345678901234567890123456789012345678901234?=
+       =?UTF-8?Q?567890123456789012345678901234567890123456789012345678901234567?=
+       =?UTF-8?Q?890_=C3=BCber_alles=0Anew_=3F=3D_line_some_=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5?=
+       =?UTF-8?Q?=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C_long_line?=
+      """
+      |> String.replace("\n", "\r\n")
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  test "UTF-8 in header with extremely long name" do
+    header_name = "x-this-is-a-ridiculously-long-header-value-that-should-never-happen-in-practice"
+    value = "123太长了"
+
+    txt =
+      Mail.build()
+      |> Mail.Message.put_header(header_name, value)
+      |> Mail.render()
+
+    # Header is too long, so initial value is an empty encoded word of "=?UTF-8?Q??=".
+    encoded_header =
+      """
+      X-This-Is-A-Ridiculously-Long-Header-Value-That-Should-Never-Happen-In-Practice: =?UTF-8?Q??=
+       =?UTF-8?Q?123=E5=A4=AA=E9=95=BF=E4=BA=86?=
+      """
+      |> String.replace("\n", "\r\n")
+
+    assert String.contains?(txt, encoded_header)
+    assert %Mail.Message{headers: %{^header_name => ^value}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  test "simple ASCII in subject that's folded" do
+    subject =
+      "Here's some regular text that contains enough characters that the header should be wrapped."
+
+    txt =
+      Mail.build()
+      |> Mail.put_subject(subject)
+      |> Mail.render()
+
+    # Each line has a maximum desired length of 78 characters (excluding trailing CRLF).
+    encoded_subject =
+      """
+      Subject: Here's some regular text that contains enough characters that the
+       header should be wrapped.
+      """
+      |> String.replace("\n", "\r\n")
+
+    assert String.contains?(txt, encoded_subject)
+    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  test "long ASCII chunk in subject" do
+    subject =
+      "12345678901234567890123456789012345678901234567890123456789012345678901234567890 1234567890123456789012345678901234567890 Here's some regular text that continue to yet another line"
+
+    txt =
+      Mail.build()
+      |> Mail.put_subject(subject)
+      |> Mail.render()
+
+    # Each line has a maximum desired length of 78 characters (excluding trailing CRLF).
+    encoded_subject =
+      """
+      Subject: 12345678901234567890123456789012345678901234567890123456789012345678901234567890
+       1234567890123456789012345678901234567890 Here's some regular text that
+       continue to yet another line
+      """
+      |> String.replace("\n", "\r\n")
+
+    assert String.contains?(txt, encoded_subject)
+    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  test "ASCII in header with extremely long name" do
+    header_name = "x-this-is-a-ridiculously-long-header-value-that-should-never-happen-in-practice"
+    value = "123 too long"
+
+    txt =
+      Mail.build()
+      |> Mail.Message.put_header(header_name, value)
+      |> Mail.render()
+
+    # header is too long, so header is folded on the next available foldable whitespace
+    encoded_header =
+      """
+      X-This-Is-A-Ridiculously-Long-Header-Value-That-Should-Never-Happen-In-Practice: 123
+       too long
+      """
+      |> String.replace("\n", "\r\n")
+
+    assert String.contains?(txt, encoded_header)
+    assert %Mail.Message{headers: %{^header_name => ^value}} = Mail.Parsers.RFC2822.parse(txt)
   end
 end
