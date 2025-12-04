@@ -62,7 +62,6 @@ defmodule Mail.Parsers.RFC2822 do
     content
     |> String.trim_trailing("\r\n")
     |> String.split("\r\n")
-    |> Enum.map(&String.trim_trailing/1)
     |> parse(opts)
   end
 
@@ -94,6 +93,8 @@ defmodule Mail.Parsers.RFC2822 do
   """
   @spec to_datetime(binary()) :: DateTime.t() | {:error, binary()}
   def to_datetime(date_string) do
+    # Replace multiple spaces (or line breaks) with a single space
+    date_string = String.replace(date_string, ~r/\s+/m, " ")
     parse_datetime(date_string)
   rescue
     _ -> {:error, date_string}
