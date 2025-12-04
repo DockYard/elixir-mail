@@ -1094,6 +1094,15 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
   end
 
+  test "content-disposition with trailing semicolon" do
+    message =
+      parse_email("""
+      Content-Disposition: inline;
+      """)
+
+    assert message.headers["content-disposition"] == ["inline"]
+  end
+
   describe "RFC 2231 parameter continuations" do
     test "parses parameter continuations for long filenames" do
       message =

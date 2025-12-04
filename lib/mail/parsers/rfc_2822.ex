@@ -393,7 +393,7 @@ defmodule Mail.Parsers.RFC2822 do
 
     value =
       case value do
-        [value | params] = list when is_binary(value) and is_list(params) ->
+        [value | params] = list when is_binary(value) ->
           if is_params(params) do
             [value | concatenate_continuation_params(params, opts)]
           else
@@ -462,8 +462,9 @@ defmodule Mail.Parsers.RFC2822 do
     end
   end
 
-  defp parse_header_value("content-disposition", value),
-    do: parse_structured_header_value(value)
+  defp parse_header_value("content-disposition", value) do
+    List.wrap(parse_structured_header_value(value))
+  end
 
   defp parse_header_value(_key, value),
     do: value
@@ -504,6 +505,10 @@ defmodule Mail.Parsers.RFC2822 do
     decoded = parse_encoded_word(value, opts)
     params = Enum.map(params, fn {param, value} -> {param, parse_encoded_word(value, opts)} end)
     [decoded | params]
+  end
+
+  defp decode_header_value(_key, value, _opts) when is_list(value) do
+    value
   end
 
   defp decode_header_value(_key, {name, email}, opts) do
