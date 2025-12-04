@@ -207,12 +207,21 @@ defmodule Mail.Renderers.RFC2822 do
   # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
   # split in 76 chars including its surroundings and delimmiters.
   # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
+  # Per RFC 2047, encoding is only required for non-ASCII characters.
+  # ASCII-only headers should not be encoded, regardless of length.
+  # Per RFC 2047, ASCII-only headers should not be encoded, regardless of length
   defp encode_header_value(header_value, :quoted_printable) do
-    case Mail.Encoders.QuotedPrintable.encode(header_value, 64) do
-      ^header_value -> header_value
-      encoded -> wrap_encoded_words(encoded)
+    if contains_non_ascii?(header_value) do
+      header_value |> Mail.Encoders.QuotedPrintable.encode(64) |> wrap_encoded_words()
+    else
+      header_value
     end
   end
+
+  # Check if a string contains any non-ASCII characters (bytes > 0x7F)
+  defp contains_non_ascii?(<<>>), do: false
+  defp contains_non_ascii?(<<byte, _rest::binary>>) when byte > 127, do: true
+  defp contains_non_ascii?(<<_byte, rest::binary>>), do: contains_non_ascii?(rest)
 
   defp wrap_encoded_words(value) do
     :binary.split(value, "=\r\n", [:global])
