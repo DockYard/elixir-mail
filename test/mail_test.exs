@@ -31,6 +31,16 @@ defmodule MailTest do
     assert Mail.get_to(mail) == ["one@example.com", "two@example.com"]
   end
 
+  test "put_to with invalid address" do
+    mail = Mail.build()
+
+    assert_raise ArgumentError, fn ->
+      Mail.put_to(mail, "@example.com")
+    end
+
+    refute Mail.Message.has_header?(mail, "to")
+  end
+
   test "composing multiple `to` recipients" do
     mail =
       Mail.put_to(Mail.build(), "user@example.com")
@@ -60,6 +70,16 @@ defmodule MailTest do
     assert Mail.get_cc(mail) == ["one@example.com", "two@example.com"]
   end
 
+  test "put_cc with invalid address" do
+    mail = Mail.build()
+
+    assert_raise ArgumentError, fn ->
+      Mail.put_cc(mail, "@example.com")
+    end
+
+    refute Mail.Message.has_header?(mail, "cc")
+  end
+
   test "composing multiple `cc` recipients" do
     mail =
       Mail.put_cc(Mail.build(), "user@example.com")
@@ -87,6 +107,16 @@ defmodule MailTest do
   test "put_bcc when multiple recipients" do
     mail = Mail.put_bcc(Mail.build(), ["one@example.com", "two@example.com"])
     assert Mail.get_bcc(mail) == ["one@example.com", "two@example.com"]
+  end
+
+  test "put_bcc with invalid address" do
+    mail = Mail.build()
+
+    assert_raise ArgumentError, fn ->
+      Mail.put_bcc(mail, "@example.com")
+    end
+
+    refute Mail.Message.has_header?(mail, "bcc")
   end
 
   test "composing multiple `bcc` recipients" do
