@@ -300,14 +300,12 @@ defmodule Mail.Renderers.RFC2822 do
         Mail.Message.put_content_type(message, "multipart/mixed")
       else
         alternative =
-          case text_parts do
-            [part] ->
-              part
-
-            text_parts ->
-              Mail.build_multipart()
-              |> Mail.Message.put_content_type("multipart/alternative")
-              |> Mail.Message.put_parts(text_parts)
+          if match?([_part], text_parts) && attachments != [] do
+            List.first(text_parts)
+          else
+            Mail.build_multipart()
+            |> Mail.Message.put_content_type("multipart/alternative")
+            |> Mail.Message.put_parts(text_parts)
           end
 
         related =
