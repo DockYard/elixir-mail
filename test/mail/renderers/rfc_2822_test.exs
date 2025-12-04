@@ -41,6 +41,28 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Content-Disposition: attachment; filename=\"my;test;file\""
   end
 
+  test "encodes header if necessary" do
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "Hello World!"
+           ]) == "Subject: Hello World!"
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             String.duplicate("a", 73)
+           ]) == "Subject: #{String.duplicate("a", 73)}"
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "Hello World 😀"
+           ]) == "Subject: =?UTF-8?Q?Hello World =F0=9F=98=80?="
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "Café résumé"
+           ]) == "Subject: =?UTF-8?Q?Caf=C3=A9 r=C3=A9sum=C3=A9?="
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "Hello 世界 World"
+           ]) == "Subject: =?UTF-8?Q?Hello =E4=B8=96=E7=95=8C World?="
+  end
+
   test "address headers renders list of recipients" do
     header = Mail.Renderers.RFC2822.render_header("from", "user1@example.com")
     assert header == "From: user1@example.com"
