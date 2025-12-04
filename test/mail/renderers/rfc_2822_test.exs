@@ -410,6 +410,30 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   describe "multipart configuration" do
+    # This test ensures that Mail.build_multipart() is respected even if only one part is supplied
+    test "multipart/alternative with only one part and no attachments" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to("user1@example.com")
+        |> Mail.put_from({"User2", "user2@example.com"})
+        |> Mail.put_subject("Test email")
+        |> Mail.put_text("Some text")
+        |> Mail.Renderers.RFC2822.render()
+        |> Mail.Parsers.RFC2822.parse()
+
+      assert %Mail.Message{
+               headers: %{"content-type" => ["multipart/alternative", {"boundary", _boundary}]},
+               parts: [
+                 %Mail.Message{
+                   headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
+                   body: "Some text",
+                   parts: [],
+                   multipart: false
+                 }
+               ]
+             } = message
+    end
+
     test "multipart/alternative with text/plain and text/html" do
       message =
         Mail.build_multipart()
