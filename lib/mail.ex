@@ -430,8 +430,10 @@ defmodule Mail do
       iex> Mail.put_from(%Mail.Message{}, "user@example.com")
       %Mail.Message{headers: %{"from" => "user@example.com"}}
   """
-  def put_from(message, sender),
-    do: Mail.Message.put_header(message, "from", sender)
+  def put_from(message, sender) do
+    validate_recipients([sender])
+    Mail.Message.put_header(message, "from", sender)
+  end
 
   @doc ~S"""
   Retrieves the `from` header
@@ -485,9 +487,11 @@ defmodule Mail do
   defp validate_recipients([recipient | tail]) do
     case recipient do
       {name, address} when is_binary(name) and is_binary(address) ->
+        Mail.Renderers.RFC2822.validate_address(address)
         validate_recipients(tail)
 
       address when is_binary(address) ->
+        Mail.Renderers.RFC2822.validate_address(address)
         validate_recipients(tail)
 
       other ->

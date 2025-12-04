@@ -141,7 +141,9 @@ defmodule Mail.Renderers.RFC2822 do
   defp render_header_value(key, value),
     do: render_header_value(key, List.wrap(value))
 
-  defp validate_address(address) do
+  def validate_address(nil), do: raise(ArgumentError, message: "Email address cannot be nil")
+
+  def validate_address(address) do
     case Regex.match?(@email_validation_regex, address) do
       true ->
         address

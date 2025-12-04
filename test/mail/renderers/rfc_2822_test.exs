@@ -106,6 +106,31 @@ defmodule Mail.Renderers.RFC2822Test do
     assert header == "Bcc: user1@example.com, \"User 2\" <user2@example.com>"
   end
 
+  ["to", "cc", "bcc", "from", "reply-to"]
+  |> Enum.each(fn header ->
+    test "validate address headers (#{header})" do
+      assert_raise ArgumentError, fn ->
+        Mail.Renderers.RFC2822.render_header(unquote(header), {"Test User", "@example.com"})
+      end
+
+      assert_raise ArgumentError, fn ->
+        Mail.Renderers.RFC2822.render_header(unquote(header), {"Test User", nil})
+      end
+
+      assert_raise ArgumentError, fn ->
+        Mail.Renderers.RFC2822.render_header(unquote(header), {"Test User", ""})
+      end
+
+      assert_raise ArgumentError, fn ->
+        Mail.Renderers.RFC2822.render_header(unquote(header), {"Test User", "user"})
+      end
+
+      assert_raise ArgumentError, fn ->
+        Mail.Renderers.RFC2822.render_header(unquote(header), {"Test User", nil})
+      end
+    end
+  end)
+
   test "content-transfer-encoding rendering hyphenates values" do
     header = Mail.Renderers.RFC2822.render_header("content_transfer_encoding", :quoted_printable)
     assert header == "Content-Transfer-Encoding: quoted-printable"
