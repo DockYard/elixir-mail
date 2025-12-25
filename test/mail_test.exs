@@ -498,6 +498,57 @@ defmodule MailTest do
     assert attachment == file
   end
 
+  test "get_attachments extracts filename from Content-Type name parameter" do
+    message = %Mail.Message{
+      multipart: true,
+      parts: [
+        %Mail.Message{
+          headers: %{
+            "content-disposition" => ["attachment"],
+            "content-type" => ["application/octet-stream", {"name", "document.pdf"}]
+          },
+          body: "file content"
+        }
+      ]
+    }
+
+    assert Mail.get_attachments(message) == [{"document.pdf", "file content"}]
+  end
+
+  test "get_attachments prefers Content-Disposition filename over Content-Type name" do
+    message = %Mail.Message{
+      multipart: true,
+      parts: [
+        %Mail.Message{
+          headers: %{
+            "content-disposition" => ["attachment", {"filename", "preferred.pdf"}],
+            "content-type" => ["application/octet-stream", {"name", "fallback.pdf"}]
+          },
+          body: "file content"
+        }
+      ]
+    }
+
+    assert Mail.get_attachments(message) == [{"preferred.pdf", "file content"}]
+  end
+
+  test "get_attachments returns Unknown when no filename in either header" do
+    message = %Mail.Message{
+      multipart: true,
+      parts: [
+        %Mail.Message{
+          headers: %{
+            "content-disposition" => ["attachment"],
+            "content-type" => ["application/octet-stream"]
+          },
+          body: "file content"
+        }
+      ]
+    }
+
+    assert Mail.get_attachments(message) == [{"Unknown", "file content"}]
+  end
+
   test "renders with the given renderer" do
     result =
       Mail.build()

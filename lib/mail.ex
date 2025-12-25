@@ -243,19 +243,7 @@ defmodule Mail do
     walk_parts([message], {:cont, []}, fn message, acc ->
       case Mail.Message.is_any_attachment?(message) do
         true ->
-          filename =
-            case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
-              ["attachment" | properties] ->
-                Enum.find_value(properties, "Unknown", fn {key, value} ->
-                  key == "filename" && value
-                end)
-
-              ["inline" | properties] ->
-                Enum.find_value(properties, "Unknown", fn {key, value} ->
-                  key == "filename" && value
-                end)
-            end
-
+          filename = extract_attachment_filename(message)
           {:cont, List.insert_at(acc, -1, {filename, message.body})}
 
         false ->
@@ -272,6 +260,40 @@ defmodule Mail do
     {tag, acc} = fun.(message, acc)
     {tag, acc} = walk_parts(message.parts, {tag, acc}, fun)
     walk_parts(parts, {tag, acc}, fun)
+  end
+
+  defp extract_attachment_filename(message) do
+    # Try Content-Disposition first (preferred per RFC 2183)
+    with nil <- get_filename_from_disposition(message) do
+      # Fallback to Content-Type name parameter (per RFC 2045)
+      get_filename_from_content_type(message)
+    end
+  end
+
+  defp get_filename_from_disposition(message) do
+    case List.wrap(Mail.Message.get_header(message, :content_disposition)) do
+      [_ | properties] when is_list(properties) ->
+        Enum.find_value(properties, fn
+          {"filename", value} -> value
+          _ -> nil
+        end)
+
+      _ ->
+        nil
+    end
+  end
+
+  defp get_filename_from_content_type(message) do
+    case Mail.Message.get_header(message, :content_type) do
+      [_type | properties] when is_list(properties) ->
+        Enum.find_value(properties, "Unknown", fn
+          {"name", filename} -> filename
+          _ -> nil
+        end)
+
+      _ ->
+        "Unknown"
+    end
   end
 
   @doc """
