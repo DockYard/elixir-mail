@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.2 2025-12-04
+
+* Ensure address validation is applied to all recipient headers https://github.com/DockYard/elixir-mail/pull/217
+* A multipart message with a single part will respect the multipart structure on render https://github.com/DockYard/elixir-mail/pull/215
+* Only encode headers with non-ASCII characters https://github.com/DockYard/elixir-mail/pull/214
+* Treat trailing lines in multipart parts as significant https://github.com/DockYard/elixir-mail/pull/208
+* Ensure msg-id headers are not encoded (RFC 5322, §3.6.4; RFC 2047, §5.3) and avoid folding message reference headers https://github.com/DockYard/elixir-mail/pull/203
+* Complete support for RFC 2231, parameter continuations https://github.com/DockYard/elixir-mail/pull/202
+* Support parameter continuations for filename https://github.com/DockYard/elixir-mail/pull/202
+* Fix get_attachments to return correct filename when it is specified in content_type
+* Handle multipart content-type with no parts https://github.com/DockYard/elixir-mail/pull/201
+* Some bug fixes and improvements
+
 ## 0.5.1 2025-04-23
 
 * Fix regression in multipart rendering where custom headers were lost
