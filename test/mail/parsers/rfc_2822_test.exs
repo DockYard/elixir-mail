@@ -196,6 +196,27 @@ defmodule Mail.Parsers.RFC2822Test do
     assert Mail.get_html(message) == html_part2
   end
 
+  describe "parses a message with a sender" do
+    # The sender field, if present, can only contain a single recipient
+    test "single sender" do
+      message =
+        parse_email("""
+        Sender: "John Doe" <other@example.com>
+        """)
+
+      assert message.headers["sender"] == {"John Doe", "other@example.com"}
+    end
+
+    test "multiple senders return only the first sender" do
+      message =
+        parse_email("""
+        Sender: user@example.com, "John Doe" <other@example.com>
+        """)
+
+      assert message.headers["sender"] == "user@example.com"
+    end
+  end
+
   describe "parses a message with multiple recipients" do
     test "multiple recipients in To header" do
       # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.

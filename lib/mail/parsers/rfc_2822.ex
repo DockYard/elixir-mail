@@ -445,6 +445,11 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("from", value),
     do: parse_recipient_value(value)
 
+  # If present, the Sender header always contains only one recipient
+  # If not present, the Sender will be nil
+  defp parse_header_value("sender", value),
+    do: parse_recipient_value(value) |> List.first()
+
   defp parse_header_value("reply-to", value),
     do: parse_recipient_value(value)
 
@@ -475,7 +480,7 @@ defmodule Mail.Parsers.RFC2822 do
     do: datetime
 
   defp decode_header_value(key, addresses, opts)
-       when key in ["to", "cc", "bcc", "from", "reply-to"] and is_list(addresses) do
+       when key in ["to", "cc", "bcc", "from", "sender", "reply-to"] and is_list(addresses) do
     addresses =
       Enum.map(addresses, fn
         {name, email} ->
@@ -489,8 +494,12 @@ defmodule Mail.Parsers.RFC2822 do
     addresses
   end
 
+  defp decode_header_value("sender", {_name, _address} = value, opts) do
+    [sender] = decode_header_value("sender", [value], opts)
+    sender
   end
 
+  defp decode_header_value("sender", value, _opts), do: value
 
   defp decode_header_value("received", value, _opts),
     do: value
