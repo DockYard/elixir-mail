@@ -45,6 +45,7 @@ defmodule Mail.Parsers.RFC2822Test do
       parse_email("""
       To: Test User <user@example.com>, Other User <other@example.com>
       CC: The Dude <dude@example.com>, Batman <batman@example.com>
+      BCC: Barbie <barbie@example.com>, Ken <ken@example.com>
       From: Me <me@example.com>
       Reply-To: OtherMe <otherme@example.com>
       Subject: Test email
@@ -71,6 +72,11 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["cc"] == [
              {"The Dude", "dude@example.com"},
              {"Batman", "batman@example.com"}
+           ]
+
+    assert message.headers["bcc"] == [
+             {"Barbie", "barbie@example.com"},
+             {"Ken", "ken@example.com"}
            ]
 
     assert message.headers["from"] == [{"Me", "me@example.com"}]

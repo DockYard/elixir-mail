@@ -439,6 +439,9 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("cc", value),
     do: parse_recipient_value(value)
 
+  defp parse_header_value("bcc", value),
+    do: parse_recipient_value(value)
+
   defp parse_header_value("from", value),
     do: parse_recipient_value(value)
 
@@ -472,7 +475,7 @@ defmodule Mail.Parsers.RFC2822 do
     do: datetime
 
   defp decode_header_value(key, addresses, opts)
-       when key in ["to", "cc", "from", "reply-to"] and is_list(addresses) do
+       when key in ["to", "cc", "bcc", "from", "reply-to"] and is_list(addresses) do
     addresses =
       Enum.map(addresses, fn
         {name, email} ->
