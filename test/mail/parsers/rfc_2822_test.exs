@@ -17,8 +17,8 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["to"] == ["user@example.com"]
-    assert message.headers["from"] == "me@example.com"
-    assert message.headers["reply-to"] == "otherme@example.com"
+    assert message.headers["from"] == ["me@example.com"]
+    assert message.headers["reply-to"] == ["otherme@example.com"]
     assert message.headers["subject"] == "Test Email"
     assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
     assert message.body == "This is the body!\r\nIt has more than one line"
@@ -34,8 +34,8 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["to"] == ["user@example.com"]
-    assert message.headers["from"] == "me@example.com"
-    assert message.headers["reply-to"] == "otherme@example.com"
+    assert message.headers["from"] == ["me@example.com"]
+    assert message.headers["reply-to"] == ["otherme@example.com"]
     assert message.headers["subject"] == "Test Email"
     assert message.body == ""
   end
@@ -73,8 +73,8 @@ defmodule Mail.Parsers.RFC2822Test do
              {"Batman", "batman@example.com"}
            ]
 
-    assert message.headers["from"] == {"Me", "me@example.com"}
-    assert message.headers["reply-to"] == {"OtherMe", "otherme@example.com"}
+    assert message.headers["from"] == [{"Me", "me@example.com"}]
+    assert message.headers["reply-to"] == [{"OtherMe", "otherme@example.com"}]
     assert message.headers["content-type"] == ["multipart/alternative", {"boundary", "foobar"}]
 
     [text_part, html_part] = message.parts
@@ -190,18 +190,34 @@ defmodule Mail.Parsers.RFC2822Test do
     assert Mail.get_html(message) == html_part2
   end
 
-  test "parses a message with multiple recipients" do
-    # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.
-    message =
-      parse_email("""
-      To: user@example.com, "John Doe" <other@example.com>, jane@example.com
-      """)
+  describe "parses a message with multiple recipients" do
+    test "multiple recipients in To header" do
+      # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.
+      message =
+        parse_email("""
+        To: user@example.com, "John Doe" <other@example.com>, jane@example.com
+        """)
 
-    assert message.headers["to"] == [
-             "user@example.com",
-             {"John Doe", "other@example.com"},
-             "jane@example.com"
-           ]
+      assert message.headers["to"] == [
+               "user@example.com",
+               {"John Doe", "other@example.com"},
+               "jane@example.com"
+             ]
+    end
+
+    test "multiple recipients in From header" do
+      # Multiple recipients where some have names can be interpreted as a header value with params if not handled correctly.
+      message =
+        parse_email("""
+        From: user@example.com, "John Doe" <other@example.com>, jane@example.com
+        """)
+
+      assert message.headers["from"] == [
+               "user@example.com",
+               {"John Doe", "other@example.com"},
+               "jane@example.com"
+             ]
+    end
   end
 
   test "to_datetime/1" do
@@ -399,7 +415,7 @@ defmodule Mail.Parsers.RFC2822Test do
              {"Batman", "batman@example.com"}
            ]
 
-    assert message.headers["from"] == {"Me", "me@example.com"}
+    assert message.headers["from"] == [{"Me", "me@example.com"}]
     assert message.headers["content-type"] == ["multipart/mixed", {"boundary", "foobar"}]
     assert message.headers["date"] == ~U"2016-01-01 00:00:00Z"
 
@@ -572,7 +588,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["to"] == [{"Test User", "user@example.com"}]
     assert message.headers["cc"] == ["other@example.com"]
-    assert message.headers["from"] == "me@example.com"
+    assert message.headers["from"] == ["me@example.com"]
   end
 
   test "address name contains comma" do
@@ -594,7 +610,7 @@ defmodule Mail.Parsers.RFC2822Test do
              "third@example.com"
            ]
 
-    assert message.headers["from"] == {"Lastname, First Names", "me@example.com"}
+    assert message.headers["from"] == [{"Lastname, First Names", "me@example.com"}]
   end
 
   test "address name is an e-mail address with additiongal quotes" do
@@ -607,7 +623,7 @@ defmodule Mail.Parsers.RFC2822Test do
 
       """)
 
-    assert message.headers["from"] == {"\"me@example.com\"", "me@example.com"}
+    assert message.headers["from"] == [{"\"me@example.com\"", "me@example.com"}]
   end
 
   # See https://tools.ietf.org/html/rfc2047
@@ -1012,7 +1028,9 @@ defmodule Mail.Parsers.RFC2822Test do
       From: =?UTF-8?B?am9obi5kb2VAcmVkYWN0ZS4uLg==?= <comments-noreply@docs.google.com>
       """)
 
-    assert message.headers["from"] == {"john.doe@redacte...", "comments-noreply@docs.google.com"}
+    assert message.headers["from"] == [
+             {"john.doe@redacte...", "comments-noreply@docs.google.com"}
+           ]
   end
 
   test "correct handling of encoded words according to RFC 2047 (examples)" do
@@ -1025,7 +1043,7 @@ defmodule Mail.Parsers.RFC2822Test do
        =?ISO-8859-2?B?dSB1bmRlcnN0YW5kIHRoZSBleGFtcGxlLg==?=
       """)
 
-    assert message.headers["from"] == {"Keith Moore", "moore@cs.utk.edu"}
+    assert message.headers["from"] == [{"Keith Moore", "moore@cs.utk.edu"}]
     assert message.headers["to"] == [{"Keld J\xF8rn Simonsen", "keld@dkuug.dk"}]
     assert message.headers["cc"] == [{"Andr\xE9 Pirard", "PIRARD@vm1.ulg.ac.be"}]
     assert message.headers["subject"] == "If you can read this you understand the example."
@@ -1037,7 +1055,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Subject: Time for ISO 10646?
       """)
 
-    assert message.headers["from"] == {"Olle J\xE4rnefors", "ojarnef@admin.kth.se"}
+    assert message.headers["from"] == [{"Olle J\xE4rnefors", "ojarnef@admin.kth.se"}]
     assert message.headers["to"] == ["ietf-822@dimacs.rutgers.edu", "ojarnef@admin.kth.se"]
     assert message.headers["subject"] == "Time for ISO 10646?"
 
@@ -1049,7 +1067,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Subject: Re: RFC-HDR care and feeding
       """)
 
-    assert message.headers["from"] == {"Patrik F\xE4ltstr\xF6m", "paf@nada.kth.se"}
+    assert message.headers["from"] == [{"Patrik F\xE4ltstr\xF6m", "paf@nada.kth.se"}]
     assert message.headers["to"] == [{"Dave Crocker", "dcrocker@mordor.stanford.edu"}]
     assert message.headers["cc"] == ["ietf-822@dimacs.rutgers.edu", "paf@comsol.se"]
     assert message.headers["subject"] == "Re: RFC-HDR care and feeding"
@@ -1065,7 +1083,7 @@ defmodule Mail.Parsers.RFC2822Test do
       Content-type: text/plain; charset=ISO-8859-1
       """)
 
-    assert message.headers["from"] == {"Nathaniel Borenstein", "nsb@thumper.bellcore.com"}
+    assert message.headers["from"] == [{"Nathaniel Borenstein", "nsb@thumper.bellcore.com"}]
 
     assert message.headers["to"] == [
              {"Greg Vaudreuil", "gvaudre@NRI.Reston.VA.US"},

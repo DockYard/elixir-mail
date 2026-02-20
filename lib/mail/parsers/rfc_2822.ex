@@ -18,7 +18,7 @@ defmodule Mail.Parsers.RFC2822 do
       ...> It has more than one line\r
       ...> \"""
       iex> Mail.Parsers.RFC2822.parse(message)
-      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => "me@example.com", "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
+      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => ["me@example.com"], "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
   """
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
@@ -440,14 +440,10 @@ defmodule Mail.Parsers.RFC2822 do
     do: parse_recipient_value(value)
 
   defp parse_header_value("from", value),
-    do:
-      parse_recipient_value(value)
-      |> List.first()
+    do: parse_recipient_value(value)
 
   defp parse_header_value("reply-to", value),
-    do:
-      parse_recipient_value(value)
-      |> List.first()
+    do: parse_recipient_value(value)
 
   defp parse_header_value("date", timestamp),
     do: to_datetime(timestamp)
@@ -490,12 +486,8 @@ defmodule Mail.Parsers.RFC2822 do
     addresses
   end
 
-  defp decode_header_value("from", {_name, _address} = value, opts) do
-    [from] = decode_header_value("from", [value], opts)
-    from
   end
 
-  defp decode_header_value("from", value, _opts), do: value
 
   defp decode_header_value("received", value, _opts),
     do: value
