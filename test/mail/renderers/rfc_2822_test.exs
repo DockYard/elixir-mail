@@ -61,6 +61,18 @@ defmodule Mail.Renderers.RFC2822Test do
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Hello 世界 World"
            ]) == "Subject: =?UTF-8?Q?Hello =E4=B8=96=E7=95=8C World?="
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "normal subject\r\nReply-To: cleverhacker@example.com"
+           ]) == "Subject: =?UTF-8?Q?normal subject=0D=0AReply-To: cleverhacker@example.com?="
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "tabs\t\t and  spaces"
+           ]) == "Subject: tabs\t\t and  spaces"
+
+    assert Mail.Renderers.RFC2822.render_header("Subject", [
+             "delete \x7f vertical tab \x0b"
+           ]) == "Subject: =?UTF-8?Q?delete =7F vertical tab =0B?="
   end
 
   test "address headers renders list of recipients" do

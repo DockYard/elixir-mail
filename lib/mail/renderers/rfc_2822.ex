@@ -209,21 +209,23 @@ defmodule Mail.Renderers.RFC2822 do
   # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
   # split in 76 chars including its surroundings and delimmiters.
   # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
-  # Per RFC 2047, encoding is only required for non-ASCII characters.
-  # ASCII-only headers should not be encoded, regardless of length.
-  # Per RFC 2047, ASCII-only headers should not be encoded, regardless of length
+  # Per RFC 2047, encoding is only required for non-ASCII characters and control
+  # characters.  Ordinary ASCII-only headers should not be encoded, regardless of length.
   defp encode_header_value(header_value, :quoted_printable) do
-    if contains_non_ascii?(header_value) do
+    if requires_encoding?(header_value) do
       header_value |> Mail.Encoders.QuotedPrintable.encode(64) |> wrap_encoded_words()
     else
       header_value
     end
   end
 
-  # Check if a string contains any non-ASCII characters (bytes > 0x7F)
-  defp contains_non_ascii?(<<>>), do: false
-  defp contains_non_ascii?(<<byte, _rest::binary>>) when byte > 127, do: true
-  defp contains_non_ascii?(<<_byte, rest::binary>>), do: contains_non_ascii?(rest)
+  # Return true if any characters found that require quoted-printable encoding.
+  # ( >0x7F require escaping (non-ASCII), 0x7F and <0x20 (except \t) are control
+  # characters and also need encoding. )
+  defp requires_encoding?(<<>>), do: false
+  defp requires_encoding?(<<byte, _rest::binary>>) when byte > 126, do: true
+  defp requires_encoding?(<<byte, _rest::binary>>) when byte < 32 and byte != ?\t, do: true
+  defp requires_encoding?(<<_byte, rest::binary>>), do: requires_encoding?(rest)
 
   defp wrap_encoded_words(value) do
     :binary.split(value, "=\r\n", [:global])
