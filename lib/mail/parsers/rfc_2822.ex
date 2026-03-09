@@ -18,7 +18,7 @@ defmodule Mail.Parsers.RFC2822 do
       ...> It has more than one line\r
       ...> \"""
       iex> Mail.Parsers.RFC2822.parse(message)
-      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => "me@example.com", "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
+      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => ["me@example.com"], "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
   """
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
@@ -439,15 +439,19 @@ defmodule Mail.Parsers.RFC2822 do
   defp parse_header_value("cc", value),
     do: parse_recipient_value(value)
 
+  defp parse_header_value("bcc", value),
+    do: parse_recipient_value(value)
+
   defp parse_header_value("from", value),
-    do:
-      parse_recipient_value(value)
-      |> List.first()
+    do: parse_recipient_value(value)
+
+  # If present, the Sender header always contains only one recipient
+  # If not present, the Sender will be nil
+  defp parse_header_value("sender", value),
+    do: parse_recipient_value(value) |> List.first()
 
   defp parse_header_value("reply-to", value),
-    do:
-      parse_recipient_value(value)
-      |> List.first()
+    do: parse_recipient_value(value)
 
   defp parse_header_value("date", timestamp),
     do: to_datetime(timestamp)
@@ -476,7 +480,7 @@ defmodule Mail.Parsers.RFC2822 do
     do: datetime
 
   defp decode_header_value(key, addresses, opts)
-       when key in ["to", "cc", "from", "reply-to"] and is_list(addresses) do
+       when key in ["to", "cc", "bcc", "from", "sender", "reply-to"] and is_list(addresses) do
     addresses =
       Enum.map(addresses, fn
         {name, email} ->
@@ -490,12 +494,12 @@ defmodule Mail.Parsers.RFC2822 do
     addresses
   end
 
-  defp decode_header_value("from", {_name, _address} = value, opts) do
-    [from] = decode_header_value("from", [value], opts)
-    from
+  defp decode_header_value("sender", {_name, _address} = value, opts) do
+    [sender] = decode_header_value("sender", [value], opts)
+    sender
   end
 
-  defp decode_header_value("from", value, _opts), do: value
+  defp decode_header_value("sender", value, _opts), do: value
 
   defp decode_header_value("received", value, _opts),
     do: value
