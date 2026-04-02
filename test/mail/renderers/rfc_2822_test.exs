@@ -52,19 +52,19 @@ defmodule Mail.Renderers.RFC2822Test do
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Hello World 😀"
-           ]) == "Subject: =?UTF-8?Q?Hello World =F0=9F=98=80?="
+           ]) == "Subject: =?UTF-8?Q?Hello_World_=F0=9F=98=80?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Café résumé"
-           ]) == "Subject: =?UTF-8?Q?Caf=C3=A9 r=C3=A9sum=C3=A9?="
+           ]) == "Subject: =?UTF-8?Q?Caf=C3=A9_r=C3=A9sum=C3=A9?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Hello 世界 World"
-           ]) == "Subject: =?UTF-8?Q?Hello =E4=B8=96=E7=95=8C World?="
+           ]) == "Subject: =?UTF-8?Q?Hello_=E4=B8=96=E7=95=8C_World?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "normal subject\r\nReply-To: cleverhacker@example.com"
-           ]) == "Subject: =?UTF-8?Q?normal subject=0D=0AReply-To: cleverhacker@example.com?="
+           ]) == "Subject: =?UTF-8?Q?normal_subject=0D=0AReply-To=3A_cleverhacker=40example=2Ecom?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "tabs\t\t and  spaces"
@@ -72,7 +72,7 @@ defmodule Mail.Renderers.RFC2822Test do
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "delete \x7f vertical tab \x0b"
-           ]) == "Subject: =?UTF-8?Q?delete =7F vertical tab =0B?="
+           ]) == "Subject: =?UTF-8?Q?delete_=7F_vertical_tab_=0B?="
   end
 
   test "address headers renders list of recipients" do

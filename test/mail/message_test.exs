@@ -219,7 +219,7 @@ defmodule Mail.MessageTest do
       |> Mail.put_subject(subject)
       |> Mail.render()
 
-    encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
+    encoded_subject = "=?UTF-8?Q?" <> encode_rfc2047(subject) <> "?="
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
@@ -244,14 +244,46 @@ defmodule Mail.MessageTest do
       |> Mail.put_to(to)
       |> Mail.render()
 
-    encoded_from =
-      ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
-
-    encoded_to =
-      ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
+    encoded_from = "From: =?UTF-8?Q?#{encode_rfc2047(elem(from, 0))}?= <#{elem(from, 1)}>"
+    encoded_to = "To: =?UTF-8?Q?#{encode_rfc2047(elem(to, 0))}?= <#{elem(to, 1)}>"
 
     assert txt =~ encoded_from
     assert txt =~ encoded_to
+
+    parsed = Mail.Parsers.RFC2822.parse(txt)
+    assert {elem(from, 0), elem(from, 1)} == parsed.headers["from"]
+    assert [{elem(to, 0), elem(to, 1)}] == parsed.headers["to"]
+  end
+
+  test "UTF-8 in addresses round-trips with spaces" do
+    from = {"Mäx Müstermann", "max@example.com"}
+
+    txt =
+      Mail.build()
+      |> Mail.put_from(from)
+      |> Mail.render()
+
+    refute txt =~ ~r/=\?UTF-8\?Q\?[^?]* [^?]*\?=/
+    parsed = Mail.Parsers.RFC2822.parse(txt)
+    assert from == parsed.headers["from"]
+  end
+
+  test "UTF-8 in addresses with comma in name" do
+    from = {"Max, Müstermänn", "max@example.com"}
+    to = {"Other User", "other@example.com"}
+
+    txt =
+      Mail.build()
+      |> Mail.put_from(from)
+      |> Mail.put_to(to)
+      |> Mail.render()
+
+    # Comma must be encoded as =2C, not literal, to avoid being parsed as recipient separator
+    refute txt =~ ~r/=\?UTF-8\?Q\?[^?]*,[^?]*\?=/
+    assert txt =~ "=2C"
+
+    parsed = Mail.Parsers.RFC2822.parse(txt)
+    assert from == parsed.headers["from"]
   end
 
   test "UTF-8 in other header" do
@@ -263,7 +295,7 @@ defmodule Mail.MessageTest do
       |> Mail.render()
 
     encoded_header_value =
-      "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode("READMEüä.md") <> "?="
+      "=?UTF-8?Q?" <> encode_rfc2047("READMEüä.md") <> "?="
 
     assert String.contains?(message, encoded_header_value)
 
@@ -282,9 +314,18 @@ defmodule Mail.MessageTest do
       |> Mail.render()
 
     encoded_subject =
-      "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
+      "=?UTF-8?Q?=C3=BCber_alles=0Anew_=3F=3D_line_some_=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C_long_line?="
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+  end
+
+  defp encode_rfc2047(string) do
+    string
+    |> Mail.Encoders.QuotedPrintable.encode()
+    |> String.replace(" ", "_")
+    |> String.replace(~r/[^a-zA-Z0-9!#$%&'*+\-\/=?^_`{|}~]/, fn <<byte>> ->
+      "=" <> Base.encode16(<<byte>>)
+    end)
   end
 end

@@ -156,8 +156,16 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
-  defp render_address({name, email}),
-    do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
+  defp render_address({name, email}) do
+    address = validate_address(email)
+    encoded = encode_header_value(name, :quoted_printable)
+
+    if encoded == name do
+      ~s("#{name}" <#{address}>)
+    else
+      "#{encoded} <#{address}>"
+    end
+  end
 
   defp render_address(email), do: validate_address(email)
 
@@ -229,8 +237,22 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp wrap_encoded_words(value) do
     :binary.split(value, "=\r\n", [:global])
-    |> Enum.map(fn chunk -> <<"=?UTF-8?Q?", chunk::binary, "?=">> end)
+    |> Enum.map(fn chunk ->
+      chunk = encode_encoded_word_text(chunk)
+      <<"=?UTF-8?Q?", chunk::binary, "?=">>
+    end)
     |> Enum.join()
+  end
+
+  # Per RFC 2047 §5, encoded-words must be recognizable as atoms (RFC 2822 §3.2.4).
+  # Spaces become underscores per RFC 2047 §4.2(2).
+  # All other non-atext characters are QP-encoded.
+  defp encode_encoded_word_text(chunk) do
+    chunk
+    |> String.replace(" ", "_")
+    |> String.replace(~r/[^a-zA-Z0-9!#$%&'*+\-\/=?^_`{|}~]/, fn <<byte>> ->
+      "=" <> Base.encode16(<<byte>>)
+    end)
   end
 
   @doc """
