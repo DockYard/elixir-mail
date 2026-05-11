@@ -1,6 +1,8 @@
 defmodule Mail.Renderers.RFC2822 do
   import Mail.Message, only: [match_content_type?: 2]
 
+  alias Mail.Renderers.RFC2822.HeaderEncoding
+
   @days ~w(Mon Tue Wed Thu Fri Sat Sun)
   @months ~w(Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec)
 
@@ -94,31 +96,39 @@ defmodule Mail.Renderers.RFC2822 do
       |> Enum.map(&String.capitalize(&1))
       |> Enum.join("-")
 
-    key <> ": " <> render_header_value(key, value)
+    prefix = key <> ": "
+    prefix_len = byte_size(prefix)
+    rendered_value = render_header_value(key, value, prefix_len)
+
+    prefix <> HeaderEncoding.fold(rendered_value, prefix_len)
   end
 
-  defp render_header_value("Date", date_time),
+  defp render_header_value(key, value, prefix_len)
+
+  defp render_header_value("Date", date_time, _prefix_len),
     do: timestamp_from_datetime(date_time)
 
-  defp render_header_value(address_type, addresses)
+  defp render_header_value(address_type, addresses, _prefix_len)
        when is_list(addresses) and address_type in @address_types,
        do:
          Enum.map(addresses, &render_address(&1))
          |> Enum.join(", ")
 
-  defp render_header_value(address_type, address) when address_type in @address_types,
-    do: render_address(address)
+  defp render_header_value(address_type, address, _prefix_len)
+       when address_type in @address_types,
+       do: render_address(address)
 
-  defp render_header_value("Content-Transfer-Encoding" = key, value) when is_atom(value) do
+  defp render_header_value("Content-Transfer-Encoding" = key, value, prefix_len)
+       when is_atom(value) do
     value =
       value
       |> Atom.to_string()
       |> String.replace("_", "-")
 
-    render_header_value(key, value)
+    render_header_value(key, value, prefix_len)
   end
 
-  defp render_header_value(header, value)
+  defp render_header_value(header, value, _prefix_len)
        when header in [
               # RFC 5322
               "Message-Id",
@@ -134,12 +144,15 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.join(" ")
   end
 
-  defp render_header_value(_key, [value | subtypes]),
-    do:
-      Enum.join([encode_header_value(value, :quoted_printable) | render_subtypes(subtypes)], "; ")
+  defp render_header_value(_key, [value | subtypes], prefix_len) when is_binary(value) do
+    Enum.join(
+      [HeaderEncoding.encode_for_prefix(value, prefix_len) | render_subtypes(subtypes)],
+      "; "
+    )
+  end
 
-  defp render_header_value(key, value),
-    do: render_header_value(key, List.wrap(value))
+  defp render_header_value(key, value, prefix_len),
+    do: render_header_value(key, List.wrap(value), prefix_len)
 
   def validate_address(nil), do: raise(ArgumentError, message: "Email address cannot be nil")
 
@@ -156,10 +169,25 @@ defmodule Mail.Renderers.RFC2822 do
     end
   end
 
-  defp render_address({name, email}),
-    do: "#{encode_header_value(~s("#{name}"), :quoted_printable)} <#{validate_address(email)}>"
+  defp render_address({name, email}) do
+    name = render_display_name(name)
+    "#{name} <#{validate_address(email)}>"
+  end
 
   defp render_address(email), do: validate_address(email)
+
+  # RFC 2047 §5(2) forbids encoded-words inside quoted-strings, and RFC 5322
+  # allows display names to be either an atom phrase or a quoted-string. We
+  # render display names as either a quoted ASCII string or a bare encoded-
+  # word (no surrounding quotes) so the encoded-word remains a recognizable
+  # token to parsers.
+  defp render_display_name(name) when is_binary(name) do
+    if HeaderEncoding.needs_encoding?(name) do
+      HeaderEncoding.encode(name)
+    else
+      ~s("#{name}")
+    end
+  end
 
   defp render_subtypes([]), do: []
 
@@ -172,16 +200,20 @@ defmodule Mail.Renderers.RFC2822 do
 
   defp render_subtypes([{key, value} | subtypes]) do
     key = String.replace(key, "_", "-")
-    value = encode_header_value(value, :quoted_printable)
 
-    value =
-      if value =~ ~r/[\s()<>@,;:\\<\/\[\]?=]/ do
-        "\"#{value}\""
-      else
-        value
+    rendered_value =
+      cond do
+        HeaderEncoding.needs_encoding?(value) ->
+          HeaderEncoding.encode(value)
+
+        value =~ ~r/[\s()<>@,;:\\<\/\[\]?=]/ ->
+          ~s("#{value}")
+
+        true ->
+          value
       end
 
-    ["#{key}=#{value}" | render_subtypes(subtypes)]
+    ["#{key}=#{rendered_value}" | render_subtypes(subtypes)]
   end
 
   @doc """
@@ -204,31 +236,6 @@ defmodule Mail.Renderers.RFC2822 do
     |> Enum.filter(& &1)
     |> Enum.reverse()
     |> Enum.join("\r\n")
-  end
-
-  # As stated at https://datatracker.ietf.org/doc/html/rfc2047#section-2, encoded words must be
-  # split in 76 chars including its surroundings and delimmiters.
-  # Since enclosing starts with =?UTF-8?Q? and ends with ?=, max length should be 64
-  # Per RFC 2047, encoding is only required for non-ASCII characters.
-  # ASCII-only headers should not be encoded, regardless of length.
-  # Per RFC 2047, ASCII-only headers should not be encoded, regardless of length
-  defp encode_header_value(header_value, :quoted_printable) do
-    if contains_non_ascii?(header_value) do
-      header_value |> Mail.Encoders.QuotedPrintable.encode(64) |> wrap_encoded_words()
-    else
-      header_value
-    end
-  end
-
-  # Check if a string contains any non-ASCII characters (bytes > 0x7F)
-  defp contains_non_ascii?(<<>>), do: false
-  defp contains_non_ascii?(<<byte, _rest::binary>>) when byte > 127, do: true
-  defp contains_non_ascii?(<<_byte, rest::binary>>), do: contains_non_ascii?(rest)
-
-  defp wrap_encoded_words(value) do
-    :binary.split(value, "=\r\n", [:global])
-    |> Enum.map(fn chunk -> <<"=?UTF-8?Q?", chunk::binary, "?=">> end)
-    |> Enum.join()
   end
 
   @doc """

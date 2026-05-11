@@ -219,7 +219,9 @@ defmodule Mail.MessageTest do
       |> Mail.put_subject(subject)
       |> Mail.render()
 
-    encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
+    # Encoded-word uses `_` for spaces (RFC 2047 §4.2) so the entire word
+    # remains an indivisible token to the folder.
+    encoded_subject = "=?UTF-8?Q?test_=C3=BC=C3=A4_test?="
 
     assert String.contains?(txt, encoded_subject)
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
@@ -244,14 +246,16 @@ defmodule Mail.MessageTest do
       |> Mail.put_to(to)
       |> Mail.render()
 
-    encoded_from =
-      ~s(From: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(from, 0))}"?= <#{elem(from, 1)}>)
-
-    encoded_to =
-      ~s(To: =?UTF-8?Q?"#{Mail.Encoders.QuotedPrintable.encode(elem(to, 0))}"?= <#{elem(to, 1)}>)
+    # Per RFC 2047 §5(2), encoded-words MUST NOT appear within a quoted-string;
+    # display names with non-ASCII are rendered as a bare encoded-word.
+    encoded_from = "From: =?UTF-8?Q?Joachim_L=C3=B6w?= <joachim.loew@example.com>"
+    encoded_to = "To: =?UTF-8?Q?Wolfgang_Sch=C3=BCler?= <wolfgang.schueler@example.com>"
 
     assert txt =~ encoded_from
     assert txt =~ encoded_to
+
+    assert %Mail.Message{headers: %{"from" => ^from, "to" => [^to]}} =
+             Mail.Parsers.RFC2822.parse(txt)
   end
 
   test "UTF-8 in other header" do
@@ -281,10 +285,18 @@ defmodule Mail.MessageTest do
       |> Mail.put_subject(subject)
       |> Mail.render()
 
-    encoded_subject =
-      "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
-
-    assert String.contains?(txt, encoded_subject)
+    # The encoded value is split across multiple `=?UTF-8?Q?...?=` words,
+    # each <= 75 octets, separated by `\r\n ` so adjacent words are joined
+    # by linear whitespace (RFC 2047 §2/§5). The folded subject still
+    # round-trips through the parser exactly.
     assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+
+    for line <- txt |> String.trim_trailing("\r\n\r\n") |> String.split("\r\n") do
+      assert byte_size(line) <= 78,
+             "rendered line exceeds 78 octets: #{inspect(line)}"
+    end
+
+    refute txt =~ ~r/\?==\?UTF-8/,
+           "adjacent encoded-words must be separated by linear whitespace"
   end
 end

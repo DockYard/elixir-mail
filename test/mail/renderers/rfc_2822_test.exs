@@ -52,15 +52,15 @@ defmodule Mail.Renderers.RFC2822Test do
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Hello World 😀"
-           ]) == "Subject: =?UTF-8?Q?Hello World =F0=9F=98=80?="
+           ]) == "Subject: =?UTF-8?Q?Hello_World_=F0=9F=98=80?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Café résumé"
-           ]) == "Subject: =?UTF-8?Q?Caf=C3=A9 r=C3=A9sum=C3=A9?="
+           ]) == "Subject: =?UTF-8?Q?Caf=C3=A9_r=C3=A9sum=C3=A9?="
 
     assert Mail.Renderers.RFC2822.render_header("Subject", [
              "Hello 世界 World"
-           ]) == "Subject: =?UTF-8?Q?Hello =E4=B8=96=E7=95=8C World?="
+           ]) == "Subject: =?UTF-8?Q?Hello_=E4=B8=96=E7=95=8C_World?="
   end
 
   test "address headers renders list of recipients" do
@@ -158,7 +158,12 @@ defmodule Mail.Renderers.RFC2822Test do
 
     header = Mail.Renderers.RFC2822.render_header("References", message_ids)
 
-    assert header == "References: #{message_ids}"
+    # Each msg-id is > 78 octets so the header is folded between IDs at the
+    # foldable whitespace, but no encoded-word wrapping is introduced.
+    refute header =~ ~r/=\?UTF-8/
+
+    assert %Mail.Message{headers: %{"references" => ^message_ids}} =
+             Mail.Parsers.RFC2822.parse(header <> "\r\n\r\n")
   end
 
   test "headers - renders all headers" do
@@ -309,6 +314,170 @@ defmodule Mail.Renderers.RFC2822Test do
     result = Mail.Renderers.RFC2822.render(message)
 
     assert_rfc2822_equal(result, fixture)
+  end
+
+  describe "header folding" do
+    test "long To list folds after comma boundaries" do
+      addresses =
+        Enum.map(1..5, fn i -> "addr#{i}-with-padding@example.com" end)
+
+      header = Mail.Renderers.RFC2822.render_header("To", addresses)
+      lines = String.split(header, "\r\n")
+
+      assert length(lines) > 1
+
+      for line <- Enum.drop(lines, 1) do
+        assert String.starts_with?(line, " ")
+      end
+
+      for line <- lines do
+        assert byte_size(line) <= 78
+      end
+
+      previous_lines = Enum.drop(lines, -1)
+
+      for line <- previous_lines do
+        assert String.ends_with?(line, ","),
+               "expected folded address-list line to end with a comma, got #{inspect(line)}"
+      end
+    end
+
+    test "comma boundary is preferred over an interior space" do
+      addresses = [
+        {"Some User One", "user1@example.com"},
+        {"Other User Two", "user2@example.com"}
+      ]
+
+      header =
+        Mail.Renderers.RFC2822.render_header(
+          "To",
+          addresses ++
+            Enum.map(3..5, fn i -> "addr#{i}-padded@example.com" end)
+        )
+
+      # Quoted display names contain interior whitespace that *would* be a
+      # valid fold point, but the line should still prefer the comma between
+      # addresses because that comma is the closest fit-rightmost wsp.
+      lines = String.split(header, "\r\n")
+      assert length(lines) > 1
+
+      for line <- Enum.drop(lines, -1) do
+        assert String.ends_with?(line, ","),
+               "expected break after `, ` boundary, got line ending #{inspect(line)}"
+      end
+    end
+
+    test "address with long quoted display name still produces parseable output" do
+      address =
+        {"Some Really Quite Lengthy Display Name For Folding", "long.email.address@example.com"}
+
+      header = Mail.Renderers.RFC2822.render_header("From", address)
+
+      assert %Mail.Message{headers: %{"from" => ^address}} =
+               Mail.Parsers.RFC2822.parse(header <> "\r\n\r\n")
+    end
+
+    test "non-ASCII display name uses a bare encoded-word and round-trips" do
+      from = {"Joachim Löw", "joachim.loew@example.com"}
+      header = Mail.Renderers.RFC2822.render_header("From", from)
+
+      assert header == "From: =?UTF-8?Q?Joachim_L=C3=B6w?= <joachim.loew@example.com>"
+
+      assert %Mail.Message{headers: %{"from" => ^from}} =
+               Mail.Parsers.RFC2822.parse(header <> "\r\n\r\n")
+    end
+
+    test "long Content-Type folds between `; ` parameter boundaries" do
+      header =
+        Mail.Renderers.RFC2822.render_header("Content-Type", [
+          "multipart/mixed",
+          {"boundary", "=Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1="},
+          {"x_long_param_name", "some-long-value-that-keeps-going-and-going"}
+        ])
+
+      lines = String.split(header, "\r\n")
+      assert length(lines) > 1
+
+      for line <- lines do
+        assert byte_size(line) <= 78
+      end
+
+      assert %Mail.Message{
+               headers: %{
+                 "content-type" => [
+                   "multipart/mixed",
+                   {"boundary", "=Apple-Mail-358A6BE7-EE99-47E3-B9DE-7575E1C181D1="},
+                   {"x_long_param_name", "some-long-value-that-keeps-going-and-going"}
+                 ]
+               }
+             } = Mail.Parsers.RFC2822.parse(header <> "\r\n\r\n")
+    end
+
+    test "Content-Disposition with non-ASCII filename uses encoded-word value" do
+      header =
+        Mail.Renderers.RFC2822.render_header("Content-Disposition", [
+          "attachment",
+          filename: "READMEüä.md"
+        ])
+
+      assert header ==
+               "Content-Disposition: attachment; filename==?UTF-8?Q?README=C3=BC=C3=A4.md?="
+
+      assert %Mail.Message{
+               headers: %{
+                 "content-disposition" => ["attachment", {"filename", "READMEüä.md"}]
+               }
+             } = Mail.Parsers.RFC2822.parse(header <> "\r\n\r\n")
+    end
+
+    test "subject round-trips for representative subjects" do
+      cases = [
+        "Hello World!",
+        "Café résumé",
+        "Hello 世界 World",
+        "Hello World 😀",
+        String.duplicate("a", 80),
+        "alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron",
+        "über alles\nnew ?= line some очень-очень-очень-очень-очень long line"
+      ]
+
+      for subject <- cases do
+        rendered =
+          Mail.build()
+          |> Mail.put_subject(subject)
+          |> Mail.render()
+
+        assert %Mail.Message{headers: %{"subject" => ^subject}} =
+                 Mail.Parsers.RFC2822.parse(rendered),
+               "round-trip failed for subject #{inspect(subject)}"
+      end
+    end
+
+    test "full message render keeps every header line within the default max" do
+      message =
+        Mail.build_multipart()
+        |> Mail.put_to(Enum.map(1..5, fn i -> "addr#{i}@example.com" end))
+        |> Mail.put_from({"Sender Person", "sender@example.com"})
+        |> Mail.put_subject("Mixed Subject with über and 😀 content")
+        |> Mail.put_text("Body text\r\n")
+        |> Mail.Message.put_content_type("multipart/alternative")
+        |> Mail.Message.put_boundary("boundary-with-a-long-enough-string-12345")
+        |> Mail.Renderers.RFC2822.render()
+
+      [head | _] = String.split(message, "\r\n\r\n", parts: 2)
+
+      for line <- String.split(head, "\r\n") do
+        # Allow a single unbreakable token (e.g. a long boundary value) to
+        # overflow, but only when the line really has no foldable whitespace
+        # other than the leading indent.
+        if byte_size(line) > 78 do
+          stripped = String.trim_leading(line, " ")
+
+          refute String.contains?(stripped, " "),
+                 "line over 78 octets has foldable whitespace: #{inspect(line)}"
+        end
+      end
+    end
   end
 
   test "rendering filters out BCC" do
