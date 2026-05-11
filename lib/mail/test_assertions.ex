@@ -29,13 +29,16 @@ defmodule Mail.TestAssertions do
     actual = normalize_boundary(actual)
     expected = normalize_boundary(expected)
 
-    Enum.each(actual, fn {key, value} ->
-      cond do
-        value != expected[key] ->
-          raise(ExUnit.AssertionError, message: "header key `#{key}` is not equal")
+    actual
+    |> Mail.Headers.to_list()
+    |> Enum.map(&elem(&1, 0))
+    |> Enum.uniq()
+    |> Enum.each(fn key ->
+      actual_values = Mail.Headers.values(actual, key)
+      expected_values = Mail.Headers.values(expected, key)
 
-        true ->
-          nil
+      if actual_values != expected_values do
+        raise(ExUnit.AssertionError, message: "header key `#{key}` is not equal")
       end
     end)
   end
@@ -63,7 +66,8 @@ defmodule Mail.TestAssertions do
 
   defp normalize_boundary(headers) do
     content_type =
-      headers["content-type"]
+      headers
+      |> Mail.Headers.get_single!("content-type")
       |> List.wrap()
 
     content_type
@@ -74,7 +78,7 @@ defmodule Mail.TestAssertions do
 
       _boundary ->
         content_type = Mail.Proplist.put(content_type, "boundary", "")
-        put_in(headers, ["content-type"], content_type)
+        Mail.Headers.put(headers, "content-type", content_type)
     end
   end
 end

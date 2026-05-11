@@ -191,9 +191,10 @@ defmodule Mail.Renderers.RFC2822 do
   """
   def render_headers(headers, blacklist \\ [])
 
-  def render_headers(map, blacklist) when is_map(map) do
-    map
-    |> Map.to_list()
+  def render_headers(%Mail.Headers{} = headers, blacklist) do
+    headers
+    |> Mail.Headers.to_list()
+    |> Enum.reverse()
     |> render_headers(blacklist)
   end
 
@@ -292,6 +293,8 @@ defmodule Mail.Renderers.RFC2822 do
   end
 
   defp reorganize(%Mail.Message{multipart: true, headers: headers} = message) do
+    message = %{message | headers: Mail.Headers.new()}
+
     {text_parts, attachments} =
       message.parts
       |> Enum.split_with(&match_content_type?(&1, ~r/text\/(plain|html)/))
@@ -332,10 +335,16 @@ defmodule Mail.Renderers.RFC2822 do
         end
       end
 
-    Mail.Message.put_headers(message, headers)
+    headers =
+      Mail.Headers.prepend_headers(
+        message.headers,
+        Mail.Headers.delete(headers, "content-type")
+      )
+
+    %{message | headers: headers}
   end
 
   defp encode(body, message) do
-    Mail.Encoder.encode(body, Mail.Message.get_header(message, "content-transfer-encoding"))
+    Mail.Encoder.encode(body, Mail.Message.get_header!(message, "content-transfer-encoding"))
   end
 end

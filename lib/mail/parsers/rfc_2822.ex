@@ -17,8 +17,9 @@ defmodule Mail.Parsers.RFC2822 do
       ...> This is the body!\r
       ...> It has more than one line\r
       ...> \"""
-      iex> Mail.Parsers.RFC2822.parse(message)
-      %Mail.Message{body: "This is the body!\r\nIt has more than one line", headers: %{"to" => ["user@example.com"], "from" => "me@example.com", "subject" => "Test Email", "content-type" => ["text/plain", {"foo", "bar"}, {"baz", "qux"}]}}
+      iex> parsed = Mail.Parsers.RFC2822.parse(message)
+      iex> {Mail.get_to!(parsed), Mail.get_from!(parsed), Mail.get_subject!(parsed)}
+      {["user@example.com"], "me@example.com", "Test Email"}
   """
 
   @months ~w(jan feb mar apr may jun jul aug sep oct nov dec)
@@ -380,7 +381,7 @@ defmodule Mail.Parsers.RFC2822 do
     headers =
       Enum.reduce(headers, message.headers, fn header, headers ->
         {key, value} = parse_header(header, opts)
-        put_header(headers, key, value)
+        Mail.Headers.append(headers, key, value)
       end)
 
     Map.put(message, :headers, headers)
@@ -412,14 +413,8 @@ defmodule Mail.Parsers.RFC2822 do
   defp is_params([{_key, _value} | params]), do: is_params(params)
   defp is_params([_ | _]), do: false
 
-  defp put_header(headers, "received" = key, value),
-    do: Map.update(headers, key, [value], &[value | &1])
-
-  defp put_header(headers, key, value),
-    do: Map.put(headers, key, value)
-
   defp mark_multipart(message),
-    do: Map.put(message, :multipart, multipart?(message.headers))
+    do: Map.put(message, :multipart, multipart?(message))
 
   defp parse_header_value(key, " " <> value),
     do: parse_header_value(key, value)
@@ -688,7 +683,7 @@ defmodule Mail.Parsers.RFC2822 do
     do: <<char::utf8, remove_excess_whitespace(rest)::binary>>
 
   defp parse_body(%Mail.Message{multipart: true} = message, lines, opts) do
-    content_type = message.headers["content-type"]
+    content_type = Mail.Message.get_content_type(message)
     boundary = Mail.Proplist.get(content_type, "boundary")
 
     parts =
@@ -829,20 +824,20 @@ defmodule Mail.Parsers.RFC2822 do
     {charset, language, value}
   end
 
-  defp multipart?(headers) do
-    content_type = headers["content-type"]
+  defp multipart?(message) do
+    content_type = Mail.Message.get_content_type(message)
 
-    !!case content_type do
-      nil -> nil
-      type when is_binary(type) -> nil
-      content_type -> Mail.Proplist.get(content_type, "boundary")
+    case content_type do
+      [] -> false
+      type when is_binary(type) -> false
+      content_type -> Mail.Proplist.get(content_type, "boundary") != nil
     end
   end
 
   defp decode(body, message, opts) do
-    content_type = message.headers["content-type"]
+    content_type = Mail.Message.get_content_type(message)
     charset = Mail.Proplist.get(content_type, "charset")
-    transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
+    transfer_encoding = Mail.Message.get_header!(message, "content-transfer-encoding")
     decoded = Mail.Encoder.decode(body, transfer_encoding)
 
     if charset do

@@ -16,11 +16,17 @@ defmodule Mail.Parsers.RFC2822Test do
       It has more than one line
       """)
 
-    assert message.headers["to"] == ["user@example.com"]
-    assert message.headers["from"] == "me@example.com"
-    assert message.headers["reply-to"] == "otherme@example.com"
-    assert message.headers["subject"] == "Test Email"
-    assert message.headers["content-type"] == ["text/plain", {"foo", "bar"}, {"baz", "qux"}]
+    assert Mail.Message.get_header!(message, "to") == ["user@example.com"]
+    assert Mail.Message.get_header!(message, "from") == "me@example.com"
+    assert Mail.Message.get_header!(message, "reply-to") == "otherme@example.com"
+    assert Mail.Message.get_header!(message, "subject") == "Test Email"
+
+    assert Mail.Message.get_header!(message, "content-type") == [
+             "text/plain",
+             {"foo", "bar"},
+             {"baz", "qux"}
+           ]
+
     assert message.body == "This is the body!\r\nIt has more than one line"
   end
 
@@ -33,10 +39,10 @@ defmodule Mail.Parsers.RFC2822Test do
       Subject: Test Email
       """)
 
-    assert message.headers["to"] == ["user@example.com"]
-    assert message.headers["from"] == "me@example.com"
-    assert message.headers["reply-to"] == "otherme@example.com"
-    assert message.headers["subject"] == "Test Email"
+    assert Mail.Message.get_header!(message, "to") == ["user@example.com"]
+    assert Mail.Message.get_header!(message, "from") == "me@example.com"
+    assert Mail.Message.get_header!(message, "reply-to") == "otherme@example.com"
+    assert Mail.Message.get_header!(message, "subject") == "Test Email"
     assert message.body == ""
   end
 
@@ -63,26 +69,38 @@ defmodule Mail.Parsers.RFC2822Test do
       --foobar--
       """)
 
-    assert message.headers["to"] == [
+    assert Mail.Message.get_header!(message, "to") == [
              {"Test User", "user@example.com"},
              {"Other User", "other@example.com"}
            ]
 
-    assert message.headers["cc"] == [
+    assert Mail.Message.get_header!(message, "cc") == [
              {"The Dude", "dude@example.com"},
              {"Batman", "batman@example.com"}
            ]
 
-    assert message.headers["from"] == {"Me", "me@example.com"}
-    assert message.headers["reply-to"] == {"OtherMe", "otherme@example.com"}
-    assert message.headers["content-type"] == ["multipart/alternative", {"boundary", "foobar"}]
+    assert Mail.Message.get_header!(message, "from") == {"Me", "me@example.com"}
+    assert Mail.Message.get_header!(message, "reply-to") == {"OtherMe", "otherme@example.com"}
+
+    assert Mail.Message.get_header!(message, "content-type") == [
+             "multipart/alternative",
+             {"boundary", "foobar"}
+           ]
 
     [text_part, html_part] = message.parts
 
-    assert text_part.headers["content-type"] == ["text/plain", {"charset", "us-ascii"}]
+    assert Mail.Message.get_header!(text_part, "content-type") == [
+             "text/plain",
+             {"charset", "us-ascii"}
+           ]
+
     assert text_part.body == "This is some text\r\n"
 
-    assert html_part.headers["content-type"] == ["text/html", {"charset", "us-ascii"}]
+    assert Mail.Message.get_content_type(html_part) == [
+             "text/html",
+             {"charset", "us-ascii"}
+           ]
+
     assert html_part.body == "<h1>This is some HTML</h1>"
   end
 
@@ -447,10 +465,8 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["delivered-to"] == "user@example.com"
 
     assert message.headers["received"] == [
-             [
-               "by 101.102.103.104 with SMTP id abcdefg",
-               {"date", ~U"2016-04-01 18:08:31Z"}
-             ]
+             "by 101.102.103.104 with SMTP id abcdefg",
+             {"date", ~U"2016-04-01 18:08:31Z"}
            ]
 
     assert message.headers["x-received"] ==
@@ -479,16 +495,16 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["received"] == [
              [
-               "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
-               {"date", ~U"2016-04-01 18:08:31Z"}
+               "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
+               {"date", ~U"2016-04-01 18:09:07Z"}
              ],
              [
                "from mail.fake.tld ([10.10.10.10]) by localhost ([127.0.0.1])",
                {"date", ~U"2016-04-01 18:08:35Z"}
              ],
              [
-               "from mail3.example.tld ([10.20.30.40]) by mail.fake.tld ([10.10.10.10])",
-               {"date", ~U"2016-04-01 18:09:07Z"}
+               "from localhost ([127.0.0.1]) by localhost (MyMailSoftware)",
+               {"date", ~U"2016-04-01 18:08:31Z"}
              ]
            ]
   end
@@ -695,11 +711,11 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["received"] == [
              [
-               "by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32  2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415"
-             ],
-             [
                "by 2002:a81:578e:0:0:0:0:0 with SMTP id l136csp2273163ywb",
                {"date", ~U"2019-06-23 00:59:49Z"}
+             ],
+             [
+               "by filter0419p1iad2.sendgrid.net with SMTP id filter0419p1iad2-17662-5D0ECF02-32  2019-06-23 00:59:46.828888551 +0000 UTC m=+266323.963383415"
              ]
            ]
   end
@@ -719,12 +735,12 @@ defmodule Mail.Parsers.RFC2822Test do
 
     assert message.headers["received"] == [
              [
-               "from EUR01-HE1-obe.outbound.protection.outlook.com\t (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer\t Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
-               {"date", ~U"2018-08-06 07:23:18Z"}
-             ],
-             [
                "from EUR01-HE1-obe.outbound.protection.outlook.com         (213.199.154.213) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer         Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
                {"date", ~U"2018-08-01 09:49:43Z"}
+             ],
+             [
+               "from EUR01-HE1-obe.outbound.protection.outlook.com\t (213.199.154.208) by us1.smtp.exclaimer.net (191.237.4.149) with Exclaimer\t Signature Manager ESMTP Proxy us1.smtp.exclaimer.net",
+               {"date", ~U"2018-08-06 07:23:18Z"}
              ]
            ]
   end
@@ -747,25 +763,25 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["received"] == [
-             [
-               "from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite",
-               {"date", ~U"2019-11-25 11:00:46Z"}
-             ],
-             [
-               "from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>",
-               {"date", ~U"2016-04-15 17:22:55Z"}
-             ],
-             ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
-             [
-               "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
-               {"date", ~U"2017-08-08 12:05:31Z"}
-             ],
+             ["from local-ip[x.x.x.x] by FTGS", {"date", ~U"2014-12-28 18:04:31Z"}],
+             ["from trusted client by mx4.sika.com", {"date", ~U"2017-05-30 15:29:15Z"}],
              [
                "from freshdesk.com (ec2-x-x-x-x.compute-1.amazonaws.com [x.x.x.x])\tby x.sendgrid.net (SG) with ESMTP id eSJywaprRzabHWQplQP8xw\tfor <x@example.com>",
                {"date", ~U"2017-06-20 09:44:58Z"}
              ],
-             ["from trusted client by mx4.sika.com", {"date", ~U"2017-05-30 15:29:15Z"}],
-             ["from local-ip[x.x.x.x] by FTGS", {"date", ~U"2014-12-28 18:04:31Z"}]
+             [
+               "from ip<x.x.x.> ([x.x.x.x])\tby zm-as2 with ESMTP id fd672312-a36d-4bfe-8770-01b5cb3baca4 for nla2@archstl.org",
+               {"date", ~U"2017-08-08 12:05:31Z"}
+             ],
+             ["from junghyuk@gbtp.or.kr with  Spamsniper 2.96.32 (Processed in 1.059114 secs)"],
+             [
+               "from x.x.x.x\tby Spam Quarantine V01-06377SMG01.x.x.x (x.x.x.x) for <x@example.com>",
+               {"date", ~U"2016-04-15 17:22:55Z"}
+             ],
+             [
+               "from w.x.y.z ([1.1.1.1]) by x.y.local with InterScan Messaging Security Suite",
+               {"date", ~U"2019-11-25 11:00:46Z"}
+             ]
            ]
   end
 
@@ -788,10 +804,8 @@ defmodule Mail.Parsers.RFC2822Test do
       """)
 
     assert message.headers["received"] == [
-             [
-               "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
-               {"date", ~U"2017-06-08 08:22:53Z"}
-             ]
+             "from smtp.notes.na.collabserv.com (192.155.248.91)\tby d50lp03.ny.us.ibm.com (158.87.18.22) with IBM ESMTP SMTP Gateway: Authorized Use Only! Violators will be prosecuted (version=TLSv1/SSLv3 cipher=AES128-GCM-SHA256 bits=128/128)",
+             {"date", ~U"2017-06-08 08:22:53Z"}
            ]
   end
 
@@ -883,26 +897,17 @@ defmodule Mail.Parsers.RFC2822Test do
     message = parse_email(email)
     assert [part1, part2, part3, part4] = message.parts
 
-    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert ["text/plain" | _] = Mail.Message.get_content_type(part1)
     assert part1.body == "fran\xE7aise pr\xE8s \xE0 th\xE9\xE2tre lumi\xE8re"
 
-    assert %{
-             headers: %{
-               "content-type" => ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]
-             }
-           } = part2
+    assert Mail.Message.get_content_type(part2) ==
+             ["application/octet-stream", {"name", "Imagin\xE9.pdf"}]
 
-    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Pre\xECsentation.pdf"}]}} =
-             part3
+    assert Mail.Message.get_content_type(part3) ==
+             ["application/pdf", {"name", "Pre\xECsentation.pdf"}]
 
-    assert %{
-             headers: %{
-               "content-type" => [
-                 "application/octet-stream",
-                 {"name", "ID S\xE9 - Liste inscrits.xlsx"}
-               ]
-             }
-           } = part4
+    assert Mail.Message.get_header!(part4, "content-type") ==
+             ["application/octet-stream", {"name", "ID S\xE9 - Liste inscrits.xlsx"}]
 
     # This is a simple character replacement function that simulates charset change from Windows-1252/1258 to UTF-8
     message =
@@ -926,26 +931,17 @@ defmodule Mail.Parsers.RFC2822Test do
       )
 
     assert [part1, part2, part3, part4] = message.parts
-    assert %{headers: %{"content-type" => ["text/plain" | _]}} = part1
+    assert ["text/plain" | _] = Mail.Message.get_content_type(part1)
     assert part1.body == "française près à théâtre lumière"
 
-    assert %{
-             headers: %{
-               "content-type" => ["application/octet-stream", {"name", "Imaginé.pdf"}]
-             }
-           } = part2
+    assert Mail.Message.get_content_type(part2) ==
+             ["application/octet-stream", {"name", "Imaginé.pdf"}]
 
-    assert %{headers: %{"content-type" => ["application/pdf", {"name", "Présentation.pdf"}]}} =
-             part3
+    assert Mail.Message.get_content_type(part3) ==
+             ["application/pdf", {"name", "Présentation.pdf"}]
 
-    assert %{
-             headers: %{
-               "content-type" => [
-                 "application/octet-stream",
-                 {"name", "ID Sé - Liste inscrits.xlsx"}
-               ]
-             }
-           } = part4
+    assert Mail.Message.get_content_type(part4) ==
+             ["application/octet-stream", {"name", "ID Sé - Liste inscrits.xlsx"}]
   end
 
   test "content-type mixed with no body" do
