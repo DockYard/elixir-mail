@@ -1,10 +1,11 @@
 defmodule MailTest do
   use ExUnit.Case, async: true
+  import Mail.TestHelpers.Headers
   doctest Mail
 
   defmodule TestRenderer do
     def render(message) do
-      Mail.Message.get_header(message, "subject")
+      Mail.Message.get_header!(message, "subject")
     end
   end
 
@@ -356,12 +357,12 @@ defmodule MailTest do
 
     assert Mail.Message.get_content_type(mail) == ["text/markdown"]
 
-    assert Mail.Message.get_header(mail, :content_disposition) == [
+    assert Mail.Message.get_header!(mail, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(mail, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(mail, :content_transfer_encoding) == :base64
     assert mail.body == file_content
   end
 
@@ -374,12 +375,12 @@ defmodule MailTest do
 
     assert Mail.Message.get_content_type(mail) == ["text/markdown"]
 
-    assert Mail.Message.get_header(mail, :content_disposition) == [
+    assert Mail.Message.get_header!(mail, :content_disposition) == [
              "attachment",
              {"filename", "DOESNOTEXIST.md"}
            ]
 
-    assert Mail.Message.get_header(mail, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(mail, :content_transfer_encoding) == :base64
     assert mail.body == file_content
   end
 
@@ -393,12 +394,12 @@ defmodule MailTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
 
@@ -424,12 +425,12 @@ defmodule MailTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "DOESNOTEXIST.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
 
@@ -555,49 +556,49 @@ defmodule MailTest do
         parts: [
           %Mail.Message{
             body: "file content 1",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment"],
               "content-transfer-encoding" => :base64
-            }
+            })
           },
           %Mail.Message{
             body: "file content 2",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment", {"filename", "README.md"}],
               "content-transfer-encoding" => :base64
-            }
+            })
           },
           %Mail.Message{
             body: "file content 3",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment"],
               "content-type" => ["application/octet-stream", {"name", "README.md"}]
-            }
+            })
           },
           %Mail.Message{
             body: "file content 4",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment", {"foo", "bar"}, {"filename", "README.md"}],
               "content-type" => ["application/octet-stream", {"name", "README.md"}]
-            }
+            })
           },
           %Mail.Message{
             body: "file content 5",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment"],
               "content-type" => [
                 "application/octet-stream",
                 {"foo", "bar"},
                 {"name", "README.md"}
               ]
-            }
+            })
           },
           %Mail.Message{
             body: "file content 6",
-            headers: %{
+            headers: headers_from_map(%{
               "content-disposition" => ["attachment", {"foo", "bar"}],
               "content-type" => ["application/octet-stream", {"foo", "bar"}]
-            }
+            })
           }
         ]
       }

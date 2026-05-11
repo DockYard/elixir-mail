@@ -20,25 +20,29 @@ defmodule Mail.MessageTest do
 
   test "put_header" do
     message = Mail.Message.put_header(%Mail.Message{}, :test, "test content")
-    assert Mail.Message.get_header(message, :test) == "test content"
+    assert Mail.Message.get_header(message, :test) == ["test content"]
   end
 
   test "get_header" do
-    message = %Mail.Message{headers: %{"foo" => "bar"}}
-    assert Mail.Message.get_header(message, :foo) == "bar"
+    message = Mail.Message.put_header(%Mail.Message{}, :foo, "bar")
+    assert Mail.Message.get_header(message, :foo) == ["bar"]
   end
 
   test "delete_header" do
-    message = Mail.Message.delete_header(%Mail.Message{headers: %{"foo" => "bar"}}, :foo)
-    refute Map.has_key?(message.headers, :foo)
+    message =
+      %Mail.Message{}
+      |> Mail.Message.put_header(:foo, "bar")
+      |> Mail.Message.delete_header(:foo)
+
+    refute Mail.Message.has_header?(message, :foo)
   end
 
   test "delete_headers" do
     message =
-      Mail.Message.delete_headers(%Mail.Message{headers: %{"foo" => "bar", "baz" => "qux"}}, [
-        :foo,
-        :baz
-      ])
+      %Mail.Message{}
+      |> Mail.Message.put_header(:foo, "bar")
+      |> Mail.Message.put_header(:baz, "qux")
+      |> Mail.Message.delete_headers([:foo, :baz])
 
     refute Mail.Message.has_header?(message, :foo)
     refute Mail.Message.has_header?(message, :baz)
@@ -46,14 +50,14 @@ defmodule Mail.MessageTest do
 
   test "put_content_type" do
     message = Mail.Message.put_content_type(%Mail.Message{}, "multipart/mixed")
-    assert Mail.Message.get_header(message, :content_type) == ["multipart/mixed"]
+    assert Mail.Message.get_header!(message, :content_type) == ["multipart/mixed"]
   end
 
   test "get_content_type" do
-    message = %Mail.Message{headers: %{"content-type" => "multipart/mixed"}}
+    message = Mail.Message.put_header(%Mail.Message{}, "content-type", "multipart/mixed")
     assert Mail.Message.get_content_type(message) == ["multipart/mixed"]
 
-    message = %Mail.Message{headers: %{"content-type" => ["multipart/mixed"]}}
+    message = Mail.Message.put_header(%Mail.Message{}, "content-type", ["multipart/mixed"])
     assert Mail.Message.get_content_type(message) == ["multipart/mixed"]
 
     message = %Mail.Message{}
@@ -65,7 +69,7 @@ defmodule Mail.MessageTest do
 
     boundary =
       message
-      |> Mail.Message.get_header(:content_type)
+      |> Mail.Message.get_header!(:content_type)
       |> Mail.Proplist.get("boundary")
 
     assert boundary == "customboundary"
@@ -74,7 +78,7 @@ defmodule Mail.MessageTest do
       Mail.Message.put_header(%Mail.Message{}, :content_type, ["multipart/mixed"])
       |> Mail.Message.put_boundary("customboundary")
 
-    assert Mail.Message.get_header(message, :content_type) == [
+    assert Mail.Message.get_header!(message, :content_type) == [
              "multipart/mixed",
              {"boundary", "customboundary"}
            ]
@@ -83,7 +87,7 @@ defmodule Mail.MessageTest do
       Mail.Message.put_header(%Mail.Message{}, :content_type, "multipart/mixed")
       |> Mail.Message.put_boundary("customboundary")
 
-    assert Mail.Message.get_header(message, :content_type) == [
+    assert Mail.Message.get_header!(message, :content_type) == [
              "multipart/mixed",
              {"boundary", "customboundary"}
            ]
@@ -104,28 +108,28 @@ defmodule Mail.MessageTest do
   test "build_text" do
     message = Mail.Message.build_text("Some text")
     assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "UTF-8"}]
-    assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
+    assert Mail.Message.get_header!(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_text when given charset" do
     message = Mail.Message.build_text("Some text", charset: "US-ASCII")
     assert Mail.Message.get_content_type(message) == ["text/plain", {"charset", "US-ASCII"}]
-    assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
+    assert Mail.Message.get_header!(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
     assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "UTF-8"}]
-    assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
+    assert Mail.Message.get_header!(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
 
   test "build_html when given charset" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>", charset: "US-ASCII")
     assert Mail.Message.get_content_type(message) == ["text/html", {"charset", "US-ASCII"}]
-    assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
+    assert Mail.Message.get_header!(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
 
@@ -135,12 +139,12 @@ defmodule Mail.MessageTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
 
@@ -150,13 +154,13 @@ defmodule Mail.MessageTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
-    assert Mail.Message.get_header(part, :content_id) == "attachment-id"
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_id) == "attachment-id"
     assert part.body == file_content
   end
 
@@ -166,12 +170,12 @@ defmodule Mail.MessageTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
     assert part.body == file_content
   end
 
@@ -185,13 +189,13 @@ defmodule Mail.MessageTest do
 
     assert Mail.Message.get_content_type(part) == ["text/markdown"]
 
-    assert Mail.Message.get_header(part, :content_disposition) == [
+    assert Mail.Message.get_header!(part, :content_disposition) == [
              "attachment",
              {"filename", "README.md"}
            ]
 
-    assert Mail.Message.get_header(part, :content_transfer_encoding) == :base64
-    assert Mail.Message.get_header(part, :content_id) == "attachment-id"
+    assert Mail.Message.get_header!(part, :content_transfer_encoding) == :base64
+    assert Mail.Message.get_header!(part, :content_id) == "attachment-id"
     assert part.body == file_content
   end
 
@@ -222,7 +226,7 @@ defmodule Mail.MessageTest do
     encoded_subject = "=?UTF-8?Q?" <> Mail.Encoders.QuotedPrintable.encode(subject) <> "?="
 
     assert String.contains?(txt, encoded_subject)
-    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+    assert Mail.get_subject(Mail.Parsers.RFC2822.parse(txt)) == subject
   end
 
   test "UTF-8 in subject (quoted printable with spaces, RFC 2047§4.2 (2))" do
@@ -231,7 +235,7 @@ defmodule Mail.MessageTest do
     mail =
       "Subject: =?UTF-8?Q?test_" <> Mail.Encoders.QuotedPrintable.encode("😀") <> "_test?=\r\n\r\n"
 
-    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(mail)
+    assert Mail.get_subject(Mail.Parsers.RFC2822.parse(mail)) == subject
   end
 
   test "UTF-8 in addresses" do
@@ -267,9 +271,12 @@ defmodule Mail.MessageTest do
 
     assert String.contains?(message, encoded_header_value)
 
-    assert %Mail.Message{
-             headers: %{"content-disposition" => ["attachment", {"filename", ^file_name}]}
-           } = Mail.Parsers.RFC2822.parse(message)
+    parsed = Mail.Parsers.RFC2822.parse(message)
+
+    assert Mail.Message.get_header!(parsed, "content-disposition") == [
+             "attachment",
+             {"filename", file_name}
+           ]
   end
 
   test "long UTF-8 in subject" do
@@ -285,6 +292,6 @@ defmodule Mail.MessageTest do
       "=?UTF-8?Q?=C3=BCber alles=0Anew =3F=3D line some =D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD?==?UTF-8?Q?=D1=8C-=D0=BE=D1=87=D0=B5=D0=BD=D1=8C long line?="
 
     assert String.contains?(txt, encoded_subject)
-    assert %Mail.Message{headers: %{"subject" => ^subject}} = Mail.Parsers.RFC2822.parse(txt)
+    assert Mail.get_subject!(Mail.Parsers.RFC2822.parse(txt)) == subject
   end
 end

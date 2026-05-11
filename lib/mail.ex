@@ -72,8 +72,8 @@ defmodule Mail do
       end
 
     Mail.Message.put_body(message, body)
-    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
     |> Mail.Message.put_content_type(content_type)
+    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
   end
 
   @doc """
@@ -93,10 +93,12 @@ defmodule Mail do
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
-    do: message
-
-  def get_text(%Mail.Message{}), do: nil
+  def get_text(%Mail.Message{} = message) do
+    case Mail.Message.get_content_type(message) do
+      ["text/plain" | _] -> message
+      _ -> nil
+    end
+  end
 
   @doc """
   Add an HTML part to the message
@@ -131,8 +133,8 @@ defmodule Mail do
       end
 
     Mail.Message.put_body(message, body)
-    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
     |> Mail.Message.put_content_type(content_type)
+    |> Mail.Message.put_header(:content_transfer_encoding, :quoted_printable)
   end
 
   @doc """
@@ -152,12 +154,12 @@ defmodule Mail do
     end)
   end
 
-  def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
-
-  def get_html(%Mail.Message{headers: %{"content-type" => ["text/html" | _]}} = message),
-    do: message
-
-  def get_html(%Mail.Message{}), do: nil
+  def get_html(%Mail.Message{} = message) do
+    case Mail.Message.get_content_type(message) do
+      ["text/html" | _] -> message
+      _ -> nil
+    end
+  end
 
   defp default_charset do
     "UTF-8"
@@ -244,7 +246,7 @@ defmodule Mail do
 
   defp get_attachment_filename(message) do
     filename =
-      case Mail.Message.get_header(message, :content_disposition) do
+      case Mail.Message.get_header!(message, :content_disposition) do
         [_ | properties] ->
           Enum.find_value(properties, fn {key, value} -> key == "filename" && value end)
 
@@ -255,7 +257,7 @@ defmodule Mail do
     filename =
       case filename do
         nil ->
-          case Mail.Message.get_header(message, :content_type) do
+          case Mail.Message.get_content_type(message) do
             [_ | properties] ->
               Enum.find_value(properties, fn {key, value} -> key == "name" && value end)
 
@@ -285,16 +287,25 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_subject(%Mail.Message{}, "Welcome to DockYard!")
-      %Mail.Message{headers: %{"subject" => "Welcome to DockYard!"}}
+      iex> |> Mail.get_subject()
+      "Welcome to DockYard!"
   """
   def put_subject(message, subject),
     do: Mail.Message.put_header(message, "subject", subject)
 
   @doc ~S"""
   Retrieve the `subject` header
+  If multiple subject headers exist, returns the subject from the first header.
   """
   def get_subject(message),
-    do: Mail.Message.get_header(message, "subject")
+    do: Mail.Message.get_header(message, "subject") |> List.first()
+
+  @doc """
+  Retrieve the `subject` header or raise if multiple values exist
+  """
+  def get_subject!(message) do
+    Mail.Message.get_header!(message, "subject")
+  end
 
   @doc """
   Add new recipients to the `to` header
@@ -305,14 +316,17 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_to(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{"to" => ["one@example.com"]}}
+      iex> |> Mail.get_to()
+      ["one@example.com"]
 
       iex> Mail.put_to(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com"]}}
+      iex> |> Mail.get_to()
+      ["one@example.com", "two@example.com"]
 
       iex> Mail.put_to(%Mail.Message{}, "one@example.com")
       iex> |> Mail.put_to(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{"to" => ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> |> Mail.get_to()
+      ["one@example.com", "two@example.com", "three@example.com"]
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -334,9 +348,18 @@ defmodule Mail do
 
   @doc ~S"""
   Retrieves the list of recipients from the `to` header
+
+  If multiple to headers exist, returns the recipients from the first header.
   """
   def get_to(message),
-    do: Mail.Message.get_header(message, "to")
+    do: Mail.Message.get_header(message, "to") |> List.first()
+
+  @doc """
+  Retrieve the recipients from the `to` header or raise if multiple values exist
+  """
+  def get_to!(message) do
+    Mail.Message.get_header!(message, "to")
+  end
 
   @doc """
   Add new recipients to the `cc` header
@@ -347,14 +370,17 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{"cc" => ["one@example.com"]}}
+      iex> |> Mail.get_cc()
+      ["one@example.com"]
 
       iex> Mail.put_cc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com"]}}
+      iex> |> Mail.get_cc()
+      ["one@example.com", "two@example.com"]
 
       iex> Mail.put_cc(%Mail.Message{}, "one@example.com")
       iex> |> Mail.put_cc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{"cc" => ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> |> Mail.get_cc()
+      ["one@example.com", "two@example.com", "three@example.com"]
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -376,9 +402,17 @@ defmodule Mail do
 
   @doc ~S"""
   Retrieves the recipients from the `cc` header
+  If multiple cc headers exist, returns the recipients from the first header.
   """
   def get_cc(message),
-    do: Mail.Message.get_header(message, "cc")
+    do: Mail.Message.get_header(message, "cc") |> List.first()
+
+  @doc """
+  Retrieve the recipients from the `cc` header or raise if multiple values exist
+  """
+  def get_cc!(message) do
+    Mail.Message.get_header!(message, "cc")
+  end
 
   @doc """
   Add new recipients to the `bcc` header
@@ -389,14 +423,17 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
-      %Mail.Message{headers: %{"bcc" => ["one@example.com"]}}
+      iex> |> Mail.get_bcc()
+      ["one@example.com"]
 
       iex> Mail.put_bcc(%Mail.Message{}, ["one@example.com", "two@example.com"])
-      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com"]}}
+      iex> |> Mail.get_bcc()
+      ["one@example.com", "two@example.com"]
 
       iex> Mail.put_bcc(%Mail.Message{}, "one@example.com")
       iex> |> Mail.put_bcc(["two@example.com", "three@example.com"])
-      %Mail.Message{headers: %{"bcc" => ["one@example.com", "two@example.com", "three@example.com"]}}
+      iex> |> Mail.get_bcc()
+      ["one@example.com", "two@example.com", "three@example.com"]
 
   The value of a recipient must conform to either a string value or a tuple with two elements,
   otherwise an `ArgumentError` is raised.
@@ -418,9 +455,17 @@ defmodule Mail do
 
   @doc ~S"""
   Retrieves the recipients from the `bcc` header
+  If multiple bcc headers exist, returns the recipients from the first header.
   """
   def get_bcc(message),
-    do: Mail.Message.get_header(message, "bcc")
+    do: Mail.Message.get_header(message, "bcc") |> List.first()
+
+  @doc """
+  Retrieve the recipients from the `bcc` header or raise if multiple values exist
+  """
+  def get_bcc!(message) do
+    Mail.Message.get_header!(message, "bcc")
+  end
 
   @doc """
   Add a new `from` header
@@ -428,7 +473,8 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_from(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{"from" => "user@example.com"}}
+      iex> |> Mail.get_from()
+      "user@example.com"
   """
   def put_from(message, sender) do
     validate_recipients([sender])
@@ -437,9 +483,17 @@ defmodule Mail do
 
   @doc ~S"""
   Retrieves the `from` header
+  If multiple from headers exist, returns the sender from the first header.
   """
   def get_from(message),
-    do: Mail.Message.get_header(message, "from")
+    do: Mail.Message.get_header(message, "from") |> List.first()
+
+  @doc """
+  Retrieve the sender from the `from` header or raise if multiple values exist
+  """
+  def get_from!(message) do
+    Mail.Message.get_header!(message, "from")
+  end
 
   @doc """
   Add a new `reply-to` header
@@ -447,16 +501,25 @@ defmodule Mail do
   ## Examples
 
       iex> Mail.put_reply_to(%Mail.Message{}, "user@example.com")
-      %Mail.Message{headers: %{"reply-to" => "user@example.com"}}
+      iex> |> Mail.get_reply_to()
+      "user@example.com"
   """
   def put_reply_to(message, reply_address),
     do: Mail.Message.put_header(message, "reply-to", reply_address)
 
   @doc ~S"""
   Retrieves the `reply-to` header
+  If multiple reply-to headers exist, returns the reply address from the first header.
   """
   def get_reply_to(message),
-    do: Mail.Message.get_header(message, "reply-to")
+    do: Mail.Message.get_header(message, "reply-to") |> List.first()
+
+  @doc """
+  Retrieve the reply address from the `reply-to` header or raise if multiple values exist
+  """
+  def get_reply_to!(message) do
+    Mail.Message.get_header!(message, "reply-to")
+  end
 
   @doc """
   Returns a unique list of all recipients

@@ -162,17 +162,22 @@ defmodule Mail.Renderers.RFC2822Test do
   end
 
   test "headers - renders all headers" do
-    headers = Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"})
+    headers =
+      Mail.Headers.new()
+      |> Mail.Headers.append("foo", "bar")
+      |> Mail.Headers.append("baz", "qux")
+      |> Mail.Renderers.RFC2822.render_headers()
+
     assert headers == "Foo: bar\r\nBaz: qux"
   end
 
   test "headers - handles empty headers as nil" do
     headers =
-      Mail.Renderers.RFC2822.render_headers(%{
-        "content-type" => "text/plain",
-        "message-id" => nil,
-        "content-disposition" => "attachment"
-      })
+      Mail.Headers.new()
+      |> Mail.Headers.append("content-type", "text/plain")
+      |> Mail.Headers.append("message-id", nil)
+      |> Mail.Headers.append("content-disposition", "attachment")
+      |> Mail.Renderers.RFC2822.render_headers()
 
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
@@ -183,11 +188,11 @@ defmodule Mail.Renderers.RFC2822Test do
 
   test "headers - handles empty headers as empty list" do
     headers =
-      Mail.Renderers.RFC2822.render_headers(%{
-        "content-type" => "text/plain",
-        "to" => [],
-        "content-disposition" => "attachment"
-      })
+      Mail.Headers.new()
+      |> Mail.Headers.append("content-type", "text/plain")
+      |> Mail.Headers.append("to", [])
+      |> Mail.Headers.append("content-disposition", "attachment")
+      |> Mail.Renderers.RFC2822.render_headers()
 
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
@@ -198,11 +203,11 @@ defmodule Mail.Renderers.RFC2822Test do
 
   test "headers - handles empty headers as blank string" do
     headers =
-      Mail.Renderers.RFC2822.render_headers(%{
-        "content-type" => "text/plain",
-        "from" => "         ",
-        "content-disposition" => "attachment"
-      })
+      Mail.Headers.new()
+      |> Mail.Headers.append("content-type", "text/plain")
+      |> Mail.Headers.append("from", "         ")
+      |> Mail.Headers.append("content-disposition", "attachment")
+      |> Mail.Renderers.RFC2822.render_headers()
 
     assert headers == "Content-Type: text/plain\r\nContent-Disposition: attachment"
   end
@@ -214,7 +219,10 @@ defmodule Mail.Renderers.RFC2822Test do
 
   test "headers - blacklist certain headers" do
     headers =
-      Mail.Renderers.RFC2822.render_headers(%{"foo" => "bar", "baz" => "qux"}, ["foo", "baz"])
+      Mail.Headers.new()
+      |> Mail.Headers.append("foo", "bar")
+      |> Mail.Headers.append("baz", "qux")
+      |> Mail.Renderers.RFC2822.render_headers(["foo", "baz"])
 
     assert headers == ""
   end
@@ -279,6 +287,26 @@ defmodule Mail.Renderers.RFC2822Test do
     assert_rfc2822_equal(result, fixture)
   end
 
+  test "multipart render preserves duplicate Received after reorganize" do
+    message =
+      Mail.build_multipart()
+      |> Mail.put_subject("Dup received")
+      |> Mail.put_text("body")
+      |> Mail.Message.prepend_header(:received, "by mail.example.com; Mon, 11 May 2026 10:00:00 +0000")
+      |> Mail.Message.prepend_header(:received, "by relay.example.com; Mon, 11 May 2026 09:00:00 +0000")
+
+    rendered = Mail.Renderers.RFC2822.render(message)
+    parsed = Mail.Parsers.RFC2822.parse(rendered)
+    received = Mail.Message.get_header(parsed, "received")
+
+    assert length(received) == 2
+
+    assert Enum.map(received, &hd/1) == [
+             "by relay.example.com",
+             "by mail.example.com"
+           ]
+  end
+
   test "renders a multipart mail with jpeg attachment" do
     message =
       Mail.build_multipart()
@@ -319,7 +347,7 @@ defmodule Mail.Renderers.RFC2822Test do
       |> Mail.Renderers.RFC2822.render()
       |> Mail.Parsers.RFC2822.parse()
 
-    refute Map.has_key?(message.headers, "bcc")
+    refute Mail.Message.has_header?(message, "bcc")
   end
 
   test "properly encodes body based upon Content-Transfer-Encoding value" do
@@ -446,17 +474,17 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/alternative", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                   body: "Some text",
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/alternative", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [part] = message.parts
+
+      assert Mail.Message.get_content_type(part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert part.body == "Some text"
     end
 
     test "multipart/alternative with text/plain and text/html" do
@@ -470,23 +498,24 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/alternative", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                   body: "Some text",
-                   parts: [],
-                   multipart: false
-                 },
-                 %Mail.Message{
-                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
-                   body: "<h1>Some HTML</h1>",
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/alternative", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [text_part, html_part] = message.parts
+
+      assert Mail.Message.get_content_type(text_part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert text_part.body == "Some text"
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert html_part.body == "<h1>Some HTML</h1>"
     end
 
     test "multipart/related with text/html and inline attachment" do
@@ -507,23 +536,31 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/related", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]}
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-id" => "c_id",
-                     "content-disposition" => ["inline", {"filename", "image.jpg"}],
-                     "x-attachment-id" => "a_id"
-                   }
-                 }
-               ]
-             } = message
+      assert ["multipart/related", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [html_part, attachment_part] = message.parts
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-transfer-encoding") == "base64"
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-id") == "c_id"
+
+      assert Mail.Message.get_header!(attachment_part, "content-disposition") == [
+               "inline",
+               {"filename", "image.jpg"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "x-attachment-id") == "a_id"
     end
 
     test "multipart/mixed with text/html and attachment" do
@@ -537,21 +574,27 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]}
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
-                   }
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [html_part, attachment_part] = message.parts
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-transfer-encoding") == "base64"
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-disposition") == [
+               "attachment",
+               {"filename", "image.jpg"}
+             ]
     end
 
     test "multipart/mixed with multipart/alternative and attachment" do
@@ -566,41 +609,41 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => [
-                       "multipart/alternative",
-                       {"boundary", _alternative_boundary}
-                     ]
-                   },
-                   parts: [
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                       body: "Some text",
-                       parts: [],
-                       multipart: false
-                     },
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
-                       body: "<h1>Some HTML</h1>",
-                       parts: [],
-                       multipart: false
-                     }
-                   ]
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}]
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _mixed_boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [alternative_part, attachment_part] = message.parts
+
+      assert ["multipart/alternative", {"boundary", _alternative_boundary}] =
+               Mail.Message.get_content_type(alternative_part)
+
+      assert [text_part, html_part] = alternative_part.parts
+
+      assert Mail.Message.get_content_type(text_part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert text_part.body == "Some text"
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert html_part.body == "<h1>Some HTML</h1>"
+
+      assert Mail.Message.get_header!(attachment_part, "content-transfer-encoding") == "base64"
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-disposition") == [
+               "attachment",
+               {"filename", "tiny_jpeg.jpg"}
+             ]
     end
 
     test "multipart/related and inline attachment and multipart/alternative with text/plain and text/html" do
@@ -622,46 +665,46 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{
-                 "content-type" => ["multipart/related", {"boundary", _related_boundary}]
-               },
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => [
-                       "multipart/alternative",
-                       {"boundary", _alternative_boundary}
-                     ]
-                   },
-                   parts: [
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                       body: "Some text",
-                       parts: [],
-                       multipart: false
-                     },
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
-                       body: "<h1>Some HTML</h1>",
-                       parts: [],
-                       multipart: false
-                     }
-                   ]
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-id" => "c_id",
-                     "content-disposition" => ["inline", {"filename", "image.jpg"}],
-                     "x-attachment-id" => "a_id"
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/related", {"boundary", _related_boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [alternative_part, inline_attachment_part] = message.parts
+
+      assert ["multipart/alternative", {"boundary", _alternative_boundary}] =
+               Mail.Message.get_content_type(alternative_part)
+
+      assert [text_part, html_part] = alternative_part.parts
+
+      assert Mail.Message.get_content_type(text_part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert text_part.body == "Some text"
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert html_part.body == "<h1>Some HTML</h1>"
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-transfer-encoding") ==
+               "base64"
+
+      assert Mail.Message.get_content_type(inline_attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-id") == "c_id"
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-disposition") == [
+               "inline",
+               {"filename", "image.jpg"}
+             ]
+
+      assert Mail.Message.get_header!(inline_attachment_part, "x-attachment-id") == "a_id"
     end
 
     test "multipart/mixed with attachment and multipart/alternative with text/plain and text/html" do
@@ -676,44 +719,41 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{
-                 "content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]
-               },
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => [
-                       "multipart/alternative",
-                       {"boundary", _alternative_boundary}
-                     ]
-                   },
-                   parts: [
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                       body: "Some text",
-                       parts: [],
-                       multipart: false
-                     },
-                     %Mail.Message{
-                       headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
-                       body: "<h1>Some HTML</h1>",
-                       parts: [],
-                       multipart: false
-                     }
-                   ]
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _mixed_boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [alternative_part, attachment_part] = message.parts
+
+      assert ["multipart/alternative", {"boundary", _alternative_boundary}] =
+               Mail.Message.get_content_type(alternative_part)
+
+      assert [text_part, html_part] = alternative_part.parts
+
+      assert Mail.Message.get_content_type(text_part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert text_part.body == "Some text"
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert html_part.body == "<h1>Some HTML</h1>"
+
+      assert Mail.Message.get_header!(attachment_part, "content-transfer-encoding") == "base64"
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-disposition") == [
+               "attachment",
+               {"filename", "image.jpg"}
+             ]
     end
 
     test "multipart/mixed with multipart/related and inline attachment and multipart/alternative with text/plain and text/html" do
@@ -736,59 +776,58 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/mixed", {"boundary", _mixed_boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => ["multipart/related", {"boundary", _related_boundary}]
-                   },
-                   parts: [
-                     %Mail.Message{
-                       headers: %{
-                         "content-type" => [
-                           "multipart/alternative",
-                           {"boundary", _alternative_boundary}
-                         ]
-                       },
-                       parts: [
-                         %Mail.Message{
-                           headers: %{"content-type" => ["text/plain", {"charset", "UTF-8"}]},
-                           body: "Some text",
-                           parts: [],
-                           multipart: false
-                         },
-                         %Mail.Message{
-                           headers: %{"content-type" => ["text/html", {"charset", "UTF-8"}]},
-                           body: "<h1>Some HTML</h1>",
-                           parts: [],
-                           multipart: false
-                         }
-                       ]
-                     },
-                     %Mail.Message{
-                       headers: %{
-                         "content-transfer-encoding" => "base64",
-                         "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                         "content-id" => "c_id",
-                         "content-disposition" => ["inline", {"filename", "image.jpg"}],
-                         "x-attachment-id" => "a_id"
-                       },
-                       parts: [],
-                       multipart: false
-                     }
-                   ]
-                 },
-                 %Mail.Message{
-                   headers: %{
-                     "content-transfer-encoding" => "base64",
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}]
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _mixed_boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [related_part, attachment_part] = message.parts
+
+      assert ["multipart/related", {"boundary", _related_boundary}] =
+               Mail.Message.get_content_type(related_part)
+
+      assert [alternative_part, inline_attachment_part] = related_part.parts
+
+      assert ["multipart/alternative", {"boundary", _alternative_boundary}] =
+               Mail.Message.get_content_type(alternative_part)
+
+      assert [text_part, html_part] = alternative_part.parts
+
+      assert Mail.Message.get_content_type(text_part) == [
+               "text/plain",
+               {"charset", "UTF-8"}
+             ]
+
+      assert text_part.body == "Some text"
+
+      assert Mail.Message.get_content_type(html_part) == [
+               "text/html",
+               {"charset", "UTF-8"}
+             ]
+
+      assert html_part.body == "<h1>Some HTML</h1>"
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-transfer-encoding") ==
+               "base64"
+
+      assert Mail.Message.get_content_type(inline_attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-id") == "c_id"
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-disposition") == [
+               "inline",
+               {"filename", "image.jpg"}
+             ]
+
+      assert Mail.Message.get_header!(inline_attachment_part, "x-attachment-id") == "a_id"
+
+      assert Mail.Message.get_header!(attachment_part, "content-transfer-encoding") == "base64"
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
     end
 
     test "multipart/mixed with only attachments" do
@@ -801,19 +840,20 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-disposition" => ["attachment", {"filename", "image.jpg"}]
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [attachment_part] = message.parts
+
+      assert Mail.Message.get_content_type(attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(attachment_part, "content-disposition") == [
+               "attachment",
+               {"filename", "image.jpg"}
+             ]
     end
 
     test "multipart/mixed with only inline attachments" do
@@ -833,19 +873,20 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %Mail.Message{
-               headers: %{"content-type" => ["multipart/mixed", {"boundary", _boundary}]},
-               parts: [
-                 %Mail.Message{
-                   headers: %{
-                     "content-type" => ["image/jpeg", {"charset", "us-ascii"}],
-                     "content-disposition" => ["inline", {"filename", "inline_jpeg.jpg"}]
-                   },
-                   parts: [],
-                   multipart: false
-                 }
-               ]
-             } = message
+      assert ["multipart/mixed", {"boundary", _boundary}] =
+               Mail.Message.get_content_type(message)
+
+      assert [inline_attachment_part] = message.parts
+
+      assert Mail.Message.get_content_type(inline_attachment_part) == [
+               "image/jpeg",
+               {"charset", "us-ascii"}
+             ]
+
+      assert Mail.Message.get_header!(inline_attachment_part, "content-disposition") == [
+               "inline",
+               {"filename", "inline_jpeg.jpg"}
+             ]
     end
 
     test "multipart/mixed with custom headers" do
@@ -869,7 +910,7 @@ defmodule Mail.Renderers.RFC2822Test do
         |> Mail.Renderers.RFC2822.render()
         |> Mail.Parsers.RFC2822.parse()
 
-      assert %{"x-custom-header" => "custom value"} = message.headers
+      assert Mail.Message.get_header!(message, "x-custom-header") == "custom value"
     end
   end
 end
