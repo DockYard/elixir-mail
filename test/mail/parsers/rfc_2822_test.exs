@@ -546,6 +546,55 @@ defmodule Mail.Parsers.RFC2822Test do
     assert message.headers["x-encoded-word"] == "hεłłø wørłd"
   end
 
+  test "ignores whitespace between adjacent encoded words (RFC 2047 §6.2)" do
+    message =
+      parse_email("""
+      X-Adjacent: =?utf-8?Q?a?= =?utf-8?Q?b?=
+      X-Folded-Space: =?utf-8?Q?a?=
+       =?utf-8?Q?b?=
+      X-Folded-Tab: =?utf-8?Q?a?=
+      \t=?utf-8?Q?b?=
+
+      Body
+      """)
+
+    assert message.headers["x-adjacent"] == "ab"
+    assert message.headers["x-folded-space"] == "ab"
+    assert message.headers["x-folded-tab"] == "ab"
+  end
+
+  test "only ignores linear white space between adjacent encoded words (RFC 2047 §6.2)" do
+    message =
+      Mail.Parsers.RFC2822.parse(
+        "X-LF: =?utf-8?Q?a?=\n=?utf-8?Q?b?=\r\n" <>
+          "X-CR: =?utf-8?Q?a?=\r=?utf-8?Q?b?=\r\n" <>
+          "X-VT: =?utf-8?Q?a?=\v=?utf-8?Q?b?=\r\n" <>
+          "X-FF: =?utf-8?Q?a?=\f=?utf-8?Q?b?=\r\n" <>
+          "\r\nBody\r\n"
+      )
+
+    assert message.headers["x-lf"] == "a\nb"
+    assert message.headers["x-cr"] == "a\rb"
+    assert message.headers["x-vt"] == "a\vb"
+    assert message.headers["x-ff"] == "a\fb"
+  end
+
+  test "keeps whitespace between encoded word and plain text (RFC 2047 §6.2)" do
+    message =
+      parse_email("""
+      X-Mixed: =?utf-8?Q?a?= x =?utf-8?Q?b?=
+      X-Stray: =?utf-8?Q?a?= =? x
+      Subject: =?utf-8?Q?Gr=C3=BC=C3=9Fe?= from the
+       =?utf-8?Q?M=C3=BCller?= family
+
+      Body
+      """)
+
+    assert message.headers["x-mixed"] == "a x b"
+    assert message.headers["x-stray"] == "a =? x"
+    assert message.headers["subject"] == "Grüße from the Müller family"
+  end
+
   test "allow empty body (RFC2822 §3.5)" do
     message =
       parse_email("""

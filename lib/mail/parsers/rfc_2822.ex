@@ -540,7 +540,8 @@ defmodule Mail.Parsers.RFC2822 do
         decoded_string = charset_handler.(charset, decoded_string)
 
         # Remove space if immediately followed by another encoded word string
-        remainder = Regex.replace(~r/\s+\=\?/, remainder, "=?")
+        remainder =
+          Regex.replace(~r/\A(?:(?:\r\n)?[ \t])+(?==\?[^?]+\?[BbQq]\?[^?]*\?=)/, remainder, "")
 
         decoded_string <> parse_encoded_word(remainder, opts)
 
