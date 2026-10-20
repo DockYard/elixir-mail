@@ -294,7 +294,10 @@ defmodule Mail.Renderers.RFC2822 do
   defp reorganize(%Mail.Message{multipart: true, headers: headers} = message) do
     {text_parts, attachments} =
       message.parts
-      |> Enum.split_with(&match_content_type?(&1, ~r/text\/(plain|html)/))
+      |> Enum.split_with(fn part ->
+        not Mail.Message.is_attachment?(part, :all) &&
+          match_content_type?(part, ~r/text\/(plain|html)/)
+      end)
 
     {inline_attachments, other_attachments} =
       Enum.split_with(attachments, &Mail.Message.is_attachment?(&1, :inline))
