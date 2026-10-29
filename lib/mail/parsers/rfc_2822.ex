@@ -843,13 +843,30 @@ defmodule Mail.Parsers.RFC2822 do
     content_type = message.headers["content-type"]
     charset = Mail.Proplist.get(content_type, "charset")
     transfer_encoding = Mail.Message.get_header(message, "content-transfer-encoding")
-    decoded = Mail.Encoder.decode(body, transfer_encoding)
+    decoded = decode_transfer_encoding(body, transfer_encoding)
 
     if charset do
       charset_handler = Keyword.get(opts, :charset_handler, fn _, string -> string end)
       charset_handler.(charset, decoded)
     else
       decoded
+    end
+  end
+
+  # 7bit and 8bit mean no encoding was applied (RFC 2045, section 6.2). Mail in
+  # the wild often labels 8-bit text (such as UTF-8) as 7bit, or carries a NUL
+  # in an 8bit part. Keep such a body as it is rather than failing the whole
+  # message; the encoders themselves still reject those bytes.
+  defp decode_transfer_encoding(body, transfer_encoding) do
+    encoder = Mail.Encoder.encoder_for(transfer_encoding)
+
+    try do
+      encoder.decode(body)
+    rescue
+      error in ArgumentError ->
+        if encoder in [Mail.Encoders.SevenBit, Mail.Encoders.EightBit],
+          do: body,
+          else: reraise(error, __STACKTRACE__)
     end
   end
 end

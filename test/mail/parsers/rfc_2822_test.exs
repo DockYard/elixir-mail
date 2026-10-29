@@ -125,6 +125,51 @@ defmodule Mail.Parsers.RFC2822Test do
     assert headers_only_part.body == ""
   end
 
+  test "keeps 8-bit text in parts labelled 7bit instead of failing the message" do
+    message =
+      parse_email(
+        """
+        To: user@example.com
+        From: me@example.com
+        Subject: Mislabelled parts
+        Mime-Version: 1.0
+        Content-Type: multipart/alternative; boundary=foobar
+
+        --foobar
+        Content-Type: text/plain; charset=utf-8
+        Content-Transfer-Encoding: 7bit
+
+        Price: 10 USD, it’s ready
+        --foobar
+        Content-Type: text/html; charset=utf-8
+        Content-Transfer-Encoding: 7bit
+
+        <p>Price: 10 USD, it’s ready</p>
+        --foobar--
+        """,
+        charset_handler: fn "utf-8", string -> String.upcase(string) end
+      )
+
+    [text_part, html_part] = message.parts
+    assert text_part.body == "PRICE: 10 USD, IT’S READY"
+    assert html_part.body == "<P>PRICE: 10 USD, IT’S READY</P>"
+  end
+
+  test "keeps a NUL in a part labelled 8bit instead of failing the message" do
+    message =
+      parse_email("""
+      To: user@example.com
+      From: me@example.com
+      Subject: NUL in 8bit
+      Content-Type: text/plain
+      Content-Transfer-Encoding: 8bit
+
+      before\0after
+      """)
+
+    assert message.body == "before\0after"
+  end
+
   # A reproduction of an email found in the wild.
   test "parses a multipart message with a body with two html parts" do
     message =
