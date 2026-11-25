@@ -7,7 +7,7 @@ defmodule Mail.MIME do
   """
   def type(extension)
 
-  for line <- File.stream!(Path.join([__DIR__, "mime.types"]), [], :line) do
+  for line <- File.stream!(Path.join([__DIR__, "mime.types"])) do
     if String.starts_with?(line, ["#", "\n"]) do
       []
     else
